@@ -1,0 +1,1305 @@
+/**
+ * StyleMate 风格知识库
+ *
+ * 每种风格都从五个维度进行定义：
+ * 1. 骨相适配 — 脸型 / 五官线条 / 骨架粗细
+ * 2. 量感适配 — 五官存在感强弱
+ * 3. 体型适配 — 身形 / 身高 / 廓形偏好
+ * 4. 肤色适配 — 季型 / 对比度 / 色板
+ * 5. 气质适配 — 原生气质 / 生活方式
+ *
+ * 设计原则：没有风格绝对"不适合"任何人，只有"更容易驾驭"和"需要更多调整"之分。
+ */
+
+export interface StyleDefinition {
+  id: string;
+  name: string;
+  alias: string[];              // 别称
+  category: StyleCategory;
+  description: string;          // 一句话描述
+  philosophy: string;           // 风格哲学
+  difficulty: number;           // 1-5 入门难度
+
+  /** 适配评分规则 — 每个维度一个 scoring 函数（用配置化规则替代代码逻辑） */
+  boneRules: BoneStructureRules;
+  volumeRules: VolumeSenseRules;
+  bodyRules: BodyTypeRules;
+  skinRules: SkinToneRules;
+  temperamentRules: TemperamentRules;
+
+  /** 风格视觉特征 */
+  silhouette: string[];         // 典型廓形
+  keyItems: string[];           // 标志单品
+  colorPalette: string[];       // 色板 (hex)
+  details: string[];            // 标志细节
+}
+
+export type StyleCategory =
+  | 'japanese'          // 日系
+  | 'korean'            // 韩系
+  | 'european'          // 欧洲
+  | 'american'          // 美式
+  | 'chinese'           // 中式
+  | 'minimal'           // 极简
+  | 'street'            // 街头
+  | 'feminine'          // 女性化
+  | 'vintage'           // 复古
+  | 'avant_garde';       // 前卫
+
+// ============================================================
+// 适配规则接口
+// ============================================================
+
+export interface BoneStructureRules {
+  idealFaceShapes: string[];         // 最适配脸型
+  adaptableFaceShapes: string[];     // 可适配脸型
+  idealFacialLines: string[];        // 最适配的五官线条类型
+  adaptableFacialLines: string[];
+  idealFrameSizes: string[];
+  adaptableFrameSizes: string[];
+}
+
+export interface VolumeSenseRules {
+  /** 权重：体积感对这个风格有多重要 (0-1) */
+  importance: number;
+  ideal: string[];
+  adaptable: string[];
+}
+
+export interface BodyTypeRules {
+  importance: number;
+  idealBodyShapes: string[];
+  adaptableBodyShapes: string[];
+  idealHeight: string[];
+  adaptableHeight: string[];
+  /** 这个风格对体型的修饰力 */
+  flatteringPower: 'strong' | 'moderate' | 'limited';
+  flatteringNote: string;
+}
+
+export interface SkinToneRules {
+  importance: number;
+  idealSeasons: string[];
+  adaptableSeasons: string[];
+  idealContrast: string[];
+  adaptableContrast: string[];
+  /** 色系倾向 */
+  colorFamily: string[];            // 主色调
+  avoidColors: string[];            // 避雷色
+  colorNote: string;
+}
+
+export interface TemperamentRules {
+  importance: number;
+  idealTemperaments: string[];
+  adaptableTemperaments: string[];
+  idealLifestyles: string[];
+  adaptableLifestyles: string[];
+  /** 内在自洽度 — 穿这个风格需要的内在状态 */
+  innerRequirement: string;
+}
+
+// ============================================================
+// 22 种风格定义
+// ============================================================
+
+export const STYLE_DATABASE: StyleDefinition[] = [
+  // ==================== 日系 ====================
+  {
+    id: 'jp_fresh',
+    name: '日系清新',
+    alias: ['Japanese Fresh', '日杂风'],
+    category: 'japanese',
+    description: '柔和色调、宽松剪裁、自然材质，营造温柔治愈感',
+    philosophy: '不刻意追求时髦，在自然舒适中流露女性的柔美与亲和。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['round', 'oval'],
+      adaptableFaceShapes: ['heart', 'diamond', 'square', 'long'],
+      idealFacialLines: ['curved', 'blunt', 'mixed'],
+      adaptableFacialLines: ['straight', 'sharp'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.7,
+      ideal: ['low', 'medium_low'],
+      adaptable: ['medium', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.4,
+      idealBodyShapes: ['rectangle', 'pear', 'hourglass'],
+      adaptableBodyShapes: ['apple', 'inverted_triangle'],
+      idealHeight: ['petite', 'average'],
+      adaptableHeight: ['tall'],
+      flatteringPower: 'strong',
+      flatteringNote: '宽松廓形对大部分身材友好，尤其修饰梨形下半身。',
+    },
+    skinRules: {
+      importance: 0.8,
+      idealSeasons: ['summer_light', 'summer_cool', 'spring_light'],
+      adaptableSeasons: ['spring_warm', 'autumn_warm', 'winter_cool', 'autumn_deep', 'winter_deep'],
+      idealContrast: ['low', 'medium'],
+      adaptableContrast: ['high'],
+      colorFamily: ['莫兰迪色系', '大地色系'],
+      avoidColors: ['荧光色', '高饱和暖色'],
+      colorNote: '以低饱和、柔和的过渡色为基调，冷色调夏季型人尤其出彩。',
+    },
+    temperamentRules: {
+      importance: 0.85,
+      idealTemperaments: ['gentle', 'artistic'],
+      adaptableTemperaments: ['capable', 'steady', 'lively'],
+      idealLifestyles: ['student', 'creative_freelancer', 'stay_at_home'],
+      adaptableLifestyles: ['office_9to5', 'urban_commuter'],
+      innerRequirement: '需要一定的温柔内在底色；性格强势硬朗者穿容易有违和感。',
+    },
+    silhouette: ['A字型', 'H型宽松', '茧型'],
+    keyItems: ['棉麻衬衫', '阔腿裤', '针织开衫', '长裙', '帆布包'],
+    colorPalette: ['#F5E6E0', '#D4E5D9', '#E8D5E0', '#C5B9CD', '#A8D8B9', '#F0E5D8'],
+    details: ['层叠穿法', '自然皱褶', '编织纹理', '碎花小纹样'],
+  },
+
+  {
+    id: 'jp_minimal',
+    name: '日系简约',
+    alias: ['Japanese Minimal', '无印风'],
+    category: 'japanese',
+    description: '去繁从简，用质感与剪裁代替装饰，穿出无声的高级',
+    philosophy: '极致的减法美学，不依赖色彩与图案，用剪裁、面料、比例讲一个关于质感的故事。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'diamond'],
+      adaptableFaceShapes: ['heart', 'round', 'square'],
+      idealFacialLines: ['straight', 'sharp', 'mixed'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.6,
+      ideal: ['low', 'medium_low', 'medium'],
+      adaptable: ['medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.5,
+      idealBodyShapes: ['rectangle', 'hourglass'],
+      adaptableBodyShapes: ['pear', 'apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'moderate',
+      flatteringNote: '直身剪裁对 H 型身材友好，矮个子注意选择高腰细节款。',
+    },
+    skinRules: {
+      importance: 0.5,
+      idealSeasons: ['summer_cool', 'winter_cool', 'summer_light'],
+      adaptableSeasons: ['spring_light', 'autumn_warm', 'winter_deep', 'spring_warm', 'autumn_deep'],
+      idealContrast: ['low', 'medium'],
+      adaptableContrast: ['high'],
+      colorFamily: ['中性色', '原色'],
+      avoidColors: ['荧光色', '复杂印花'],
+      colorNote: '黑白灰米蓝为基调，依赖质感而非色彩出彩。',
+    },
+    temperamentRules: {
+      importance: 0.8,
+      idealTemperaments: ['cool', 'capable', 'steady'],
+      adaptableTemperaments: ['gentle', 'artistic', 'lively'],
+      idealLifestyles: ['office_9to5', 'urban_commuter', 'creative_freelancer'],
+      adaptableLifestyles: ['student', 'stay_at_home'],
+      innerRequirement: '需要内在的克制与对质感的追求。',
+    },
+    silhouette: ['H型', '直筒', '微A型'],
+    keyItems: ['垂坠阔腿裤', '无领衬衫', '针织背心', '直筒大衣', '素色帆布鞋'],
+    colorPalette: ['#F5F5F0', '#2C2C2C', '#8B8B83', '#FFFFFF', '#D4C5B9', '#4A4A4A'],
+    details: ['无缝线', '立体剪裁', '天然面料', '极简五金'],
+  },
+
+  {
+    id: 'jp_harajuku',
+    name: '原宿风',
+    alias: ['Harajuku', '日系街头'],
+    category: 'street',
+    description: '大胆撞色、层叠混搭、打破一切规则的穿衣态度',
+    philosophy: '穿衣不为取悦任何人，是自我表达最直接的语言。',
+    difficulty: 4,
+    boneRules: {
+      idealFaceShapes: ['oval', 'heart', 'diamond'],
+      adaptableFaceShapes: ['round', 'square', 'long'],
+      idealFacialLines: ['sharp', 'straight', 'mixed'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.4,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.2,
+      idealBodyShapes: ['rectangle', 'inverted_triangle'],
+      adaptableBodyShapes: ['pear', 'hourglass', 'apple'],
+      idealHeight: ['petite', 'average'],
+      adaptableHeight: ['tall'],
+      flatteringPower: 'limited',
+      flatteringNote: '廓形破碎化，不追求修饰比例，重点在表达。',
+    },
+    skinRules: {
+      importance: 0.3,
+      idealSeasons: ['spring_warm', 'winter_cool', 'winter_deep'],
+      adaptableSeasons: ['spring_light', 'summer_cool', 'autumn_warm', 'summer_light', 'autumn_deep'],
+      idealContrast: ['high'],
+      adaptableContrast: ['medium', 'low'],
+      colorFamily: ['撞色', '荧光点缀', '高饱和'],
+      avoidColors: [],
+      colorNote: '色彩没有规则，冲突本身就是美感。',
+    },
+    temperamentRules: {
+      importance: 0.9,
+      idealTemperaments: ['lively', 'artistic'],
+      adaptableTemperaments: ['cool', 'capable', 'gentle'],
+      idealLifestyles: ['student', 'creative_freelancer', 'social_butterfly'],
+      adaptableLifestyles: ['urban_commuter'],
+      innerRequirement: '需要叛逆精神和不在意他人眼光的自信。内敛者极难驾驭。',
+    },
+    silhouette: ['破碎廓形', '超大Oversize', '不对称'],
+    keyItems: ['印花卫衣', '百褶裙', '厚底鞋', '彩色袜子', '装饰发夹', '夸张配饰'],
+    colorPalette: ['#FF6B9D', '#00D4FF', '#FFD700', '#FF4444', '#9B59B6', '#00FF88'],
+    details: ['层叠', '撞色', '徽章', '涂鸦', '蕾丝混搭'],
+  },
+
+  // ==================== 韩系 ====================
+  {
+    id: 'kr_minimal',
+    name: '韩系简约',
+    alias: ['Korean Minimal', '韩系'],
+    category: 'korean',
+    description: '干净线条、中性色调、温柔而有距离感的高级穿搭',
+    philosophy: '看起来毫不费力，其实每一件单品都经过精心挑选。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['oval', 'heart', 'diamond'],
+      adaptableFaceShapes: ['round', 'long', 'square'],
+      idealFacialLines: ['straight', 'mixed', 'sharp'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.6,
+      ideal: ['low', 'medium_low'],
+      adaptable: ['medium', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.6,
+      idealBodyShapes: ['hourglass', 'rectangle', 'pear'],
+      adaptableBodyShapes: ['apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: '高腰线 + 九分裤 + 适当露肤，优化亚洲人身形比例效果极佳。',
+    },
+    skinRules: {
+      importance: 0.7,
+      idealSeasons: ['summer_cool', 'summer_light', 'spring_light'],
+      adaptableSeasons: ['winter_cool', 'spring_warm', 'autumn_warm', 'autumn_deep', 'winter_deep'],
+      idealContrast: ['low', 'medium'],
+      adaptableContrast: ['high'],
+      colorFamily: ['米色系', '灰色系', '蓝色系', '低饱和粉色'],
+      avoidColors: ['荧光色', '大面积高饱和'],
+      colorNote: '低饱和 + 中性色为主，夏季型人天然优势。',
+    },
+    temperamentRules: {
+      importance: 0.75,
+      idealTemperaments: ['gentle', 'cool', 'capable'],
+      adaptableTemperaments: ['artistic', 'steady', 'lively'],
+      idealLifestyles: ['office_9to5', 'student', 'urban_commuter'],
+      adaptableLifestyles: ['creative_freelancer', 'stay_at_home'],
+      innerRequirement: '需要精致的生活态度；粗糙随意的人难以穿出精髓。',
+    },
+    silhouette: ['H型宽松', '上宽下窄', '高腰线'],
+    keyItems: ['阔腿西裤', '针织衫', '过膝大衣', '白色运动鞋', '简约托特包'],
+    colorPalette: ['#F5F5F0', '#C4B5A5', '#8B8B83', '#D4D4CE', '#B8C9D4', '#E8D5E0'],
+    details: ['九分裤长', '前摆半扎', '金属细链', '同色系叠穿'],
+  },
+
+  // ==================== 欧洲 ====================
+  {
+    id: 'fr_elegance',
+    name: '法式优雅',
+    alias: ['French Chic', 'French Elegance'],
+    category: 'european',
+    description: '简约不简单，讲究质感和细节，散发随性而来的优雅气质',
+    philosophy: '真正的优雅是穿得像自己，而且只穿最好的那一面。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['oval', 'heart', 'diamond'],
+      adaptableFaceShapes: ['round', 'square', 'long'],
+      idealFacialLines: ['sharp', 'mixed', 'straight'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.5,
+      ideal: ['low', 'medium_low', 'medium'],
+      adaptable: ['medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.5,
+      idealBodyShapes: ['hourglass', 'rectangle', 'pear'],
+      adaptableBodyShapes: ['apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: '强调腰线 + V领露肤，沙漏型最出彩，但各身形都能通过调整找到法式感。',
+    },
+    skinRules: {
+      importance: 0.6,
+      idealSeasons: ['summer_cool', 'winter_cool', 'autumn_warm'],
+      adaptableSeasons: ['spring_warm', 'summer_light', 'autumn_deep', 'spring_light', 'winter_deep'],
+      idealContrast: ['medium', 'high'],
+      adaptableContrast: ['low'],
+      colorFamily: ['红白蓝', '黑色', '驼色', '波点'],
+      avoidColors: ['荧光色', '霓虹色'],
+      colorNote: '经典法式三色为红白蓝，但任何季型都可以找到属于自己的法式配色。',
+    },
+    temperamentRules: {
+      importance: 0.8,
+      idealTemperaments: ['cool', 'capable'],
+      adaptableTemperaments: ['gentle', 'artistic', 'steady'],
+      idealLifestyles: ['office_9to5', 'urban_commuter', 'social_butterfly'],
+      adaptableLifestyles: ['creative_freelancer', 'student'],
+      innerRequirement: '需要一种"我不在乎你怎么看"的松弛自信。用力过猛是法式最大的敌人。',
+    },
+    silhouette: ['X型收腰', 'V领', '微A裙摆'],
+    keyItems: ['条纹衫', '裹身裙', '小西装', '丝巾', '贝雷帽', '小红鞋'],
+    colorPalette: ['#C41E3A', '#2C2C2C', '#FFFFFF', '#1A3C5E', '#C4A882', '#E8E0D5'],
+    details: ['卷袖口', '开领', '细腰带', '丝巾点缀', '微卷发型'],
+  },
+
+  {
+    id: 'uk_prep',
+    name: '英伦学院',
+    alias: ['British Prep', 'Ivy Style'],
+    category: 'european',
+    description: '经典格纹、羊毛质地、知识分子式的讲究穿搭',
+    philosophy: '穿戴的是传统与教养，而不是流行。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'square'],
+      adaptableFaceShapes: ['heart', 'round', 'diamond'],
+      idealFacialLines: ['straight', 'sharp', 'mixed'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['medium', 'heavy'],
+      adaptableFrameSizes: ['light'],
+    },
+    volumeRules: {
+      importance: 0.4,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.5,
+      idealBodyShapes: ['rectangle', 'inverted_triangle'],
+      adaptableBodyShapes: ['hourglass', 'pear', 'apple'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'moderate',
+      flatteringNote: '直线条剪裁适合 H 型，V领针织能优化宽肩比例。',
+    },
+    skinRules: {
+      importance: 0.7,
+      idealSeasons: ['autumn_warm', 'autumn_deep', 'winter_deep'],
+      adaptableSeasons: ['winter_cool', 'summer_cool', 'spring_warm', 'spring_light', 'summer_light'],
+      idealContrast: ['medium', 'high'],
+      adaptableContrast: ['low'],
+      colorFamily: ['格纹色', '驼色', '酒红', '墨绿', '海军蓝'],
+      avoidColors: ['马卡龙色', '荧光色'],
+      colorNote: '秋冬季型天然优势，浓郁深色系最对味。',
+    },
+    temperamentRules: {
+      importance: 0.8,
+      idealTemperaments: ['steady', 'capable'],
+      adaptableTemperaments: ['gentle', 'cool', 'artistic'],
+      idealLifestyles: ['office_9to5', 'student'],
+      adaptableLifestyles: ['urban_commuter', 'creative_freelancer'],
+      innerRequirement: '需要稳重内敛的气场，太跳脱的人穿不出学院感。',
+    },
+    silhouette: ['H型', 'A型大衣', '直筒'],
+    keyItems: ['格纹西装', '羊毛V领', '牛津衬衫', '乐福鞋', '公文包', '风衣'],
+    colorPalette: ['#8B4513', '#2C3E50', '#8B0000', '#3B5323', '#D4C4A8', '#4A3728'],
+    details: ['格纹', '校徽刺绣', '皮扣', '羊毛', '灯芯绒'],
+  },
+
+  {
+    id: 'bohemian',
+    name: '波西米亚',
+    alias: ['Bohemian', 'Boho'],
+    category: 'vintage',
+    description: '自由浪漫的流浪者风格，宽松飘逸、图案丰富',
+    philosophy: '穿得像刚从远方回来的人——不在乎规则，只在乎故事。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'heart'],
+      adaptableFaceShapes: ['round', 'diamond', 'square'],
+      idealFacialLines: ['curved', 'mixed'],
+      adaptableFacialLines: ['straight', 'sharp', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.4,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.3,
+      idealBodyShapes: ['hourglass', 'rectangle'],
+      adaptableBodyShapes: ['pear', 'apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'limited',
+      flatteringNote: '大量感图案和层叠容易压矮，矮个子需慎重选择印花密度。',
+    },
+    skinRules: {
+      importance: 0.5,
+      idealSeasons: ['autumn_warm', 'spring_warm', 'autumn_deep'],
+      adaptableSeasons: ['summer_light', 'spring_light', 'winter_deep', 'summer_cool', 'winter_cool'],
+      idealContrast: ['medium', 'low'],
+      adaptableContrast: ['high'],
+      colorFamily: ['暖调大地色', '橘红', '孔雀蓝', '金棕'],
+      avoidColors: ['冷灰', '纯黑纯白'],
+      colorNote: '暖色调秋季型人天然适配，图案本身就是最好的表达。',
+    },
+    temperamentRules: {
+      importance: 0.85,
+      idealTemperaments: ['artistic', 'lively'],
+      adaptableTemperaments: ['gentle', 'cool'],
+      idealLifestyles: ['creative_freelancer', 'social_butterfly', 'outdoor_enthusiast'],
+      adaptableLifestyles: ['student'],
+      innerRequirement: '需要自由奔放的灵魂。循规蹈矩的人撑不起波西米亚的洒脱感。',
+    },
+    silhouette: ['垂坠A型', '层叠', 'oversize'],
+    keyItems: ['印花长裙', '流苏马甲', '宽檐帽', '民族风配饰', '麂皮靴', '刺绣包'],
+    colorPalette: ['#C4A35A', '#8B4513', '#D2691E', '#2E4057', '#CD853F', '#F5DEB3'],
+    details: ['流苏', '刺绣', '钩针编织', '图腾印花', '层叠项链'],
+  },
+
+  {
+    id: 'it_dolce_vita',
+    name: '意式风情',
+    alias: ['Italian Glamour', 'Dolce Vita'],
+    category: 'european',
+    description: '热烈性感、剪裁精良、不吝啬展示身材曲线的自信穿搭',
+    philosophy: '人生苦短，穿得美就是对自己最好的尊重。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['oval', 'heart', 'diamond'],
+      adaptableFaceShapes: ['round', 'square', 'long'],
+      idealFacialLines: ['sharp', 'mixed', 'straight'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.3,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.75,
+      idealBodyShapes: ['hourglass', 'pear'],
+      adaptableBodyShapes: ['rectangle', 'inverted_triangle', 'apple'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: '强调腰臀比和肩颈线条，沙漏型身材穿出极致魅力。',
+    },
+    skinRules: {
+      importance: 0.6,
+      idealSeasons: ['spring_warm', 'autumn_warm', 'autumn_deep'],
+      adaptableSeasons: ['winter_deep', 'summer_cool', 'spring_light', 'summer_light', 'winter_cool'],
+      idealContrast: ['medium', 'high'],
+      adaptableContrast: ['low'],
+      colorFamily: ['大地色系', '黑色', '酒红', '金色点缀'],
+      avoidColors: ['马卡龙色', '冷淡灰色系'],
+      colorNote: '暖调浓郁色系最能展现意式热烈。',
+    },
+    temperamentRules: {
+      importance: 0.85,
+      idealTemperaments: ['capable', 'lively'],
+      adaptableTemperaments: ['cool', 'gentle', 'artistic'],
+      idealLifestyles: ['social_butterfly', 'office_9to5'],
+      adaptableLifestyles: ['urban_commuter', 'creative_freelancer'],
+      innerRequirement: '需要外放自信，享受被注视的感觉。害羞内敛的人可能不适。',
+    },
+    silhouette: ['X型收腰', '深V领', '高开衩', '包臀'],
+    keyItems: ['裹身裙', '真丝衬衫', '铅笔裙', '金色饰品', '尖头高跟鞋', '大墨镜'],
+    colorPalette: ['#1A1A1A', '#B22222', '#DAA520', '#8B4513', '#FFF5EE', '#CD853F'],
+    details: ['真丝光泽', '金色五金', '收腰剪裁', '露背设计', '褶皱'],
+  },
+
+  // ==================== 美式 ====================
+  {
+    id: 'us_vintage',
+    name: '美式复古',
+    alias: ['American Vintage', '90s Retro'],
+    category: 'american',
+    description: '90年代复古风潮，牛仔、格纹、做旧质感',
+    philosophy: '好的设计不会过时，用复古单品穿出当下最酷的造型。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['oval', 'square', 'diamond'],
+      adaptableFaceShapes: ['round', 'long', 'heart'],
+      idealFacialLines: ['blunt', 'straight', 'mixed'],
+      adaptableFacialLines: ['sharp', 'curved'],
+      idealFrameSizes: ['medium', 'heavy'],
+      adaptableFrameSizes: ['light'],
+    },
+    volumeRules: {
+      importance: 0.4,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.4,
+      idealBodyShapes: ['rectangle', 'inverted_triangle'],
+      adaptableBodyShapes: ['hourglass', 'pear', 'apple'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'moderate',
+      flatteringNote: '直筒廓形偏多，微胖友好但矮个子需注意裤长。',
+    },
+    skinRules: {
+      importance: 0.5,
+      idealSeasons: ['autumn_warm', 'spring_warm', 'autumn_deep'],
+      adaptableSeasons: ['winter_deep', 'winter_cool', 'summer_cool', 'spring_light', 'summer_light'],
+      idealContrast: ['medium'],
+      adaptableContrast: ['high', 'low'],
+      colorFamily: ['牛仔蓝', '做旧白', '棕色', '格纹'],
+      avoidColors: ['极冷色调', '霓虹色'],
+      colorNote: '暖调色系为主，牛仔蓝几乎适合所有季型。',
+    },
+    temperamentRules: {
+      importance: 0.6,
+      idealTemperaments: ['lively', 'cool'],
+      adaptableTemperaments: ['capable', 'artistic', 'gentle', 'steady'],
+      idealLifestyles: ['student', 'creative_freelancer', 'social_butterfly'],
+      adaptableLifestyles: ['office_9to5', 'urban_commuter'],
+      innerRequirement: '需要一种随性不羁的气质。太拘谨的人穿复古容易显得"穿旧衣服"。',
+    },
+    silhouette: ['直筒', 'Oversize', '高腰直筒'],
+    keyItems: ['Mom Jeans', '格纹衬衫', '卫衣', '马丁靴', '牛仔夹克', '帆布包'],
+    colorPalette: ['#4A6FA5', '#C4976A', '#E8E0D5', '#8B4513', '#D4C4A8', '#2C1810'],
+    details: ['做旧', '磨白', '格纹', '粗针织', '金属拉链', '破洞'],
+  },
+
+  {
+    id: 'us_sporty',
+    name: '美式休闲运动',
+    alias: ['Athleisure', 'Sporty Chic'],
+    category: 'american',
+    description: '运动服走出健身房，成为日常穿搭的主角',
+    philosophy: '舒适不再是居家的特权，可以体面地穿着运动裤出现在任何场合。',
+    difficulty: 1,
+    boneRules: {
+      idealFaceShapes: ['oval', 'square', 'round'],
+      adaptableFaceShapes: ['long', 'heart', 'diamond'],
+      idealFacialLines: ['blunt', 'straight', 'mixed'],
+      adaptableFacialLines: ['sharp', 'curved'],
+      idealFrameSizes: ['medium', 'heavy'],
+      adaptableFrameSizes: ['light'],
+    },
+    volumeRules: {
+      importance: 0.3,
+      ideal: ['medium', 'medium_high', 'high'],
+      adaptable: ['low', 'medium_low'],
+    },
+    bodyRules: {
+      importance: 0.4,
+      idealBodyShapes: ['rectangle', 'inverted_triangle'],
+      adaptableBodyShapes: ['hourglass', 'pear', 'apple'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'moderate',
+      flatteringNote: '宽松运动装包容性强，但矮个子需用短款上装维持比例。',
+    },
+    skinRules: {
+      importance: 0.3,
+      idealSeasons: ['winter_cool', 'summer_cool', 'winter_deep'],
+      adaptableSeasons: ['spring_warm', 'autumn_warm', 'spring_light', 'summer_light', 'autumn_deep'],
+      idealContrast: ['high', 'medium'],
+      adaptableContrast: ['low'],
+      colorFamily: ['黑白灰', '荧光点缀', '大地色'],
+      avoidColors: [],
+      colorNote: '运动风配色自由度高，基础黑白灰为安全牌。',
+    },
+    temperamentRules: {
+      importance: 0.5,
+      idealTemperaments: ['lively', 'capable'],
+      adaptableTemperaments: ['cool', 'steady', 'gentle', 'artistic'],
+      idealLifestyles: ['student', 'outdoor_enthusiast', 'urban_commuter'],
+      adaptableLifestyles: ['office_9to5', 'social_butterfly'],
+      innerRequirement: '需要活力感。运动风是最容易入门也最难穿出高级感的风格。',
+    },
+    silhouette: ['上宽下窄', 'H型', '茧型卫衣'],
+    keyItems: ['连帽卫衣', 'Legging', '棒球帽', '运动鞋', '运动短裤', '腰包'],
+    colorPalette: ['#2C2C2C', '#FFFFFF', '#808080', '#FF4500', '#00CED1', '#F5F5F0'],
+    details: ['抽绳', '网眼', 'Logo织带', '条纹侧边', '反光条'],
+  },
+
+  // ==================== 中式 ====================
+  {
+    id: 'cn_new_chinese',
+    name: '新中式',
+    alias: ['Modern Chinese', '国风日常'],
+    category: 'chinese',
+    description: '以东方传统元素为魂，现代剪裁为骨，穿出中国式的优雅与克制',
+    philosophy: '传承不是复制历史，而是用现代的设计语言讲东方的故事。',
+    difficulty: 4,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'heart'],
+      adaptableFaceShapes: ['round', 'diamond', 'square'],
+      idealFacialLines: ['curved', 'mixed', 'straight'],
+      adaptableFacialLines: ['sharp', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.7,
+      ideal: ['low', 'medium_low'],
+      adaptable: ['medium', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.6,
+      idealBodyShapes: ['hourglass', 'rectangle', 'pear'],
+      adaptableBodyShapes: ['apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: '中式剪裁擅长用直线条拉长比例，对东方人身形有天然修饰力。',
+    },
+    skinRules: {
+      importance: 0.6,
+      idealSeasons: ['winter_cool', 'summer_cool', 'winter_deep'],
+      adaptableSeasons: ['autumn_deep', 'summer_light', 'spring_light', 'spring_warm', 'autumn_warm'],
+      idealContrast: ['high', 'medium'],
+      adaptableContrast: ['low'],
+      colorFamily: ['黑', '白', '红', '青绿', '金色'],
+      avoidColors: ['荧光色', '大面积撞色'],
+      colorNote: '中式美学讲究留白与点缀，色彩不宜过杂。冬夏型人最出彩。',
+    },
+    temperamentRules: {
+      importance: 0.9,
+      idealTemperaments: ['gentle', 'cool', 'steady'],
+      adaptableTemperaments: ['capable', 'artistic'],
+      idealLifestyles: ['office_9to5', 'creative_freelancer', 'stay_at_home'],
+      adaptableLifestyles: ['student', 'social_butterfly'],
+      innerRequirement: '需要东方式的含蓄内敛美学底蕴。过于外放或追求性感的人较难驾驭。',
+    },
+    silhouette: ['立领H型', 'A型长衫', '斜襟收腰'],
+    keyItems: ['改良旗袍', '立领衬衫', '盘扣外套', '阔腿绸裤', '玉/银饰品', '刺绣单鞋'],
+    colorPalette: ['#1A1A1A', '#FFFFFF', '#C41E3A', '#2F4F4F', '#DAA520', '#E8D5B7'],
+    details: ['盘扣', '立领', '斜襟', '水墨印花', '绸缎光泽', '刺绣点缀'],
+  },
+
+  // ==================== 极简 ====================
+  {
+    id: 'minimalist',
+    name: '极简主义',
+    alias: ['Minimalist', 'Less is More'],
+    category: 'minimal',
+    description: '少即是多，用最少的单品打造最有质感的造型',
+    philosophy: '当所有的多余都被去除，剩下的就是纯粹的自己。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'diamond'],
+      adaptableFaceShapes: ['heart', 'square', 'round'],
+      idealFacialLines: ['sharp', 'straight'],
+      adaptableFacialLines: ['blunt', 'mixed', 'curved'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.6,
+      ideal: ['low', 'medium_low'],
+      adaptable: ['medium', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.5,
+      idealBodyShapes: ['rectangle', 'hourglass'],
+      adaptableBodyShapes: ['pear', 'apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: '纯色 + 直线条天然拉长身形，是修饰力最强的风格之一。',
+    },
+    skinRules: {
+      importance: 0.5,
+      idealSeasons: ['winter_cool', 'summer_cool', 'winter_deep'],
+      adaptableSeasons: ['autumn_warm', 'summer_light', 'spring_light', 'spring_warm', 'autumn_deep'],
+      idealContrast: ['high', 'low'],
+      adaptableContrast: ['medium'],
+      colorFamily: ['黑白灰', '米色', '藏蓝', '驼色'],
+      avoidColors: ['印花', '荧光色', '多色混搭'],
+      colorNote: '极简不挑季型，只需选对自己季型的中性色即可。',
+    },
+    temperamentRules: {
+      importance: 0.85,
+      idealTemperaments: ['cool', 'capable', 'steady'],
+      adaptableTemperaments: ['artistic', 'gentle'],
+      idealLifestyles: ['office_9to5', 'urban_commuter'],
+      adaptableLifestyles: ['creative_freelancer', 'student'],
+      innerRequirement: '需要内在的克制与秩序感。追求热闹、多变的人可能觉得无聊。',
+    },
+    silhouette: ['H型', '直筒', '微A'],
+    keyItems: ['白衬衫', '黑色高领', '直筒西裤', '简约大衣', '素色球鞋', '皮质托特'],
+    colorPalette: ['#000000', '#FFFFFF', '#808080', '#F5F5F0', '#2C3E50', '#D4C4A8'],
+    details: ['无Logo', '隐藏纽扣', '纯净面料', '建筑感剪裁'],
+  },
+
+  {
+    id: 'clean_fit',
+    name: 'Clean Fit',
+    alias: ['Clean Look', '清爽穿搭'],
+    category: 'minimal',
+    description: '没有一件多余的单品，整洁干净的当代都市穿搭',
+    philosophy: '看起来什么都没穿对，但每一件都刚好合身。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['oval', 'square', 'heart'],
+      adaptableFaceShapes: ['round', 'long', 'diamond'],
+      idealFacialLines: ['straight', 'blunt', 'mixed'],
+      adaptableFacialLines: ['curved', 'sharp'],
+      idealFrameSizes: ['medium'],
+      adaptableFrameSizes: ['light', 'heavy'],
+    },
+    volumeRules: {
+      importance: 0.5,
+      ideal: ['medium', 'medium_low'],
+      adaptable: ['low', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.7,
+      idealBodyShapes: ['rectangle', 'hourglass', 'inverted_triangle'],
+      adaptableBodyShapes: ['pear', 'apple'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: 'Clean Fit 核心是"刚刚好"的合身，对体型修饰力强但需要找到合适的码数。',
+    },
+    skinRules: {
+      importance: 0.5,
+      idealSeasons: ['summer_cool', 'winter_cool', 'spring_light'],
+      adaptableSeasons: ['autumn_warm', 'spring_warm', 'summer_light', 'autumn_deep', 'winter_deep'],
+      idealContrast: ['low', 'medium'],
+      adaptableContrast: ['high'],
+      colorFamily: ['白色', '米色', '浅灰', '淡蓝', '卡其'],
+      avoidColors: ['高饱和', '繁复印花'],
+      colorNote: '以浅色和中性色为主，低对比度季型天然优势。',
+    },
+    temperamentRules: {
+      importance: 0.7,
+      idealTemperaments: ['steady', 'capable', 'gentle'],
+      adaptableTemperaments: ['cool', 'lively', 'artistic'],
+      idealLifestyles: ['office_9to5', 'urban_commuter', 'student'],
+      adaptableLifestyles: ['creative_freelancer', 'stay_at_home'],
+      innerRequirement: '需要干净利落的生活态度。Clean Fit 的"干净"是气质外化。',
+    },
+    silhouette: ['微宽松合身', '直筒', '短款上装'],
+    keyItems: ['白T恤', '直筒牛仔裤', '棒球帽', '帆布鞋', '基础款卫衣', '简约手表'],
+    colorPalette: ['#FFFFFF', '#F5F5F0', '#D3D3D3', '#87CEEB', '#C4B5A5', '#2C2C2C'],
+    details: ['合身剪裁', '无色差', '基础款', '棉质为主'],
+  },
+
+  {
+    id: 'old_money',
+    name: '老钱风',
+    alias: ['Old Money', 'Quiet Luxury'],
+    category: 'minimal',
+    description: '不显山露水的高级，用面料和剪裁说话的静奢主义',
+    philosophy: '真正富有的人不需要告诉别人自己穿的是什么牌子。',
+    difficulty: 4,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'square'],
+      adaptableFaceShapes: ['heart', 'diamond', 'round'],
+      idealFacialLines: ['straight', 'sharp'],
+      adaptableFacialLines: ['blunt', 'mixed', 'curved'],
+      idealFrameSizes: ['medium', 'heavy'],
+      adaptableFrameSizes: ['light'],
+    },
+    volumeRules: {
+      importance: 0.5,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['medium_low', 'low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.6,
+      idealBodyShapes: ['rectangle', 'hourglass', 'inverted_triangle'],
+      adaptableBodyShapes: ['pear', 'apple'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: '精良剪裁 + 垂坠面料 = 对所有体型都有修饰力。关键在于衣服要真正合身。',
+    },
+    skinRules: {
+      importance: 0.7,
+      idealSeasons: ['autumn_warm', 'winter_deep', 'summer_cool'],
+      adaptableSeasons: ['autumn_deep', 'winter_cool', 'spring_warm', 'spring_light', 'summer_light'],
+      idealContrast: ['medium', 'low'],
+      adaptableContrast: ['high'],
+      colorFamily: ['驼色', '奶油白', '灰褐', '深蓝', '象牙色'],
+      avoidColors: ['荧光色', '大Logo', '繁复印花'],
+      colorNote: '低对比度的暖调中性色是核心，秋季型人天然优势。',
+    },
+    temperamentRules: {
+      importance: 0.9,
+      idealTemperaments: ['steady', 'capable', 'cool'],
+      adaptableTemperaments: ['gentle', 'artistic'],
+      idealLifestyles: ['office_9to5', 'social_butterfly'],
+      adaptableLifestyles: ['urban_commuter', 'creative_freelancer'],
+      innerRequirement: '需要一种"不用证明什么"的底气。年轻气盛或炫耀型人格很难穿出精髓。',
+    },
+    silhouette: ['合身H型', '微A型大衣', 'V领针织'],
+    keyItems: ['羊绒衫', '羊毛大衣', '珍珠项链', '乐福鞋', '丝巾', '皮质腕表'],
+    colorPalette: ['#F5F5DC', '#D2B48C', '#8B7355', '#1C2841', '#E8E0D5', '#A0845C'],
+    details: ['天然面料', '无Logo', '手工缝制', '暗花纹理', '金属细扣'],
+  },
+
+  // ==================== 街头 ====================
+  {
+    id: 'streetwear',
+    name: '街头潮流',
+    alias: ['Streetwear', 'Hypebeast'],
+    category: 'street',
+    description: '以嘻哈、滑板文化为根基的当代潮流穿搭',
+    philosophy: '潮流是一种态度——你可以不认同，但不能看不见。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['square', 'oval', 'diamond'],
+      adaptableFaceShapes: ['round', 'heart', 'long'],
+      idealFacialLines: ['blunt', 'sharp', 'straight'],
+      adaptableFacialLines: ['curved', 'mixed'],
+      idealFrameSizes: ['medium', 'heavy'],
+      adaptableFrameSizes: ['light'],
+    },
+    volumeRules: {
+      importance: 0.4,
+      ideal: ['medium_high', 'high'],
+      adaptable: ['medium', 'medium_low', 'low'],
+    },
+    bodyRules: {
+      importance: 0.3,
+      idealBodyShapes: ['rectangle', 'inverted_triangle'],
+      adaptableBodyShapes: ['apple', 'hourglass', 'pear'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'limited',
+      flatteringNote: 'Oversize 可能压矮个子，但街头不需要"显高显瘦"的规则。',
+    },
+    skinRules: {
+      importance: 0.3,
+      idealSeasons: ['winter_cool', 'winter_deep', 'spring_warm'],
+      adaptableSeasons: ['autumn_warm', 'summer_cool', 'spring_light', 'summer_light', 'autumn_deep'],
+      idealContrast: ['high'],
+      adaptableContrast: ['medium', 'low'],
+      colorFamily: ['黑色', '红色', '迷彩', '荧光'],
+      avoidColors: [],
+      colorNote: '街头潮流配色无禁忌，反而是打破规则的试验场。',
+    },
+    temperamentRules: {
+      importance: 0.85,
+      idealTemperaments: ['lively', 'cool'],
+      adaptableTemperaments: ['capable', 'artistic'],
+      idealLifestyles: ['student', 'creative_freelancer', 'social_butterfly'],
+      adaptableLifestyles: ['urban_commuter'],
+      innerRequirement: '需要敢于突破常规的勇气。循规蹈矩的人穿街头反而像"偷穿弟弟衣服"。',
+    },
+    silhouette: ['超大Oversize', '上宽下窄', '不规则'],
+    keyItems: ['宽松卫衣', '工装裤', '高帮球鞋', '棒球帽', '链条配饰', '大Logo T恤'],
+    colorPalette: ['#1A1A1A', '#FF3333', '#FFFFFF', '#4A6FA5', '#808080', '#C0C0C0'],
+    details: ['Logo印花', '做旧', '飘带', '非对称设计', '机能五金'],
+  },
+
+  {
+    id: 'y2k',
+    name: 'Y2K 千禧风',
+    alias: ['Y2K', 'Millennium Style'],
+    category: 'street',
+    description: '回归千禧年代的科技感和未来主义美学',
+    philosophy: '回到那个互联网刚刚开始、每个人都对未来充满想象的年代。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['oval', 'heart', 'diamond'],
+      adaptableFaceShapes: ['round', 'long', 'square'],
+      idealFacialLines: ['sharp', 'straight', 'mixed'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.4,
+      ideal: ['medium', 'medium_low'],
+      adaptable: ['low', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.4,
+      idealBodyShapes: ['rectangle', 'hourglass', 'pear'],
+      adaptableBodyShapes: ['apple', 'inverted_triangle'],
+      idealHeight: ['petite', 'average'],
+      adaptableHeight: ['tall'],
+      flatteringPower: 'moderate',
+      flatteringNote: '短上衣 + 低腰下装的比例对腰腹要求高，但通过高腰替代款可适配更多人。',
+    },
+    skinRules: {
+      importance: 0.4,
+      idealSeasons: ['spring_light', 'summer_light', 'winter_cool'],
+      adaptableSeasons: ['spring_warm', 'summer_cool', 'autumn_warm', 'autumn_deep', 'winter_deep'],
+      idealContrast: ['medium', 'low'],
+      adaptableContrast: ['high'],
+      colorFamily: ['金属色', '粉紫蓝渐变', 'baby tee白', '半透明'],
+      avoidColors: ['大地土色', '暗沉老气色'],
+      colorNote: '未来感配色 — 银、浅粉、婴儿蓝、半透明材质。浅色季型天然优势。',
+    },
+    temperamentRules: {
+      importance: 0.75,
+      idealTemperaments: ['lively', 'artistic', 'cool'],
+      adaptableTemperaments: ['capable', 'gentle'],
+      idealLifestyles: ['student', 'creative_freelancer', 'social_butterfly'],
+      adaptableLifestyles: ['urban_commuter'],
+      innerRequirement: '需要年轻心态和玩心。过于严肃或追求"高级感"的人会抵触这个风格。',
+    },
+    silhouette: ['短上衣 + 低腰裤', '紧身 + 宽松', '不对称'],
+    keyItems: ['Crop Top', '工装裤', '厚底鞋', '小墨镜', '彩色发夹', '金属腰链'],
+    colorPalette: ['#FF69B4', '#C0C0C0', '#87CEEB', '#DDA0DD', '#FFFFFF', '#98FB98'],
+    details: ['半透视', '金属感', '蝴蝶元素', '数字印花', '荧光缝线'],
+  },
+
+  {
+    id: 'gorpcore',
+    name: 'Gorpcore 户外机能',
+    alias: ['Gorpcore', 'Techwear'],
+    category: 'street',
+    description: '把户外装备穿成日常时装，功能性与造型感并存',
+    philosophy: '最好的衣服是可以陪你走遍世界的衣服。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['square', 'oval', 'long'],
+      adaptableFaceShapes: ['round', 'diamond', 'heart'],
+      idealFacialLines: ['blunt', 'straight', 'sharp'],
+      adaptableFacialLines: ['curved', 'mixed'],
+      idealFrameSizes: ['medium', 'heavy'],
+      adaptableFrameSizes: ['light'],
+    },
+    volumeRules: {
+      importance: 0.4,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.3,
+      idealBodyShapes: ['rectangle', 'inverted_triangle'],
+      adaptableBodyShapes: ['apple', 'hourglass', 'pear'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'limited',
+      flatteringNote: '大量口袋和层叠可能让娇小身材显得笨重。',
+    },
+    skinRules: {
+      importance: 0.4,
+      idealSeasons: ['autumn_warm', 'winter_cool', 'autumn_deep'],
+      adaptableSeasons: ['summer_cool', 'spring_warm', 'winter_deep', 'spring_light', 'summer_light'],
+      idealContrast: ['medium', 'high'],
+      adaptableContrast: ['low'],
+      colorFamily: ['军绿', '黑色', '沙色', '深灰', '橙色点缀'],
+      avoidColors: ['粉嫩色系', '马卡龙'],
+      colorNote: '以户外自然色为基调，大地色和深色系为主。',
+    },
+    temperamentRules: {
+      importance: 0.7,
+      idealTemperaments: ['cool', 'capable', 'lively'],
+      adaptableTemperaments: ['steady', 'artistic'],
+      idealLifestyles: ['outdoor_enthusiast', 'urban_commuter', 'student'],
+      adaptableLifestyles: ['creative_freelancer'],
+      innerRequirement: '需要探索精神和对功能美学的认同。不喜欢户外的人较难融入。',
+    },
+    silhouette: ['层叠机能', '多口袋廓形', '工装锥形'],
+    keyItems: ['冲锋衣', '抓绒中层', '机能马甲', '工装裤', '徒步鞋', '科技面料包'],
+    colorPalette: ['#3B5323', '#1A1A1A', '#C4B5A5', '#FF6600', '#4A4A4A', '#808080'],
+    details: ['防水拉链', '多口袋', '束带', '网眼', '反光条', '科技面料'],
+  },
+
+  // ==================== 女性化 ====================
+  {
+    id: 'soft_feminine',
+    name: '温柔甜美',
+    alias: ['Soft & Sweet', '少女感'],
+    category: 'feminine',
+    description: '以柔和的色彩和女性化的细节营造甜美温柔的少女感',
+    philosophy: '甜也可以有层次——像品尝一块精致的法式甜点，甜而不腻。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['round', 'oval', 'heart'],
+      adaptableFaceShapes: ['diamond', 'square', 'long'],
+      idealFacialLines: ['curved', 'blunt'],
+      adaptableFacialLines: ['mixed', 'straight', 'sharp'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.8,
+      ideal: ['low', 'medium_low'],
+      adaptable: ['medium', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.5,
+      idealBodyShapes: ['pear', 'hourglass', 'rectangle'],
+      adaptableBodyShapes: ['apple', 'inverted_triangle'],
+      idealHeight: ['petite', 'average'],
+      adaptableHeight: ['tall'],
+      flatteringPower: 'moderate',
+      flatteringNote: 'A字裙和泡泡袖对梨形和窄肩友好；高个子穿甜美需注意成熟度平衡。',
+    },
+    skinRules: {
+      importance: 0.75,
+      idealSeasons: ['spring_light', 'summer_light', 'summer_cool'],
+      adaptableSeasons: ['spring_warm', 'winter_cool', 'autumn_warm', 'autumn_deep', 'winter_deep'],
+      idealContrast: ['low', 'medium'],
+      adaptableContrast: ['high'],
+      colorFamily: ['粉色系', '奶油色', '淡紫', '婴儿蓝'],
+      avoidColors: ['纯黑', '深棕', '高饱和红'],
+      colorNote: '柔和浅色系为核心，春夏型人天然优势。秋冬型可通过冷粉/藕粉来尝试。',
+    },
+    temperamentRules: {
+      importance: 0.85,
+      idealTemperaments: ['gentle', 'lively'],
+      adaptableTemperaments: ['artistic', 'steady'],
+      idealLifestyles: ['student', 'stay_at_home'],
+      adaptableLifestyles: ['creative_freelancer', 'social_butterfly'],
+      innerRequirement: '需要发自内心的柔软特质。性格硬朗强势的人穿甜美风会有强烈的违和感。',
+    },
+    silhouette: ['A字裙', '泡泡袖', '收腰大摆'],
+    keyItems: ['碎花连衣裙', '针织开衫', '玛丽珍鞋', '蝴蝶结发饰', '蕾丝衬衫', '粉色腮红'],
+    colorPalette: ['#FFB6C1', '#E6E6FA', '#FFF0F5', '#FFE4E1', '#F5DEB3', '#B0E0E6'],
+    details: ['蕾丝', '蝴蝶结', '荷叶边', '碎花', '珍珠扣', '薄纱'],
+  },
+
+  {
+    id: 'mature_elegance',
+    name: '轻熟风',
+    alias: ['Mature Elegance', '气质轻熟'],
+    category: 'feminine',
+    description: '精致不张扬、温柔有力量，刚柔并济的成熟女性穿搭',
+    philosophy: '真正的成熟，是柔软中带着坚定，温柔里藏着锋芒。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['oval', 'heart', 'diamond'],
+      adaptableFaceShapes: ['round', 'square', 'long'],
+      idealFacialLines: ['mixed', 'straight', 'curved'],
+      adaptableFacialLines: ['sharp', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.6,
+      ideal: ['medium_low', 'medium'],
+      adaptable: ['low', 'medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.6,
+      idealBodyShapes: ['hourglass', 'rectangle'],
+      adaptableBodyShapes: ['pear', 'apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'strong',
+      flatteringNote: '收腰 + 垂坠面料 + 适当露肤，优雅修饰各种身形。',
+    },
+    skinRules: {
+      importance: 0.6,
+      idealSeasons: ['summer_cool', 'autumn_warm', 'winter_cool'],
+      adaptableSeasons: ['spring_warm', 'winter_deep', 'spring_light', 'summer_light', 'autumn_deep'],
+      idealContrast: ['medium'],
+      adaptableContrast: ['high', 'low'],
+      colorFamily: ['驼色', '莫兰迪粉紫', '灰蓝', '米白', '巧克力色'],
+      avoidColors: ['荧光色', '过于卡通的颜色'],
+      colorNote: '低饱和有质感的色系，无论哪个季型都能找到属于自己的轻熟色。',
+    },
+    temperamentRules: {
+      importance: 0.8,
+      idealTemperaments: ['gentle', 'capable'],
+      adaptableTemperaments: ['cool', 'steady', 'artistic'],
+      idealLifestyles: ['office_9to5', 'urban_commuter', 'social_butterfly'],
+      adaptableLifestyles: ['creative_freelancer'],
+      innerRequirement: '需要生活阅历的沉淀。太年轻的人穿轻熟可能显老气。',
+    },
+    silhouette: ['X型收腰', '铅笔裙', '阔腿裤 + 修身针织'],
+    keyItems: ['真丝衬衫', '羊绒衫', '铅笔裙', '尖头细跟鞋', '简约手袋', '珍珠饰品'],
+    colorPalette: ['#D4C5B9', '#8B7B8B', '#4A6FA5', '#C4A882', '#F5F0EB', '#5C4033'],
+    details: ['真丝光泽', '小V领', '七分袖', '同色系搭配', '细腰带'],
+  },
+
+  // ==================== 前卫 ====================
+  {
+    id: 'intellectual_chic',
+    name: '知识分子风',
+    alias: ['Intellectual Chic', '书卷气'],
+    category: 'avant_garde',
+    description: '像刚从图书馆走出来，自由散漫却充满思考痕迹的穿搭',
+    philosophy: '穿衣服的智慧不在于跟风，在于知道什么衬得上你的大脑。',
+    difficulty: 3,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'diamond'],
+      adaptableFaceShapes: ['heart', 'round', 'square'],
+      idealFacialLines: ['straight', 'sharp', 'mixed'],
+      adaptableFacialLines: ['curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.5,
+      ideal: ['low', 'medium_low', 'medium'],
+      adaptable: ['medium_high', 'high'],
+    },
+    bodyRules: {
+      importance: 0.4,
+      idealBodyShapes: ['rectangle', 'hourglass'],
+      adaptableBodyShapes: ['pear', 'apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'moderate',
+      flatteringNote: '宽松H型廓形为主，不刻意强调身材曲线。矮个子注意衣长。',
+    },
+    skinRules: {
+      importance: 0.6,
+      idealSeasons: ['autumn_warm', 'autumn_deep', 'winter_deep'],
+      adaptableSeasons: ['summer_cool', 'winter_cool', 'spring_warm', 'spring_light', 'summer_light'],
+      idealContrast: ['medium', 'low'],
+      adaptableContrast: ['high'],
+      colorFamily: ['棕色系', '灰色系', '深蓝', '复古绿', '卡其'],
+      avoidColors: ['荧光色', '粉嫩色', '高饱和'],
+      colorNote: '书卷气的颜色是沉淀过的——棕、灰、深蓝、墨绿。秋冬季型天然优势。',
+    },
+    temperamentRules: {
+      importance: 0.9,
+      idealTemperaments: ['artistic', 'steady', 'cool'],
+      adaptableTemperaments: ['capable', 'gentle'],
+      idealLifestyles: ['creative_freelancer', 'student'],
+      adaptableLifestyles: ['office_9to5', 'urban_commuter'],
+      innerRequirement: '需要内在的知识气质和思考深度。表面的书卷气跟真正的思辨精神是两回事。',
+    },
+    silhouette: ['宽松H型', '落肩', '直筒阔腿'],
+    keyItems: ['oversize西装', '高领针织', '直筒裤', '帆布袋', '眼镜', '匡威/乐福鞋'],
+    colorPalette: ['#8B7355', '#696969', '#2F4F4F', '#D4C4A8', '#3C2800', '#708090'],
+    details: ['做旧质感', '无Logo', '天然材质', '中性剪裁', '书 + 咖啡氛围'],
+  },
+
+  {
+    id: 'dark_academia',
+    name: '暗黑学院',
+    alias: ['Dark Academia', '暗黑学术'],
+    category: 'avant_garde',
+    description: '哥特气质的学术风，深色调、复古剪裁，像从中世纪图书馆走出',
+    philosophy: '美不只是光明的，深沉中藏着更厚重的情感与思考。',
+    difficulty: 4,
+    boneRules: {
+      idealFaceShapes: ['oval', 'long', 'diamond'],
+      adaptableFaceShapes: ['heart', 'square', 'round'],
+      idealFacialLines: ['sharp', 'straight'],
+      adaptableFacialLines: ['mixed', 'curved', 'blunt'],
+      idealFrameSizes: ['light', 'medium'],
+      adaptableFrameSizes: ['heavy'],
+    },
+    volumeRules: {
+      importance: 0.5,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.4,
+      idealBodyShapes: ['rectangle', 'hourglass'],
+      adaptableBodyShapes: ['pear', 'apple', 'inverted_triangle'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'moderate',
+      flatteringNote: '深色 + 层叠，天然有收缩效果，对偏丰满身材友好。',
+    },
+    skinRules: {
+      importance: 0.8,
+      idealSeasons: ['winter_deep', 'winter_cool', 'autumn_deep'],
+      adaptableSeasons: ['summer_cool', 'autumn_warm', 'spring_warm', 'spring_light', 'summer_light'],
+      idealContrast: ['high'],
+      adaptableContrast: ['medium'],
+      colorFamily: ['黑色', '深棕', '酒红', '深绿', '灰色'],
+      avoidColors: ['浅粉', '荧光色', '马卡龙', '亮白'],
+      colorNote: '最依赖季型的风格之一。深色季型天然优势；浅夏/浅春穿全黑会显憔悴。',
+    },
+    temperamentRules: {
+      importance: 0.9,
+      idealTemperaments: ['cool', 'artistic'],
+      adaptableTemperaments: ['steady', 'capable'],
+      idealLifestyles: ['student', 'creative_freelancer'],
+      adaptableLifestyles: ['office_9to5'],
+      innerRequirement: '需要对深沉美学的认同感。乐观阳光、追求轻快的人很难从骨子里喜欢这个风格。',
+    },
+    silhouette: ['层叠A型', 'H型大衣', '高领 + 长外套'],
+    keyItems: ['黑色高领', '羊毛大衣', '格纹长裤', '皮靴', '复古手提包', '暗色围巾'],
+    colorPalette: ['#0A0A0A', '#2C1810', '#3B0B0B', '#1A3C2A', '#4A4A4A', '#8B8378'],
+    details: ['层叠', '羊毛呢', '皮革', '做旧五金', '暗花', '厚实'],
+  },
+
+  {
+    id: 'utility_workwear',
+    name: '工装风',
+    alias: ['Utility', 'Workwear'],
+    category: 'street',
+    description: '从工人装束演化而来的实用主义穿搭，硬朗、多口袋、耐磨',
+    philosophy: '衣服首先是工具，然后才是装饰。功能本身就是一种美学。',
+    difficulty: 2,
+    boneRules: {
+      idealFaceShapes: ['square', 'oval', 'round'],
+      adaptableFaceShapes: ['long', 'heart', 'diamond'],
+      idealFacialLines: ['blunt', 'straight'],
+      adaptableFacialLines: ['mixed', 'sharp', 'curved'],
+      idealFrameSizes: ['medium', 'heavy'],
+      adaptableFrameSizes: ['light'],
+    },
+    volumeRules: {
+      importance: 0.3,
+      ideal: ['medium', 'medium_high'],
+      adaptable: ['low', 'medium_low', 'high'],
+    },
+    bodyRules: {
+      importance: 0.4,
+      idealBodyShapes: ['rectangle', 'inverted_triangle', 'apple'],
+      adaptableBodyShapes: ['hourglass', 'pear'],
+      idealHeight: ['average', 'tall'],
+      adaptableHeight: ['petite'],
+      flatteringPower: 'moderate',
+      flatteringNote: '直线条硬朗廓形，偏中性。过于女性化的曲线身材需要调整单品选择。',
+    },
+    skinRules: {
+      importance: 0.4,
+      idealSeasons: ['autumn_warm', 'autumn_deep', 'winter_deep'],
+      adaptableSeasons: ['winter_cool', 'summer_cool', 'spring_warm', 'spring_light', 'summer_light'],
+      idealContrast: ['medium'],
+      adaptableContrast: ['high', 'low'],
+      colorFamily: ['卡其', '军绿', '牛仔蓝', '黑色', '棕色'],
+      avoidColors: ['粉色', '粉紫', '柔嫩色系'],
+      colorNote: '大地色和工业色为主，秋冬季型天然优势。',
+    },
+    temperamentRules: {
+      importance: 0.7,
+      idealTemperaments: ['cool', 'capable', 'steady'],
+      adaptableTemperaments: ['lively', 'artistic'],
+      idealLifestyles: ['outdoor_enthusiast', 'student', 'creative_freelancer'],
+      adaptableLifestyles: ['urban_commuter', 'office_9to5'],
+      innerRequirement: '需要利落果敢的气质。温婉柔和的人穿工装可能与内在冲突。',
+    },
+    silhouette: ['直筒', '锥形', 'Boxy方形'],
+    keyItems: ['工装夹克', '帆布裤', '牛仔衬衫', '工装靴', '帆布腰带', '托特帆布包'],
+    colorPalette: ['#8B7355', '#3B5323', '#4A6FA5', '#1A1A1A', '#C4B5A5', '#696969'],
+    details: ['大口袋', '帆布材质', '金属扣', '粗缝线', '束脚', '肩章'],
+  },
+];
+
+export default STYLE_DATABASE;
