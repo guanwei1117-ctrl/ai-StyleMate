@@ -1,141 +1,194 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { useState, useCallback, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { deriveBodyShape } from '@/lib/body-analysis';
+import { matchStyles } from '@/lib/style-matcher';
+import {
+  createDefaultAnswers,
+  type OnboardingAnswers,
+  type BodyShape,
+  type StyleMatchResult,
+} from '@/lib/onboarding-types';
 
+import PhotoUploadStep from '@/components/onboarding/photo-upload-step';
+import BodyStep from '@/components/onboarding/body-step';
+import StylePickStep from '@/components/onboarding/style-pick-step';
+import InterestsStep from '@/components/onboarding/interests-step';
+import BudgetStep from '@/components/onboarding/budget-step';
+import ResultView from '@/components/onboarding/result-view';
+
+// ============================================================
+// 步骤配置
+// ============================================================
 const STEPS = [
-  {
-    title: '你的性别',
-    description: '这有助于我们为你提供更精准的建议',
-    options: [
-      { label: '女性', value: 'female', emoji: '👩' },
-      { label: '男性', value: 'male', emoji: '👨' },
-      { label: '其他', value: 'other', emoji: '🧑' },
-    ],
-  },
-  {
-    title: '你的体型',
-    description: '了解体型是找到合适穿搭的第一步',
-    options: [
-      { label: '梨形', value: 'pear', emoji: '🍐' },
-      { label: '苹果形', value: 'apple', emoji: '🍎' },
-      { label: '沙漏形', value: 'hourglass', emoji: '⌛' },
-      { label: 'H 形', value: 'rectangle', emoji: '📏' },
-      { label: '倒三角', value: 'inverted_triangle', emoji: '🔻' },
-    ],
-  },
-  {
-    title: '你喜欢的风格',
-    description: '选择让你心动的穿搭风格（可多选）',
-    options: [
-      { label: '日系清新', value: 'japanese', emoji: '🌸' },
-      { label: '韩系简约', value: 'korean', emoji: '✨' },
-      { label: '法式优雅', value: 'french', emoji: '🥐' },
-      { label: '美式休闲', value: 'american', emoji: '👕' },
-      { label: '极简主义', value: 'minimal', emoji: '⬜' },
-      { label: '街头潮流', value: 'street', emoji: '🎨' },
-    ],
-  },
-  {
-    title: '你的穿搭预算',
-    description: '我们会在你的预算范围内推荐单品',
-    options: [
-      { label: '平价实惠', value: 'budget', emoji: '💰' },
-      { label: '中等价位', value: 'mid', emoji: '💵' },
-      { label: '轻奢品质', value: 'premium', emoji: '💎' },
-    ],
-  },
-];
+  { id: 'photo', label: '照片' },
+  { id: 'body', label: '身体' },
+  { id: 'style_pick', label: '风格' },
+  { id: 'interests', label: '兴趣' },
+  { id: 'budget', label: '预算' },
+] as const;
+
+const TOTAL_STEPS = STEPS.length;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [answers, setAnswers] = useState<OnboardingAnswers>(createDefaultAnswers);
+  const [results, setResults] = useState<StyleMatchResult[]>([]);
+  const [bodyShape, setBodyShape] = useState<BodyShape>('unknown');
 
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
+  // 是否在结果页
+  const isResultStep = step === TOTAL_STEPS;
 
-  const handleSelect = (value: string) => {
-    const key = `step_${step}`;
-    setAnswers((prev) => ({ ...prev, [key]: value }));
-  };
+  const updateAnswers = useCallback((patch: Partial<OnboardingAnswers>) => {
+    setAnswers((prev) => ({ ...prev, ...patch }));
+  }, []);
 
-  const handleNext = () => {
-    if (isLast) {
-      // TODO: Submit to API
-      console.log('Onboarding complete:', answers);
-      return;
-    }
-    setStep((s) => s + 1);
-  };
+  const handleNext = useCallback(() => {
+    setStep((s) => Math.min(s + 1, TOTAL_STEPS));
+  }, []);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (step > 0) setStep((s) => s - 1);
-  };
+  }, [step]);
+
+  // 提交问卷 → 计算结果
+  const handleSubmit = useCallback(() => {
+    const shape = deriveBodyShape(
+      answers.height!,
+      answers.weight!,
+      answers.bust,
+      answers.waist,
+      answers.hip,
+    );
+    setBodyShape(shape);
+
+    const matched = matchStyles(answers);
+    setResults(matched);
+
+    setStep(TOTAL_STEPS);
+  }, [answers]);
+
+  // 重新测试
+  const handleRestart = useCallback(() => {
+    setAnswers(createDefaultAnswers());
+    setResults([]);
+    setBodyShape('unknown');
+    setStep(0);
+  }, []);
+
+  // 当前步骤进度
+  const progress = useMemo(() => {
+    if (isResultStep) return 100;
+    return Math.round((step / TOTAL_STEPS) * 100);
+  }, [step, isResultStep]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary-50 via-white to-accent-50 px-4">
-      {/* Progress bar */}
-      <div className="w-full max-w-md mb-8">
-        <div className="flex gap-1">
-          {STEPS.map((_, i) => (
+    <div className={cn(
+      'min-h-screen flex flex-col items-center justify-center px-4 py-12',
+      'bg-gradient-to-br from-creme-50 via-white to-creme-200',
+    )}>
+      {/* ======== 进度指示器 ======== */}
+      {!isResultStep && (
+        <div className="w-full max-w-md mb-8">
+          {/* 步骤标签 */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-ink-400">
+              步骤 {step + 1}/{TOTAL_STEPS}
+            </span>
+            <span className="text-xs font-medium text-ink-600">
+              {STEPS[step]?.label}
+            </span>
+          </div>
+          {/* 进度条 */}
+          <div className="h-1.5 bg-creme-200 rounded-full overflow-hidden">
             <div
-              key={i}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                i <= step ? 'bg-primary-500' : 'bg-gray-200'
-              }`}
+              className="h-full bg-ink-800 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
             />
-          ))}
+          </div>
         </div>
+      )}
+
+      {/* ======== 步骤卡片 ======== */}
+      <div className={cn(
+        'bg-white rounded-3xl shadow-xl shadow-ink-100/30 p-8 sm:p-10',
+        isResultStep ? 'w-full max-w-4xl' : 'w-full max-w-md',
+        isResultStep && 'sm:p-12',
+      )}>
+        {/* 步骤内容 */}
+        {step === 0 && (
+          <PhotoUploadStep
+            answers={answers}
+            onUpdate={updateAnswers}
+            onNext={handleNext}
+          />
+        )}
+
+        {step === 1 && (
+          <BodyStep
+            answers={answers}
+            onUpdate={updateAnswers}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )}
+
+        {step === 2 && (
+          <StylePickStep
+            answers={answers}
+            onUpdate={updateAnswers}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )}
+
+        {step === 3 && (
+          <InterestsStep
+            answers={answers}
+            onUpdate={updateAnswers}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )}
+
+        {step === 4 && (
+          <BudgetStep
+            answers={answers}
+            onUpdate={updateAnswers}
+            onSubmit={handleSubmit}
+            onBack={handleBack}
+          />
+        )}
+
+        {/* 结果页 */}
+        {isResultStep && results.length > 0 && (
+          <ResultView
+            results={results}
+            answers={answers}
+            bodyShape={bodyShape}
+            onRestart={handleRestart}
+          />
+        )}
       </div>
 
-      {/* Card */}
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8">
-        <h2 className="text-2xl font-bold text-gray-900">{current.title}</h2>
-        <p className="mt-2 text-gray-500">{current.description}</p>
+      {/* ======== 底部提示 ======== */}
+      {!isResultStep && (
+        <p className="mt-6 text-xs text-ink-300 text-center">
+          你的数据仅用于个性化推荐，不会泄露给第三方
+        </p>
+      )}
 
-        <div className="mt-8 space-y-3">
-          {current.options.map((option) => {
-            const isSelected = answers[`step_${step}`] === option.value;
-            return (
-              <button
-                key={option.value}
-                onClick={() => handleSelect(option.value)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                  isSelected
-                    ? 'border-primary-500 bg-primary-50 shadow-sm'
-                    : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-2xl">{option.emoji}</span>
-                <span className="font-medium text-gray-900">{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="w-full max-w-md mt-6 flex justify-between">
-        <Button variant="ghost" onClick={handleBack} disabled={step === 0}>
-          上一步
-        </Button>
-        <Button
-          onClick={handleNext}
-          disabled={!answers[`step_${step}`]}
-        >
-          {isLast ? '完成' : '下一步'}
-        </Button>
-      </div>
-
-      {isLast && answers[`step_${step}`] && (
-        <div className="mt-4">
-          <Link
-            href="/wardrobe"
-            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+      {/* 结果页回到顶部 */}
+      {isResultStep && results.length === 0 && (
+        <div className="w-full max-w-md text-center">
+          <p className="text-ink-500 font-light mb-6">正在分析你的风格画像...</p>
+          <button
+            onClick={handleRestart}
+            className="text-sm text-ink-400 hover:text-ink-600 underline underline-offset-2"
           >
-            跳转到衣橱管理 →
-          </Link>
+            返回重新填写
+          </button>
         </div>
       )}
     </div>

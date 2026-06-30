@@ -2,7 +2,12 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Navigation from '@/components/home/navigation';
 import Footer from '@/components/home/footer';
-import { STYLES, CATEGORY_LABELS } from '@/data/styles';
+import { STYLES, CATEGORY_LABELS, DIMENSION_LABELS } from '@/data/styles';
+import styleImages from '@/data/style-images.json';
+
+function getStyleImage(styleId: string): string | undefined {
+  return (styleImages as Record<string, string>)[styleId];
+}
 
 export function generateStaticParams() {
   return STYLES.map((style) => ({ id: style.id }));
@@ -11,6 +16,7 @@ export function generateStaticParams() {
 export default function StyleDetailPage({ params }: { params: { id: string } }) {
   const style = STYLES.find((s) => s.id === params.id);
   if (!style) notFound();
+  const imageUrl = getStyleImage(style.id);
 
   return (
     <>
@@ -32,10 +38,26 @@ export default function StyleDetailPage({ params }: { params: { id: string } }) 
             ))}
           </div>
 
+          {/* Reference image */}
+          {imageUrl && (
+            <div className="mb-10 rounded-2xl overflow-hidden border border-creme-200 shadow-sm">
+              <img
+                src={imageUrl}
+                alt={style.name}
+                className="w-full h-auto max-h-96 object-cover"
+              />
+            </div>
+          )}
+
           {/* Header */}
-          <span className="inline-block px-3 py-1 bg-creme-200/60 text-ink-500 text-xs tracking-wider rounded-full mb-4">
-            {CATEGORY_LABELS[style.category]}
-          </span>
+          <div className="flex gap-2 mb-4">
+            <span className="inline-block px-3 py-1 bg-creme-200/60 text-ink-500 text-xs tracking-wider rounded-full">
+              {DIMENSION_LABELS[style.dimension]}
+            </span>
+            <span className="inline-block px-3 py-1 bg-ink-800 text-creme-100 text-xs tracking-wider rounded-full">
+              {CATEGORY_LABELS[style.category] || style.category}
+            </span>
+          </div>
           <h1 className="font-display text-display text-ink-900 mb-4">{style.name}</h1>
           <p className="text-lg text-ink-500 font-light max-w-xl leading-relaxed">{style.description}</p>
 

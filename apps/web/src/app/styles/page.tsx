@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Navigation from '@/components/home/navigation';
 import Footer from '@/components/home/footer';
-import { STYLES, ALL_CATEGORIES, CATEGORY_LABELS, type StyleCategory, type StyleCard } from '@/data/styles';
+import { STYLES, DIMENSIONS, DIMENSION_LABELS, CATEGORY_LABELS, type StyleDimension, type StyleCard } from '@/data/styles';
 
 function StarRating({ difficulty }: { difficulty: number }) {
   return (
@@ -22,7 +22,14 @@ function StarRating({ difficulty }: { difficulty: number }) {
   );
 }
 
+import styleImages from '@/data/style-images.json';
+
+function getStyleImage(styleId: string): string | undefined {
+  return (styleImages as Record<string, string>)[styleId];
+}
+
 function StyleCard({ style }: { style: StyleCard }) {
+  const imageUrl = getStyleImage(style.id);
   return (
     <Link href={`/styles/${style.id}`}>
       <motion.div
@@ -34,6 +41,22 @@ function StyleCard({ style }: { style: StyleCard }) {
         whileHover="hover"
         className="group bg-creme-100 rounded-xl border border-creme-200/60 overflow-hidden hover:border-creme-300 hover:shadow-sm transition-all duration-400"
       >
+        {/* Reference image */}
+        <div className="aspect-[4/3] bg-creme-200/40 overflow-hidden">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={style.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-ink-300 text-sm">
+              参考图片生成中...
+            </div>
+          )}
+        </div>
+
         {/* Color palette strip */}
         <div className="flex h-2">
           {style.colorPalette.map((color) => (
@@ -44,7 +67,7 @@ function StyleCard({ style }: { style: StyleCard }) {
         <div className="p-5 lg:p-6">
           {/* Category badge */}
           <span className="inline-block px-2.5 py-0.5 bg-creme-200/60 text-ink-500 text-[10px] tracking-wider rounded-full mb-3">
-            {CATEGORY_LABELS[style.category]}
+            {CATEGORY_LABELS[style.category] || style.category}
           </span>
 
           {/* Name + difficulty */}
@@ -89,23 +112,23 @@ function StyleCard({ style }: { style: StyleCard }) {
 }
 
 export default function StylesPage() {
-  const [activeCategory, setActiveCategory] = useState<StyleCategory | '全部'>('全部');
+  const [activeDimension, setActiveDimension] = useState<StyleDimension | '全部'>('全部');
 
   const filteredStyles = useMemo(() => {
-    if (activeCategory === '全部') return STYLES;
-    return STYLES.filter((s) => s.category === activeCategory);
-  }, [activeCategory]);
+    if (activeDimension === '全部') return STYLES;
+    return STYLES.filter((s) => s.dimension === activeDimension);
+  }, [activeDimension]);
 
-  // Count styles per category
-  const categoryCounts = useMemo(() => {
+  // Count styles per dimension
+  const dimensionCounts = useMemo(() => {
     const counts: Record<string, number> = { '全部': STYLES.length };
-    ALL_CATEGORIES.forEach((cat) => {
-      counts[cat] = STYLES.filter((s) => s.category === cat).length;
+    DIMENSIONS.forEach((dim) => {
+      counts[dim] = STYLES.filter((s) => s.dimension === dim).length;
     });
     return counts;
   }, []);
 
-  const tabs = ['全部', ...ALL_CATEGORIES] as const;
+  const tabs = ['全部', ...DIMENSIONS] as const;
 
   return (
     <>
@@ -119,25 +142,25 @@ export default function StylesPage() {
               风格<span className="italic">库</span>
             </h1>
             <p className="text-ink-500 font-light max-w-lg mx-auto">
-              22 种风格，五大维度精准匹配——找到最适合你的那一个
+              80 种穿搭风格，按地域文化 · 视觉元素 · 场景圈层 · 人物原型四大维度分类
             </p>
           </div>
 
-          {/* Category filter tabs */}
+          {/* Dimension filter tabs */}
           <div className="flex flex-wrap justify-center gap-2 mb-14">
-            {tabs.map((cat) => (
+            {tabs.map((dim) => (
               <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
+                key={dim}
+                onClick={() => setActiveDimension(dim)}
                 className={`px-4 py-2 text-xs tracking-wider rounded-full transition-all duration-300 ${
-                  activeCategory === cat
+                  activeDimension === dim
                     ? 'bg-ink-900 text-creme-100 shadow-sm'
                     : 'bg-creme-200/60 text-ink-500 hover:bg-creme-200 hover:text-ink-700'
                 }`}
               >
-                {cat === '全部' ? cat : CATEGORY_LABELS[cat]}
-                <span className={`ml-1.5 ${activeCategory === cat ? 'text-creme-200/60' : 'text-ink-300'}`}>
-                  {categoryCounts[cat]}
+                {dim === '全部' ? dim : DIMENSION_LABELS[dim]}
+                <span className={`ml-1.5 ${activeDimension === dim ? 'text-creme-200/60' : 'text-ink-300'}`}>
+                  {dimensionCounts[dim]}
                 </span>
               </button>
             ))}
