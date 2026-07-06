@@ -16,6 +16,7 @@ import BodyStep from '@/components/onboarding/body-step';
 import StylePickStep from '@/components/onboarding/style-pick-step';
 import InterestsStep from '@/components/onboarding/interests-step';
 import BudgetStep from '@/components/onboarding/budget-step';
+import LifestyleStep from '@/components/onboarding/lifestyle-step';
 import ResultView from '@/components/onboarding/result-view';
 
 // ============================================================
@@ -27,6 +28,7 @@ const STEPS = [
   { id: 'style_pick', label: '风格' },
   { id: 'interests', label: '兴趣' },
   { id: 'budget', label: '预算' },
+  { id: 'lifestyle', label: '生活方式' },
 ] as const;
 
 const TOTAL_STEPS = STEPS.length;
@@ -154,6 +156,15 @@ export default function OnboardingPage() {
 
         {step === 4 && (
           <BudgetStep
+            answers={answers}
+            onUpdate={updateAnswers}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )}
+
+        {step === 5 && (
+          <LifestyleStep
             answers={answers}
             onUpdate={updateAnswers}
             onSubmit={handleSubmit}

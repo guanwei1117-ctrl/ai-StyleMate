@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserBodyProfile } from './entities/user-body-profile.entity';
 import { UserStylePreference } from './entities/user-style-preference.entity';
+import { UserLifestyleProfile } from './entities/user-lifestyle-profile.entity';
 
 @Injectable()
 export class UserService {
@@ -14,6 +15,8 @@ export class UserService {
     private readonly bodyProfileRepo: Repository<UserBodyProfile>,
     @InjectRepository(UserStylePreference)
     private readonly stylePrefRepo: Repository<UserStylePreference>,
+    @InjectRepository(UserLifestyleProfile)
+    private readonly lifestyleProfileRepo: Repository<UserLifestyleProfile>,
   ) {}
 
   async create(data: Partial<User>): Promise<User> {
@@ -57,15 +60,30 @@ export class UserService {
     return this.stylePrefRepo.save(prefs);
   }
 
+  async updateLifestyleProfile(
+    userId: string,
+    data: Partial<UserLifestyleProfile>,
+  ): Promise<UserLifestyleProfile> {
+    let profile = await this.lifestyleProfileRepo.findOne({ where: { userId } });
+    if (!profile) {
+      profile = this.lifestyleProfileRepo.create({ userId, ...data });
+    } else {
+      Object.assign(profile, data);
+    }
+    return this.lifestyleProfileRepo.save(profile);
+  }
+
   async getUserProfile(userId: string) {
     const user = await this.findById(userId);
     const bodyProfile = await this.bodyProfileRepo.findOne({ where: { userId } });
     const stylePreference = await this.stylePrefRepo.findOne({ where: { userId } });
+    const lifestyleProfile = await this.lifestyleProfileRepo.findOne({ where: { userId } });
 
     return {
       user,
       bodyProfile,
       stylePreference,
+      lifestyleProfile,
     };
   }
 }

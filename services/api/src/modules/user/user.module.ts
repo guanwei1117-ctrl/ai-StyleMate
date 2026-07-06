@@ -5,9 +5,10 @@ import { UserService } from './user.service';
 import { User } from './entities/user.entity';
 import { UserBodyProfile } from './entities/user-body-profile.entity';
 import { UserStylePreference } from './entities/user-style-preference.entity';
+import { UserLifestyleProfile } from './entities/user-lifestyle-profile.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserBodyProfile, UserStylePreference])],
+  imports: [TypeOrmModule.forFeature([User, UserBodyProfile, UserStylePreference, UserLifestyleProfile])],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService],

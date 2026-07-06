@@ -41,13 +41,13 @@ function StyleCard({ style }: { style: StyleCard }) {
         whileHover="hover"
         className="group bg-creme-100 rounded-xl border border-creme-200/60 overflow-hidden hover:border-creme-300 hover:shadow-sm transition-all duration-400"
       >
-        {/* Reference image */}
-        <div className="aspect-[4/3] bg-creme-200/40 overflow-hidden">
+        {/* Reference image — 自适应完整显示 */}
+        <div className="aspect-[4/3] bg-white overflow-hidden flex items-center justify-center">
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={style.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
             />
           ) : (

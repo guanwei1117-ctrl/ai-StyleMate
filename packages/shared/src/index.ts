@@ -55,6 +55,69 @@ export type StyleType =
   | 'business'
   | 'sporty';
 
+// ---------- 用户生活方式画像（现实约束 + 行为偏好） ----------
+
+/** 年龄段 */
+export type AgeGroup =
+  | 'under_18'    // 18岁以下
+  | '18_24'       // 18-24
+  | '25_29'       // 25-29
+  | '30_39'       // 30-39
+  | '40_49'       // 40-49
+  | '50_plus';    // 50岁以上
+
+/** 穿衣目标（多选） */
+export type DressingGoal =
+  | 'look_polished'        // 看起来得体精致
+  | 'express_personality'  // 表达个性
+  | 'comfort_first'        // 舒适至上
+  | 'look_slim'            // 显瘦显高
+  | 'professional'         // 职场专业感
+  | 'try_new_style'        // 尝试新风格
+  | 'build_wardrobe';      // 建立精简胶囊衣橱
+
+/** 穿衣优先级维度（排序） */
+export type PriorityDimension = 'comfort' | 'slimming' | 'texture' | 'personality';
+
+/** 气候区域（由城市推导或手填） */
+export type ClimateZone = 'cold' | 'mild' | 'hot' | 'variable';
+
+/**
+ * 用户生活方式画像 — 现实约束 + 行为偏好
+ *
+ * 与 UserBodyProfile（审美适配）共同构成完整画像：
+ *   审美适配（体型/肤色）+ 现实约束（年龄/场景/气候/预算）+ 行为偏好（目标/优先级/接受度）
+ *
+ * 核心理念：适合 ≠ 会穿。一个人适合法式，不代表愿意天天穿法式；
+ *           适合极简，不代表预算支持高质感极简单品。
+ */
+export interface UserLifestyleProfile {
+  id: string;
+  userId: string;
+  /** 年龄段（必填） */
+  ageGroup: AgeGroup | null;
+  /** 职业 / 使用场景（选填） */
+  occupation?: string;
+  /** 所在城市（选填） */
+  city?: string;
+  /** 气候区域（选填，由城市推导或手填） */
+  climate?: ClimateZone;
+  /** 月度服装预算下限（选填，元） */
+  monthlyBudgetMin?: number;
+  /** 月度服装预算上限（选填，元） */
+  monthlyBudgetMax?: number;
+  /** 单件预算档位（与 UserStylePreference.budgetLevel 对齐） */
+  budgetLevel: 'budget' | 'mid' | 'premium';
+  /** 穿衣目标（必填多选） */
+  dressingGoals: DressingGoal[];
+  /** 优先级排序（必填：舒适度/显瘦/质感/个性，按重要性从高到低） */
+  priorities: PriorityDimension[];
+  /** 风格接受度（选填）：愿意尝试的风格强度 1-5，5 为最高 */
+  styleOpenness?: number;
+  /** 是否愿意尝试新风格（选填） */
+  openToNewStyles?: boolean;
+}
+
 // ---------- 衣橱相关 ----------
 export interface WardrobeItem {
   id: string;

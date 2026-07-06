@@ -38,13 +38,13 @@ export default function StyleDetailPage({ params }: { params: { id: string } }) 
             ))}
           </div>
 
-          {/* Reference image */}
+          {/* Reference image — 自适应完整显示 */}
           {imageUrl && (
-            <div className="mb-10 rounded-2xl overflow-hidden border border-creme-200 shadow-sm">
+            <div className="mb-10 rounded-2xl overflow-hidden border border-creme-200 shadow-sm bg-white flex items-center justify-center">
               <img
                 src={imageUrl}
                 alt={style.name}
-                className="w-full h-auto max-h-96 object-cover"
+                className="w-full h-auto max-h-96 object-contain"
               />
             </div>
           )}

@@ -8,11 +8,11 @@ import type { OnboardingAnswers, BudgetLevel } from '@/lib/onboarding-types';
 interface BudgetStepProps {
   answers: OnboardingAnswers;
   onUpdate: (patch: Partial<OnboardingAnswers>) => void;
-  onSubmit: () => void;
+  onNext: () => void;
   onBack: () => void;
 }
 
-export default function BudgetStep({ answers, onUpdate, onSubmit, onBack }: BudgetStepProps) {
+export default function BudgetStep({ answers, onUpdate, onNext, onBack }: BudgetStepProps) {
   const handleSelect = (value: BudgetLevel) => {
     onUpdate({ budget: value });
   };
@@ -63,8 +63,8 @@ export default function BudgetStep({ answers, onUpdate, onSubmit, onBack }: Budg
         <Button variant="ghost" onClick={onBack}>
           ← 上一步
         </Button>
-        <Button onClick={onSubmit} disabled={!canSubmit} size="lg">
-          {canSubmit ? '查看结果 ✨' : '请选择预算档位'}
+        <Button onClick={onNext} disabled={!canSubmit} size="lg">
+          {canSubmit ? '下一步 →' : '请选择预算档位'}
         </Button>
       </div>
     </div>

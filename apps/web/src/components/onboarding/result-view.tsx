@@ -3,11 +3,22 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BODY_SHAPE_LABELS } from '@/lib/onboarding-types';
+import {
+  BODY_SHAPE_LABELS,
+  AGE_GROUP_LABELS,
+  OCCUPATION_LABELS,
+  CLIMATE_LABELS,
+  DRESSING_GOAL_LABELS,
+  PRIORITY_LABELS,
+} from '@/lib/onboarding-types';
 import { CATEGORY_LABELS } from '@/data/styles';
 import type { StyleMatchResult } from '@/lib/onboarding-types';
 import type { OnboardingAnswers } from '@/lib/onboarding-types';
 import type { BodyShape } from '@/lib/onboarding-types';
+import { generateExplanation } from '@/lib/style-explain';
+import { BodyExplainCard } from './explain-sections';
+import { AvoidanceZone } from './explain-sections';
+import { MultiDimensionPanel } from './explain-sections';
 
 interface ResultViewProps {
   results: StyleMatchResult[];
@@ -18,7 +29,7 @@ interface ResultViewProps {
 
 export default function ResultView({ results, answers, bodyShape, onRestart }: ResultViewProps) {
   const top1 = results[0];
-  const top3 = results.slice(0, 3);
+  const explanation = generateExplanation(results, answers, bodyShape);
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-10">
@@ -29,43 +40,107 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
           你的穿搭风格分析
         </h1>
         <p className="text-ink-500 font-light max-w-lg mx-auto leading-relaxed">
-          根据你的身体数据、风格偏好、兴趣和预算，我们为你推荐以下最适合的穿搭风格
+          综合「审美适配 + 现实约束 + 行为偏好」三维度，为你推荐最适合且真正会穿的风格
         </p>
       </div>
 
-      {/* ============ 用户画像卡片 ============ */}
+      {/* ============ 用户画像卡片（三支柱）============ */}
       <div className="p-6 bg-creme-200/60 rounded-2xl border border-creme-200">
         <h3 className="text-sm tracking-wider text-ink-400 mb-4">你的画像</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-          {answers.gender && (
-            <ProfileItem label="性别" value={answers.gender === 'female' ? '女性' : answers.gender === 'male' ? '男性' : '其他'} />
-          )}
-          <ProfileItem label="身高" value={`${answers.height} cm`} />
-          <ProfileItem label="体重" value={`${answers.weight} kg`} />
-          <ProfileItem label="体型" value={BODY_SHAPE_LABELS[bodyShape]} />
-          {answers.budget && (
-            <ProfileItem
-              label="预算"
-              value={
-                answers.budget === 'budget' ? '平价实惠' :
-                answers.budget === 'mid' ? '中等价位' : '轻奢品质'
-              }
-            />
-          )}
-          {answers.preferredStyleIds.length > 0 && (
-            <ProfileItem
-              label="偏好风格"
-              value={`${answers.preferredStyleIds.length} 种`}
-            />
-          )}
-          {answers.interests.length > 0 && (
-            <ProfileItem
-              label="兴趣"
-              value={`${answers.interests.length} 项`}
-            />
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* 审美适配 */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-ink-500 border-b border-creme-300 pb-1">
+              审美适配
+            </p>
+            {answers.gender && (
+              <ProfileItem
+                label="性别"
+                value={answers.gender === 'female' ? '女性' : answers.gender === 'male' ? '男性' : '其他'}
+              />
+            )}
+            <ProfileItem label="身高/体重" value={`${answers.height ?? '-'}cm / ${answers.weight ?? '-'}kg`} />
+            <ProfileItem label="体型" value={BODY_SHAPE_LABELS[bodyShape]} />
+            {answers.preferredStyleIds.length > 0 && (
+              <ProfileItem label="偏好风格" value={`${answers.preferredStyleIds.length} 种`} />
+            )}
+          </div>
+
+          {/* 现实约束 */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-ink-500 border-b border-creme-300 pb-1">
+              现实约束
+            </p>
+            {answers.ageGroup && (
+              <ProfileItem label="年龄段" value={AGE_GROUP_LABELS[answers.ageGroup]} />
+            )}
+            {answers.occupation && (
+              <ProfileItem label="职业" value={OCCUPATION_LABELS[answers.occupation]} />
+            )}
+            {(answers.city || answers.climate) && (
+              <ProfileItem
+                label="城市/气候"
+                value={[answers.city, answers.climate ? CLIMATE_LABELS[answers.climate] : ''].filter(Boolean).join(' · ') || '-'}
+              />
+            )}
+            {answers.budget && (
+              <ProfileItem
+                label="单件预算"
+                value={
+                  answers.budget === 'budget' ? '平价实惠' :
+                  answers.budget === 'mid' ? '中等价位' : '轻奢品质'
+                }
+              />
+            )}
+            {answers.monthlyBudgetMax && (
+              <ProfileItem
+                label="月度预算"
+                value={`¥${answers.monthlyBudgetMin ?? 0}-${answers.monthlyBudgetMax}`}
+              />
+            )}
+          </div>
+
+          {/* 行为偏好 */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-ink-500 border-b border-creme-300 pb-1">
+              行为偏好
+            </p>
+            {answers.dressingGoals.length > 0 && (
+              <ProfileItem
+                label="穿衣目标"
+                value={answers.dressingGoals.map((g) => DRESSING_GOAL_LABELS[g]).join('、')}
+              />
+            )}
+            {answers.priorities.length > 0 && (
+              <ProfileItem
+                label="优先级"
+                value={answers.priorities.map((p) => PRIORITY_LABELS[p]).join('＞')}
+              />
+            )}
+            {answers.styleOpenness && (
+              <ProfileItem label="风格接受度" value={`${answers.styleOpenness}/5`} />
+            )}
+            {answers.openToNewStyles !== null && answers.openToNewStyles !== undefined && (
+              <ProfileItem
+                label="尝试新风格"
+                value={answers.openToNewStyles ? '愿意' : '暂不考虑'}
+              />
+            )}
+            {answers.interests.length > 0 && (
+              <ProfileItem label="兴趣" value={`${answers.interests.length} 项`} />
+            )}
+          </div>
         </div>
       </div>
+
+      {/* ============ 体型解读（NEW）============ */}
+      <BodyExplainCard explain={explanation.bodyExplain} />
+
+      {/* ============ 多维评分（NEW）============ */}
+      <MultiDimensionPanel score={explanation.multiDimension} />
+
+      {/* ============ 避雷专区（NEW）============ */}
+      <AvoidanceZone advice={explanation.avoidanceAdvice} />
 
       {/* ============ 最佳匹配 ============ */}
       <div>
@@ -88,14 +163,36 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
               </div>
             </div>
 
-            {/* 得分拆解 */}
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
-              <MiniBar label="体型" value={top1.matchBreakdown.bodyShape} max={25} />
-              <MiniBar label="偏好" value={top1.matchBreakdown.preference} max={25} />
-              <MiniBar label="难度" value={top1.matchBreakdown.difficulty} max={20} />
-              <MiniBar label="预算" value={top1.matchBreakdown.budget} max={15} />
-              <MiniBar label="兴趣" value={top1.matchBreakdown.interests} max={10} />
-              <MiniBar label="肤色" value={top1.matchBreakdown.skinTone} max={5} />
+            {/* 三支柱汇总 */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <PillarBar label="审美适配" value={top1.pillars.aesthetic} max={50} />
+              <PillarBar label="现实约束" value={top1.pillars.realistic} max={30} />
+              <PillarBar label="行为偏好" value={top1.pillars.behavioral} max={20} />
+            </div>
+
+            {/* 得分拆解 — 三组 */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {/* 审美适配 */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-creme-400 mb-1">审美适配</p>
+                <MiniBar label="体型" value={top1.matchBreakdown.bodyShape} max={20} />
+                <MiniBar label="偏好" value={top1.matchBreakdown.preference} max={25} />
+                <MiniBar label="肤色" value={top1.matchBreakdown.skinTone} max={5} />
+              </div>
+              {/* 现实约束 */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-creme-400 mb-1">现实约束</p>
+                <MiniBar label="预算" value={top1.matchBreakdown.budget} max={12} />
+                <MiniBar label="年龄" value={top1.matchBreakdown.ageFit} max={8} />
+                <MiniBar label="场景" value={top1.matchBreakdown.scene} max={10} />
+              </div>
+              {/* 行为偏好 */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-creme-400 mb-1">行为偏好</p>
+                <MiniBar label="优先级" value={top1.matchBreakdown.priority} max={10} />
+                <MiniBar label="目标" value={top1.matchBreakdown.goal} max={5} />
+                <MiniBar label="接受度" value={top1.matchBreakdown.openness} max={5} />
+              </div>
             </div>
 
             {/* 推荐理由 */}
@@ -136,6 +233,12 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
                     </h4>
                   </div>
                   <ScoreBadge score={r.score} size="sm" />
+                </div>
+                {/* 小型三支柱条 */}
+                <div className="flex gap-1.5 mb-2">
+                  <PillarDot label="审美" value={r.pillars.aesthetic} max={50} />
+                  <PillarDot label="现实" value={r.pillars.realistic} max={30} />
+                  <PillarDot label="偏好" value={r.pillars.behavioral} max={20} />
                 </div>
                 <p className="text-xs text-ink-500 line-clamp-2">
                   {r.matchReasons.join('；')}
@@ -182,6 +285,42 @@ function ScoreBadge({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' 
   );
 }
 
+/** 三支柱大条 — 用于最佳匹配 */
+function PillarBar({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  return (
+    <div className="text-center">
+      <div className="flex justify-between text-[10px] mb-1">
+        <span className="text-creme-300">{label}</span>
+        <span className="text-creme-200">{value}/{max}</span>
+      </div>
+      <div className="h-2 rounded-full bg-creme-100/15 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-creme-200 to-creme-100 transition-all duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** 三支柱小点 — 用于更多推荐卡片 */
+function PillarDot({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  const tone = pct >= 75 ? 'bg-green-400' : pct >= 50 ? 'bg-yellow-400' : 'bg-ink-300';
+  return (
+    <div className="flex-1">
+      <div className="flex justify-between text-[9px] text-ink-400 mb-0.5">
+        <span>{label}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="h-1 rounded-full bg-creme-200 overflow-hidden">
+        <div className={cn('h-full rounded-full', tone)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function MiniBar({ label, value, max }: { label: string; value: number; max: number }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
@@ -204,7 +343,7 @@ function ProfileItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-xs text-ink-400">{label}</p>
-      <p className="text-ink-800 font-medium">{value}</p>
+      <p className="text-ink-800 font-medium text-sm">{value}</p>
     </div>
   );
 }
