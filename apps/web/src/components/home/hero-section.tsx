@@ -34,7 +34,7 @@ export default function HeroSection() {
             transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1], delay: 0.2 }}
             className="text-xs lg:text-sm tracking-[0.25em] text-creme-200/60 mb-6"
           >
-            发现你的专属风格
+            穿对衣服，比买贵的重要
           </motion.p>
 
           {/* Main title — Chinese forward, more approachable */}
@@ -44,9 +44,9 @@ export default function HeroSection() {
             transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1], delay: 0.4 }}
             className="font-display text-hero text-creme-100 mb-6 text-balance"
           >
-            穿出你的
+            测一测：你到底
             <br />
-            <span className="italic">风格</span>
+            <span className="italic">适合怎么穿？</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -56,7 +56,7 @@ export default function HeroSection() {
             transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1], delay: 0.65 }}
             className="text-creme-200/50 text-base lg:text-lg max-w-lg mx-auto font-light leading-relaxed"
           >
-            了解自己的风格DNA，找到真正属于你的穿搭方向
+            不用看时尚杂志，你的身材已经在告诉你答案了
           </motion.p>
 
           {/* CTA */}
@@ -70,13 +70,13 @@ export default function HeroSection() {
               href="/styles"
               className="inline-block px-8 py-3.5 bg-creme-100 text-ink-900 text-sm tracking-wider hover:bg-creme-200 transition-all duration-400"
             >
-              探索风格库
+              看看风格百科 →
             </a>
             <a
               href="/onboarding"
               className="inline-block px-8 py-3.5 border border-creme-100/25 text-creme-100 text-sm tracking-wider hover:bg-creme-100/10 transition-all duration-400"
             >
-              开始风格测试
+              测测你的穿搭人设 👀
             </a>
           </motion.div>
         </motion.div>
@@ -87,7 +87,7 @@ export default function HeroSection() {
         style={{ opacity: indicatorOpacity }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
       >
-        <span className="text-creme-200/30 text-[10px] tracking-[0.2em]">向下浏览</span>
+        <span className="text-creme-200/30 text-[10px] tracking-[0.2em]">往下看，有好东西</span>
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}

@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common';
+import { ScoringController } from './scoring.controller';
+import { ScoringService } from './scoring.service';
+import { ClaudeProvider } from './llm/claude.provider';
+import { OpenAIProvider } from './llm/openai.provider';
+import { LLMFactory } from './llm/llm-factory';
+
+@Module({
+  controllers: [ScoringController],
+  providers: [ScoringService, ClaudeProvider, OpenAIProvider, LLMFactory],
+  exports: [ScoringService],
+})
+export class ScoringModule {}

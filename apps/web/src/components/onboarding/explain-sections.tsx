@@ -8,17 +8,26 @@ import type {
   MultiDimensionScore,
   StyleMatchResult,
 } from '@/lib/onboarding-types';
+import {
+  type ToneMode,
+  BODY_EXPLAIN_TONE,
+  AVOIDANCE_TONE,
+  SCORE_TONE,
+  getRoastWarning,
+  getRoastAlternative,
+} from '@/lib/tone-mode';
 
 // ============================================================
 // 体型解读卡片
 // ============================================================
 
-export function BodyExplainCard({ explain }: { explain: BodyExplain }) {
+export function BodyExplainCard({ explain, tone = 'nice' }: { explain: BodyExplain; tone?: ToneMode }) {
+  const t = BODY_EXPLAIN_TONE[tone];
   return (
     <div className="p-6 bg-white rounded-2xl border border-creme-200 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-base">🪞</span>
-        <h2 className="text-lg font-display text-ink-900">体型解读</h2>
+        <span className="text-base">{tone === 'nice' ? '🪞' : '🔍'}</span>
+        <h2 className="text-lg font-display text-ink-900">{t.title}</h2>
       </div>
 
       {/* 特征描述 */}
@@ -80,36 +89,41 @@ const CATEGORY_ICON: Record<AvoidanceAdvice['category'], string> = {
   general: '⚠️',
 };
 
-export function AvoidanceZone({ advice }: { advice: AvoidanceAdvice[] }) {
+export function AvoidanceZone({ advice, tone = 'nice' }: { advice: AvoidanceAdvice[]; tone?: ToneMode }) {
   if (advice.length === 0) return null;
+  const t = AVOIDANCE_TONE[tone];
 
   return (
     <div className="p-6 bg-creme-200/60 rounded-2xl border border-creme-300">
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-base">🚫</span>
-        <h2 className="text-lg font-display text-ink-900">避雷建议</h2>
-        <span className="text-xs text-ink-400 ml-1">这些搭配可能让你显矮显胖显土</span>
+        <span className="text-base">{tone === 'nice' ? '🚫' : '💣'}</span>
+        <h2 className="text-lg font-display text-ink-900">{t.title}</h2>
+        <span className="text-xs text-ink-400 ml-1">{t.subtitle}</span>
       </div>
 
       <div className="space-y-3">
-        {advice.map((a, i) => (
+        {advice.map((a, i) => {
+          const warning = tone === 'roast' ? getRoastWarning(a.warning) : a.warning;
+          const alternative = tone === 'roast' ? getRoastAlternative(a.alternatives) : a.alternatives.join(' / ');
+          return (
           <div key={i} className="p-3 bg-white/70 rounded-xl">
             <div className="flex items-start gap-2 mb-1.5">
               <span className="text-sm shrink-0">{CATEGORY_ICON[a.category]}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink-800">
-                  <span className="text-red-500 mr-1">🔴</span>
-                  {a.warning}
+                  <span className={tone === 'roast' ? 'text-ink-500' : 'text-red-500'}>{t.warningPrefix}</span>
+                  {' '}{warning}
                 </p>
                 <p className="text-xs text-ink-500 mt-0.5">{a.reason}</p>
               </div>
             </div>
             <p className="text-xs text-ink-600 pl-6">
-              <span className="text-green-600 mr-1">🟢 替换为</span>
-              {a.alternatives.join(' / ')}
+              <span className={tone === 'roast' ? 'text-ink-600' : 'text-green-600'}>{t.alternativePrefix}</span>
+              {' '}{alternative}
             </p>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -119,12 +133,13 @@ export function AvoidanceZone({ advice }: { advice: AvoidanceAdvice[] }) {
 // 多维评分面板
 // ============================================================
 
-export function MultiDimensionPanel({ score }: { score: MultiDimensionScore }) {
+export function MultiDimensionPanel({ score, tone = 'nice' }: { score: MultiDimensionScore; tone?: ToneMode }) {
+  const t = SCORE_TONE[tone];
   return (
     <div className="p-6 bg-white rounded-2xl border border-creme-200 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-base">📊</span>
-        <h2 className="text-lg font-display text-ink-900">多维评分</h2>
+        <span className="text-base">{tone === 'nice' ? '📊' : '🤖'}</span>
+        <h2 className="text-lg font-display text-ink-900">{t.title}</h2>
       </div>
 
       {/* 三维度适配度 */}

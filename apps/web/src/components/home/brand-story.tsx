@@ -29,16 +29,16 @@ export default function BrandStory() {
           style={{ opacity: textOpacity, y: textY }}
           className="text-xs tracking-[0.25em] text-ink-400 mb-8"
         >
-          我们的理念
+          为什么做这个
         </motion.p>
 
         <motion.blockquote
           style={{ opacity: textOpacity, y: textY }}
           className="font-display text-display text-ink-900 leading-tight mb-12 text-balance"
         >
-          &ldquo;风格是你不需要开口
+          &ldquo;穿衣服这件事，
           <br />
-          <span className="italic">就能表达的自我。</span>&rdquo;
+          <span className="italic">不该是玄学。</span>&rdquo;
         </motion.blockquote>
 
         <motion.div
@@ -51,11 +51,10 @@ export default function BrandStory() {
           className="max-w-lg mx-auto"
         >
           <p className="text-ink-500 leading-relaxed font-light text-sm lg:text-base">
-            穿搭不是盲目追随潮流，而是找到与自己的骨相、体型、肤色和气质最为自洽的表达方式。
-            每一种风格都有它的语言，而你要做的，是找到最接近内心的那一种。
+            我们相信每个人都有一个「最对」的风格区间——不是某种固定的穿搭公式，而是一种让你穿得舒服、别人看着也舒服的状态。风格没有标准答案，但一定有更适合你的解法。
           </p>
           <p className="text-ink-400 leading-relaxed font-light text-xs lg:text-sm mt-5">
-            我们不定义美，我们帮你发现——那个本来就很好的你。
+            不做时尚警察，只做你的穿搭参谋。
           </p>
         </motion.div>
       </div>

@@ -124,12 +124,12 @@ export default function TrendingSection() {
 
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
         <ScrollReveal className="mb-14">
-          <p className="text-xs tracking-[0.25em] text-ink-400 mb-4">本周精选</p>
+          <p className="text-xs tracking-[0.25em] text-ink-400 mb-4">灵感墙</p>
           <h2 className="font-display text-section text-ink-900">
-            流行<span className="italic">穿搭</span>
+            大家最近<span className="italic">怎么穿</span>
           </h2>
           <p className="mt-3 text-ink-500 font-light max-w-md">
-            本周社区最受欢迎的穿搭灵感，精选自真实用户的风格表达
+            来自社区的穿搭灵感，风格没有标准答案，但一定有更适合你的解法
           </p>
         </ScrollReveal>
 

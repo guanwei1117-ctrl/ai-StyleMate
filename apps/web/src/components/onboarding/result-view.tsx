@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,8 @@ import { generateExplanation } from '@/lib/style-explain';
 import { BodyExplainCard } from './explain-sections';
 import { AvoidanceZone } from './explain-sections';
 import { MultiDimensionPanel } from './explain-sections';
+import { type ToneMode, PROFILE_TONE } from '@/lib/tone-mode';
+import StickerPop from './sticker-pop';
 
 interface ResultViewProps {
   results: StyleMatchResult[];
@@ -30,23 +33,65 @@ interface ResultViewProps {
 export default function ResultView({ results, answers, bodyShape, onRestart }: ResultViewProps) {
   const top1 = results[0];
   const explanation = generateExplanation(results, answers, bodyShape);
+  const [toneMode, setToneMode] = useState<ToneMode>('nice');
+  const [stickerTrigger, setStickerTrigger] = useState(0);
+  const profileTitle = PROFILE_TONE[toneMode].title;
+
+  // 切到毒舌模式时，刷新一次贴纸弹窗
+  const handleToneChange = (mode: ToneMode) => {
+    setToneMode(mode);
+    if (mode === 'roast') {
+      setStickerTrigger((n) => n + 1);
+    }
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-10">
+      {/* ============ 毒舌贴纸弹窗 ============ */}
+      <StickerPop trigger={stickerTrigger} />
+
+      {/* ============ 毒舌/夸夸切换 ============ */}
+      <div className="flex justify-center">
+        <div className="inline-flex rounded-full bg-creme-200 p-0.5">
+          <button
+            onClick={() => handleToneChange('nice')}
+            className={cn(
+              'px-4 py-2 rounded-full text-sm font-medium transition-all',
+              toneMode === 'nice'
+                ? 'bg-white text-ink-900 shadow-sm'
+                : 'text-ink-400 hover:text-ink-600',
+            )}
+          >
+            😇 夸夸模式
+          </button>
+          <button
+            onClick={() => handleToneChange('roast')}
+            className={cn(
+              'px-4 py-2 rounded-full text-sm font-medium transition-all',
+              toneMode === 'roast'
+                ? 'bg-white text-ink-900 shadow-sm'
+                : 'text-ink-400 hover:text-ink-600',
+            )}
+          >
+            😈 毒舌模式
+          </button>
+        </div>
+      </div>
+
       {/* ============ 顶部摘要 ============ */}
       <div className="text-center space-y-3">
-        <p className="text-xs tracking-[0.2em] text-ink-400 uppercase">你的风格画像</p>
+        <p className="text-xs tracking-[0.2em] text-ink-400 uppercase">你的穿搭人设</p>
         <h1 className="text-display font-display text-ink-900">
-          你的穿搭风格分析
+          你的穿搭人设报告
         </h1>
         <p className="text-ink-500 font-light max-w-lg mx-auto leading-relaxed">
-          综合「审美适配 + 现实约束 + 行为偏好」三维度，为你推荐最适合且真正会穿的风格
+          别急着下定论，先看看你的身体和数据怎么说
         </p>
       </div>
 
       {/* ============ 用户画像卡片（三支柱）============ */}
       <div className="p-6 bg-creme-200/60 rounded-2xl border border-creme-200">
-        <h3 className="text-sm tracking-wider text-ink-400 mb-4">你的画像</h3>
+        <h3 className="text-sm tracking-wider text-ink-400 mb-4">{profileTitle}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 审美适配 */}
           <div className="space-y-3">
@@ -134,17 +179,17 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
       </div>
 
       {/* ============ 体型解读（NEW）============ */}
-      <BodyExplainCard explain={explanation.bodyExplain} />
+      <BodyExplainCard explain={explanation.bodyExplain} tone={toneMode} />
 
       {/* ============ 多维评分（NEW）============ */}
-      <MultiDimensionPanel score={explanation.multiDimension} />
+      <MultiDimensionPanel score={explanation.multiDimension} tone={toneMode} />
 
       {/* ============ 避雷专区（NEW）============ */}
-      <AvoidanceZone advice={explanation.avoidanceAdvice} />
+      <AvoidanceZone advice={explanation.avoidanceAdvice} tone={toneMode} />
 
       {/* ============ 最佳匹配 ============ */}
       <div>
-        <h2 className="text-lg font-display text-ink-900 mb-4">🏆 最佳匹配</h2>
+        <h2 className="text-lg font-display text-ink-900 mb-4">🏆 第一名</h2>
 
         {top1 && (
           <Link
@@ -206,7 +251,7 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
             </ul>
 
             <p className="mt-4 text-xs text-creme-400 group-hover:text-creme-300 transition-colors">
-              点击查看风格详情 →
+              点我看看这个风格长啥样 →
             </p>
           </Link>
         )}
@@ -253,12 +298,12 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-6 border-t border-creme-200">
         <Link href="/wardrobe">
           <Button variant="default" size="lg">
-            去衣橱探索穿搭 →
+            去衣柜搭一套看看 →
           </Button>
         </Link>
         <Link href="/styles">
           <Button variant="outline" size="lg">
-            浏览全部风格库
+            浏览全部风格百科
           </Button>
         </Link>
         <Button variant="ghost" size="lg" onClick={onRestart}>

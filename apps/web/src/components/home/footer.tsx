@@ -42,9 +42,9 @@ export default function Footer() {
               STYLEMATE
             </h3>
             <p className="text-creme-200/40 text-sm leading-relaxed font-light max-w-xs">
-              帮助每个人找到属于自己的穿搭风格。
+              融合毒舌测评 + 知识拆解 + 真人试穿三种穿搭视角。
               <br />
-              AI 驱动，懂你更懂穿搭。
+              我们不只是 AI，我们是一个很会穿的朋友。
             </p>
             {/* Social */}
             <div className="flex items-center gap-4 mt-6">
@@ -88,7 +88,7 @@ export default function Footer() {
             &copy; 2026 StyleMate. All rights reserved.
           </p>
           <p className="text-[10px] tracking-wider text-creme-200/20 font-light">
-            用心设计，为你而造。
+            真诚建议，不敷衍每一件衣服。
           </p>
         </div>
       </div>

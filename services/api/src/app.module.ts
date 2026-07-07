@@ -6,6 +6,7 @@ import { UserModule } from './modules/user/user.module';
 import { WardrobeModule } from './modules/wardrobe/wardrobe.module';
 import { RecommendationModule } from './modules/recommendation/recommendation.module';
 import { StyleEngineModule } from './modules/style-engine/style-engine.module';
+import { ScoringModule } from './modules/scoring/scoring.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { StyleEngineModule } from './modules/style-engine/style-engine.module';
     WardrobeModule,
     RecommendationModule,
     StyleEngineModule,
+    ScoringModule,
   ],
   controllers: [AppController],
 })

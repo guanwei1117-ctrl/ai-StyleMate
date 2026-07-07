@@ -357,3 +357,89 @@ export interface PaginatedResponse<T> {
   pageSize: number;
   hasMore: boolean;
 }
+
+// ============================================================
+// AI 自动评分系统类型
+// ============================================================
+
+/** 博主人格档案 */
+export interface BloggerPersona {
+  id: string;
+  name: string;
+  platform: string;
+  avatarUrl?: string;
+  styleSignature: string;
+  description: string;
+  /** 话术风格 */
+  toneProfile: {
+    personality: string;
+    greeting: string;
+    praiseStyle: string;
+    critiqueStyle: string;
+    signaturePhrases: string[];
+  };
+  /** 各维度评分权重（总和不需要为 100，相对值） */
+  dimensionWeights: Record<ScoringDimensionKey, number>;
+  /** 审美偏好 */
+  preferences: {
+    lovedElements: string[];
+    dislikedElements: string[];
+    colorPalette: string[];
+    keySilhouettes: string[];
+  };
+}
+
+/** 评分维度键名 */
+export type ScoringDimensionKey =
+  | 'proportion'
+  | 'color'
+  | 'occasion'
+  | 'coherence'
+  | 'trend'
+  | 'creativity'
+  | 'bodyFit'
+  | 'practicality';
+
+/** 评分维度定义 */
+export interface ScoringDimension {
+  key: ScoringDimensionKey;
+  label: string;
+  description: string;
+  maxScore: number;
+  rubric: string;
+}
+
+/** 维度评分结果 */
+export interface DimensionScore {
+  key: ScoringDimensionKey;
+  label: string;
+  score: number;
+  comment: string;
+}
+
+/** 评分请求 */
+export interface EvaluateOutfitRequest {
+  /** 穿搭照片 base64 */
+  imageBase64: string;
+  /** 博主 ID */
+  bloggerId: string;
+  /** 用户上下文（可选） */
+  userContext?: {
+    bodyShape?: string;
+    gender?: string;
+    height?: number;
+    weight?: number;
+    occasion?: string;
+  };
+}
+
+/** 评分响应 */
+export interface EvaluateOutfitResponse {
+  bloggerName: string;
+  bloggerId: string;
+  greeting: string;
+  overallComment: string;
+  dimensions: DimensionScore[];
+  itemComments: string[];
+  improvements: string[];
+}

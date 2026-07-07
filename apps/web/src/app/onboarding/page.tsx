@@ -193,7 +193,7 @@ export default function OnboardingPage() {
       {/* 结果页回到顶部 */}
       {isResultStep && results.length === 0 && (
         <div className="w-full max-w-md text-center">
-          <p className="text-ink-500 font-light mb-6">正在分析你的风格画像...</p>
+          <p className="text-ink-500 font-light mb-6">正在分析你的风格 DNA...（比挑衣服快多了）</p>
           <button
             onClick={handleRestart}
             className="text-sm text-ink-400 hover:text-ink-600 underline underline-offset-2"

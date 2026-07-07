@@ -327,7 +327,7 @@ export function buildMultiDimension(
 
   // 风险提示
   const top1 = results[0];
-  const top1Style = top1 ? findStyle(top1.styleId) : null;
+  const top1Style = top1 ? (findStyle(top1.styleId) ?? null) : null;
   const riskFlags = buildRiskFlags(top1Style, cautionStyles, answers);
 
   return {
