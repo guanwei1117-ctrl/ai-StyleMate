@@ -1,0 +1,60 @@
+
+> @stylemate/api@0.1.0 dev
+> nest start --watch
+
+[2J[3J[H[[90m18:58:32[0m] Starting compilation in watch mode...
+
+[[90m18:58:35[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +9ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStyleEngineModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScoringModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api/v1}:[39m[38;5;3m +13ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStyleEngineController {/api/v1/style-engine}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles/categories, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/analyze, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/match/:styleId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mScoringController {/api/v1/scoring}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/scoring/evaluate, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/scoring/bloggers, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25644  - [39m2026/07/07 18:58:37 [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +1ms[39m
+🚀 API server running on http://localhost:4000
+📖 Swagger docs: http://localhost:4000/api/docs
+[2J[3J[H[[90m19:04:34[0m] File change detected. Starting incremental compilation...
+
+[[90m19:04:34[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +9ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStyleEngineModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScoringModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api/v1}:[39m[38;5;3m +13ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStyleEngineController {/api/v1/style-engine}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13716  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles/categories, GET} ro[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +9ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStyleEngineModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScoringModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api/v1}:[39m[38;5;3m +17ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStyleEngineController {/api/v1/style-engine}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles/categories, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/styles/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/analyze, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/style-engine/match/:styleId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mScoringController {/api/v1/scoring}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/scoring/evaluate, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/scoring/bloggers, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22376  - [39m2026/07/07 19:04:36 [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +1ms[39m
