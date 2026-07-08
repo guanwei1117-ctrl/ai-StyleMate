@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { EvaluateOutfitResponse } from "@/lib/scoring-types";
 import DimensionCard from "./dimension-card";
 import { motion } from "framer-motion";
@@ -19,10 +20,12 @@ interface ScoreResultProps {
 }
 
 export default function ScoreResult({ result, onReset }: ScoreResultProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const radarData = result.dimensions.map((d) => ({
-    dimension: d.label.length > 3 ? d.label.slice(0, 3) : d.label,
+    dimension: d.label,
     score: d.score,
-    fullLabel: d.label,
   }));
 
   return (
@@ -46,38 +49,41 @@ export default function ScoreResult({ result, onReset }: ScoreResultProps) {
         </div>
       </motion.div>
 
-      {/* 雷达图 */}
+      {/* 雷达图 — 等待组件挂载后再渲染，避免 Recharts getBoundingClientRect 空值 */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ delay: 0.15 }}
         className="bg-white rounded-2xl border border-[#e5dfd7] p-5"
+        style={{ width: "100%", minHeight: 320 }}
       >
         <h3 className="text-sm font-semibold text-[#1a1a2e] mb-3 font-display">
           📊 8 维评分雷达图
         </h3>
-        <ResponsiveContainer width="100%" height={280}>
-          <RadarChart data={radarData}>
-            <PolarGrid stroke="#e5dfd7" />
-            <PolarAngleAxis
-              dataKey="dimension"
-              tick={{ fontSize: 11, fill: "#5c5c5c" }}
-            />
-            <PolarRadiusAxis
-              angle={30}
-              domain={[0, 100]}
-              tick={{ fontSize: 10, fill: "#8a8a8a" }}
-            />
-            <Radar
-              name="评分"
-              dataKey="score"
-              stroke="#5a7d8c"
-              fill="#5a7d8c"
-              fillOpacity={0.2}
-              strokeWidth={2}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
+        {mounted && (
+          <ResponsiveContainer width="100%" height={280}>
+            <RadarChart data={radarData}>
+              <PolarGrid stroke="#e5dfd7" />
+              <PolarAngleAxis
+                dataKey="dimension"
+                tick={{ fontSize: 11, fill: "#5c5c5c" }}
+              />
+              <PolarRadiusAxis
+                angle={30}
+                domain={[0, 100]}
+                tick={{ fontSize: 10, fill: "#8a8a8a" }}
+              />
+              <Radar
+                name="评分"
+                dataKey="score"
+                stroke="#5a7d8c"
+                fill="#5a7d8c"
+                fillOpacity={0.2}
+                strokeWidth={2}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        )}
       </motion.div>
 
       {/* 整体评价 */}

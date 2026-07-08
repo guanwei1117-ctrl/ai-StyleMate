@@ -22,10 +22,14 @@ Error: listen EADDRINUSE: address already in use :::4000
 }
 
 Node.js v24.16.0
-mu\cleanfit\services\api\src\modules\scoring\llm\llm-factory.ts:69:11)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async ScoringService.evaluateOutfit (D:\codebuddy\xiangmu\cleanfit\services\api\src\modules\scoring\scoring.service.ts:62:22)
-    at async ScoringController.evaluateOutfit (D:\codebuddy\xiangmu\cleanfit\services\api\src\modules\scoring\scoring.controller.ts:26:20)
+npm error Lifecycle script `dev` failed with error:
+npm error code 1073807364
+npm error path D:\codebuddy\xiangmu\cleanfit\services\api
+npm error workspace @stylemate/api@0.1.0
+npm error location D:\codebuddy\xiangmu\cleanfit\services\api
+npm error command failed
+npm error command C:\Windows\system32\cmd.exe /d /s /c nest start --watch
+odebuddy\xiangmu\cleanfit\services\api\src\modules\scoring\scoring.controller.ts:26:20)
     at async D:\codebuddy\xiangmu\cleanfit\node_modules\@nestjs\core\router\router-execution-context.js:46:28
     at async D:\codebuddy\xiangmu\cleanfit\node_modules\@nestjs\core\router\router-proxy.js:9:17
 [31m[Nest] 25644  - [39m2026/07/07 19:01:43 [31m  ERROR[39m [38;5;3m[ExceptionsHandler] [39m[31m所有 LLM Provider 均不可用[39m

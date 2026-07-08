@@ -52,19 +52,19 @@ export class ScoringService {
     // 3. 构建 System Prompt
     const systemPrompt = buildSystemPrompt(blogger, userContextStr);
 
-    // 4. 构建 User Message（含图片）
+    // 4. 构建 User Message（含图片）—— 图片真正传给 LLM
     const userMessage = this.buildUserMessage(imageBase64, userContext?.occasion);
 
-    // 5. 调用 LLM
-    this.logger.log(`开始评分 | 博主: ${blogger.name} | 上下文: ${userContextStr}`);
+    // 5. 调用 LLM（图片放在 user message 的 imageBase64 字段）
+    this.logger.log(`开始评分 | 博主: ${blogger.name} | 含图片: 是`);
     const startTime = Date.now();
 
     const response = await this.llmFactory.chat(
       [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
+        { role: 'user', content: userMessage, imageBase64 },
       ],
-      { temperature: 0.7, maxTokens: 2048, timeoutMs: 30000 },
+      { temperature: 0.7, maxTokens: 2048, timeoutMs: 60000 },
     );
 
     const elapsed = Date.now() - startTime;

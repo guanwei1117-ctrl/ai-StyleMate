@@ -3,57 +3,61 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { LLMProvider, ChatMessage, LLMOptions, LLMResponse } from './llm-provider.interface';
 
-/** MIME type 映射 */
-function detectImageType(base64: string): string {
-  if (base64.startsWith('/9j/')) return 'image/jpeg';
-  if (base64.startsWith('iVBOR')) return 'image/png';
-  if (base64.startsWith('R0lG')) return 'image/gif';
-  if (base64.startsWith('UklG')) return 'image/webp';
-  return 'image/jpeg'; // 默认
-}
-
+/**
+ * Qwen-VL Provider（通义千问视觉）
+ *
+ * 通过阿里云 DashScope OpenAI 兼容接口调用 qwen-vl-max
+ * - 国内直连，不受公司网络限制
+ * - 支持图片/视觉分析（base64 图片）
+ * - 性价比极高：¥3/百万 token（输入），¥12/百万 token（输出）
+ *
+ * API Key 获取：https://dashscope.console.aliyun.com/
+ */
 @Injectable()
-export class OpenAIProvider implements LLMProvider {
-  readonly name = 'OpenAI';
-  readonly supportsVision = true; // GPT-4o 支持图片分析
-  private readonly logger = new Logger(OpenAIProvider.name);
+export class QwenVLProvider implements LLMProvider {
+  readonly name = 'Qwen-VL';
+  readonly supportsVision = true;
+  private readonly logger = new Logger(QwenVLProvider.name);
   private client: OpenAI | null = null;
 
   constructor(private readonly configService: ConfigService) {}
 
   private getClient(): OpenAI {
     if (!this.client) {
-      const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-      if (!apiKey || apiKey === 'sk-xxx') {
-        this.logger.warn('OPENAI_API_KEY 未配置或为占位值，OpenAI 不可用');
+      const apiKey = this.configService.get<string>('DASHSCOPE_API_KEY');
+      if (!apiKey) {
+        this.logger.warn('DASHSCOPE_API_KEY 未配置，Qwen-VL 不可用');
       }
-      this.client = new OpenAI({ apiKey: apiKey || '' });
+      this.client = new OpenAI({
+        apiKey: apiKey || '',
+        baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      });
     }
     return this.client;
   }
 
   async chat(messages: ChatMessage[], options?: LLMOptions): Promise<LLMResponse> {
     const client = this.getClient();
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    if (!apiKey || apiKey === 'sk-xxx') {
-      throw new Error('OPENAI_API_KEY 未配置');
+    const apiKey = this.configService.get<string>('DASHSCOPE_API_KEY');
+    if (!apiKey) {
+      throw new Error('DASHSCOPE_API_KEY 未配置');
     }
 
     const startTime = Date.now();
 
-    // 构建消息，支持图片
+    // 构建消息，支持图片（OpenAI Vision 兼容格式）
+    // 注意：前端传的是 data URI，后端确保只加一层前缀
     const formattedMessages = messages.map((m) => {
-      // 如果有图片附件且是 user 消息，使用 Vision API 格式
       if (m.imageBase64 && m.role === 'user') {
-        // 如果已经是完整 data URI 则直接用，否则加前缀
+        // 如果已经是 data URI 则直接用，否则加前缀
         const imageUrl = m.imageBase64.startsWith('data:')
           ? m.imageBase64
-          : `data:${detectImageType(m.imageBase64)};base64,${m.imageBase64}`;
+          : `data:image/jpeg;base64,${m.imageBase64}`;
         return {
           role: 'user' as const,
           content: [
-            { type: 'text' as const, text: m.content },
             { type: 'image_url' as const, image_url: { url: imageUrl } },
+            { type: 'text' as const, text: m.content },
           ],
         };
       }
@@ -64,7 +68,7 @@ export class OpenAIProvider implements LLMProvider {
     });
 
     const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'qwen-vl-max',
       max_tokens: options?.maxTokens ?? 2048,
       temperature: options?.temperature ?? 0.7,
       messages: formattedMessages,
@@ -75,7 +79,7 @@ export class OpenAIProvider implements LLMProvider {
     const usage = response.usage;
 
     this.logger.log(
-      `OpenAI 调用成功 | 耗时 ${elapsed}ms | 输入 ${usage?.prompt_tokens ?? 0} tokens | 输出 ${usage?.completion_tokens ?? 0} tokens`,
+      `Qwen-VL 调用成功 | 耗时 ${elapsed}ms | 输入 ${usage?.prompt_tokens ?? 0} tokens | 输出 ${usage?.completion_tokens ?? 0} tokens`,
     );
 
     return {
@@ -88,7 +92,7 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    return !!(apiKey && apiKey !== 'sk-xxx');
+    const apiKey = this.configService.get<string>('DASHSCOPE_API_KEY');
+    return !!(apiKey);
   }
 }

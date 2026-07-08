@@ -6,7 +6,7 @@ import { Menu, X } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: '风格百科', href: '/styles' },
-  { label: 'AI 评分', href: '/score-outfit' },
+  { label: '博主评价', href: '/score-outfit' },
   { label: '灵感墙', href: '#trending' },
   { label: '衣橱', href: '/wardrobe' },
   { label: '关于', href: '#story' },

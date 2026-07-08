@@ -2,40 +2,62 @@ import { Injectable, Logger } from '@nestjs/common';
 import { LLMProvider, ChatMessage, LLMOptions, LLMResponse } from './llm-provider.interface';
 import { ClaudeProvider } from './claude.provider';
 import { OpenAIProvider } from './openai.provider';
+import { DeepSeekProvider } from './deepseek.provider';
+import { QwenVLProvider } from './qwen-vl.provider';
 
 /**
- * LLM Factory — 自动 fallback
+ * LLM Factory — 自动 fallback（支持图片标注）
  *
- * 优先级：
- *  1. Claude（Anthropic）
- *  2. OpenAI（fallback）
+ * 无图片时：
+ *  DeepSeek → Qwen-VL → OpenAI → Claude（DeepSeek 国内最快）
  *
- * 调用链：
- *   try Claude → 失败/超时 → try OpenAI → 失败 → 抛错
+ * 有图片时：
+ *  Qwen-VL（通义千问国内直连）→ OpenAI（GPT-4o）→ Claude（Sonnet）
+ *  （DeepSeek 不支持视觉，自动跳过）
  */
 @Injectable()
 export class LLMFactory {
   private readonly logger = new Logger(LLMFactory.name);
-  private readonly providers: LLMProvider[];
+  private readonly allProviders: LLMProvider[];
 
   constructor(
     private readonly claudeProvider: ClaudeProvider,
     private readonly openaiProvider: OpenAIProvider,
+    private readonly deepSeekProvider: DeepSeekProvider,
+    private readonly qwenVLProvider: QwenVLProvider,
   ) {
-    this.providers = [claudeProvider, openaiProvider];
+    this.allProviders = [deepSeekProvider, qwenVLProvider, openaiProvider, claudeProvider];
   }
 
   /**
    * 按优先级依次调用 Provider，失败自动 fallback
+   * 如果消息中包含图片，自动跳过不支持视觉的 Provider
    */
   async chat(messages: ChatMessage[], options?: LLMOptions): Promise<LLMResponse> {
     const timeoutMs = options?.timeoutMs ?? 30000;
 
-    for (let i = 0; i < this.providers.length; i++) {
-      const provider = this.providers[i];
-      const isLast = i === this.providers.length - 1;
+    // 检查是否有图片
+    const hasImage = messages.some((m) => m.imageBase64);
 
-      // 先检查可用性
+    // 有图片时过滤掉不支持视觉的 Provider
+    const providers = hasImage
+      ? this.allProviders.filter((p) => p.supportsVision)
+      : this.allProviders;
+
+    if (providers.length === 0) {
+      throw new Error('没有可用的 Provider（所有支持视觉的 Provider 均未配置）');
+    }
+
+    if (hasImage) {
+      this.logger.log(
+        `检测到图片附件，可用 Provider: ${providers.map((p) => p.name).join(' → ')} （已跳过不支持视觉的 Provider）`,
+      );
+    }
+
+    for (let i = 0; i < providers.length; i++) {
+      const provider = providers[i];
+      const isLast = i === providers.length - 1;
+
       const available = await provider.isAvailable().catch(() => false);
       if (!available) {
         this.logger.warn(`${provider.name} 不可用，${isLast ? '无更多 fallback' : '尝试下一个'}`);
@@ -62,7 +84,7 @@ export class LLMFactory {
       }
 
       if (!isLast) {
-        this.logger.warn(`⚠️ ${provider.name} 超时，fallback 到 ${this.providers[i + 1].name}`);
+        this.logger.warn(`⚠️ ${provider.name} 超时，fallback 到 ${providers[i + 1].name}`);
       }
     }
 
@@ -74,7 +96,7 @@ export class LLMFactory {
    */
   async getAvailableProviders(): Promise<string[]> {
     const results = await Promise.all(
-      this.providers.map(async (p) => {
+      this.allProviders.map(async (p) => {
         const available = await p.isAvailable().catch(() => false);
         return available ? p.name : null;
       }),

@@ -3,9 +3,31 @@ import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { LLMProvider, ChatMessage, LLMOptions, LLMResponse } from './llm-provider.interface';
 
+/**
+ * 提取原始 base64 并检测 MIME 类型
+ * 兼容两种输入：纯 base64 或 data:...;base64,... 完整 URI
+ */
+function extractBase64(input: string): { mime: string; raw: string } {
+  const dataUriMatch = input.match(/^data:(image\/\w+);base64,(.+)$/);
+  if (dataUriMatch) {
+    return { mime: dataUriMatch[1], raw: dataUriMatch[2] };
+  }
+  // 纯 base64，根据 magic bytes 检测
+  let mime = 'image/jpeg';
+  if (input.startsWith('iVBOR')) mime = 'image/png';
+  else if (input.startsWith('R0lG')) mime = 'image/gif';
+  else if (input.startsWith('UklG')) mime = 'image/webp';
+  return { mime, raw: input };
+}
+
+function detectImageType(base64: string): string {
+  return extractBase64(base64).mime;
+}
+
 @Injectable()
 export class ClaudeProvider implements LLMProvider {
   readonly name = 'Claude';
+  readonly supportsVision = true; // Claude Sonnet 支持图片分析
   private readonly logger = new Logger(ClaudeProvider.name);
   private client: Anthropic | null = null;
 
@@ -33,10 +55,30 @@ export class ClaudeProvider implements LLMProvider {
     const systemMsg = messages.find((m) => m.role === 'system');
     const userMessages = messages
       .filter((m) => m.role !== 'system')
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }));
+      .map((m) => {
+        // 如果有图片附件，构建 Claude 图片块格式
+        if (m.imageBase64 && m.role === 'user') {
+          const { mime, raw } = extractBase64(m.imageBase64);
+          return {
+            role: 'user' as const,
+            content: [
+              { type: 'text' as const, text: m.content },
+              {
+                type: 'image' as const,
+                source: {
+                  type: 'base64' as const,
+                  media_type: mime as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                  data: raw,
+                },
+              },
+            ],
+          };
+        }
+        return {
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        };
+      });
 
     const startTime = Date.now();
     const response = await client.messages.create({

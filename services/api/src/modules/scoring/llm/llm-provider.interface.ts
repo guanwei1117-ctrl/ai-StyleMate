@@ -6,6 +6,8 @@
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  /** 可选：图片 base64 数据（仅 user 消息可用） */
+  imageBase64?: string;
 }
 
 export interface LLMOptions {
@@ -26,6 +28,9 @@ export interface LLMResponse {
 export interface LLMProvider {
   /** Provider 名称，用于日志和 fallback 标识 */
   readonly name: string;
+
+  /** 是否支持图片/视觉分析 */
+  readonly supportsVision: boolean;
 
   /**
    * 发送聊天请求

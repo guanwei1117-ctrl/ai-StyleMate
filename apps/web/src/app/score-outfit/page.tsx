@@ -70,7 +70,7 @@ export default function ScoreOutfitPage() {
             返回首页
           </Link>
           <span className="text-sm font-display font-semibold text-[#1a1a2e]">
-            AI 穿搭评分
+            博主穿搭评价
           </span>
           <div className="w-16" />
         </div>
@@ -87,7 +87,7 @@ export default function ScoreOutfitPage() {
               className="text-center mb-8"
             >
               <h1 className="text-3xl font-display font-bold text-[#1a1a2e] tracking-tight">
-                {state === "upload" ? "你的穿搭，AI 来评分" : "选择你的搭配顾问"}
+                {state === "upload" ? "你的穿搭，博主来评价" : "选择你的搭配顾问"}
               </h1>
               <p className="text-[#8a8a8a] mt-2 text-sm">
                 {state === "upload"
@@ -193,7 +193,7 @@ export default function ScoreOutfitPage() {
                 {loading && !result ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-4">
                     <div className="w-12 h-12 border-3 border-[#1a1a2e] border-t-transparent rounded-full animate-spin" />
-                    <p className="text-[#8a8a8a] text-sm">AI 正在分析你的穿搭...</p>
+                    <p className="text-[#8a8a8a] text-sm">博主正在分析你的穿搭...</p>
                   </div>
                 ) : result ? (
                   <ScoreResult result={result} onReset={handleReset} />
