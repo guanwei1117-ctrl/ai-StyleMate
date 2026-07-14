@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LLMFactory } from './llm/llm-factory';
+import { ChatMessage } from './llm/llm-provider.interface';
 import { buildSystemPrompt } from './prompts/system-prompts';
 import { getBloggerById } from './bloggers/blogger-profiles';
 import { buildDimensionsPrompt } from './prompts/scoring-dimensions';
@@ -8,6 +9,7 @@ import {
   DimensionScore,
   ScoringDimensionKey,
 } from '@stylemate/shared';
+import { AnalyzeStyleProfileRequestDto } from './dto/analyze-style-profile.dto';
 
 const REQUIRED_DIMENSION_KEYS: ScoringDimensionKey[] = [
   'proportion',
@@ -25,6 +27,56 @@ export class ScoringService {
   private readonly logger = new Logger(ScoringService.name);
 
   constructor(private readonly llmFactory: LLMFactory) {}
+
+  async analyzeStyleProfile(dto: AnalyzeStyleProfileRequestDto) {
+    const hasFaceImage = !!dto.faceImageBase64;
+    const hasFullBodyImage = !!dto.fullBodyImageBase64;
+    const systemPrompt = this.buildStyleProfileSystemPrompt();
+    const profilePrompt = this.buildStyleProfileUserPrompt(dto);
+
+    const messages: ChatMessage[] = [
+      { role: 'system' as const, content: systemPrompt },
+      {
+        role: 'user' as const,
+        content: `${profilePrompt}\n\n请先结合文字与候选风格做整体判断。`,
+      },
+    ];
+
+    if (hasFaceImage) {
+      messages.push({
+        role: 'user' as const,
+        content: '这是用户上传的正脸照。请只分析穿搭相关的视觉信息，例如脸部量感、气质、肤色倾向、五官给人的风格方向，不要做身份识别。',
+        imageBase64: dto.faceImageBase64,
+      });
+    }
+
+    if (hasFullBodyImage) {
+      messages.push({
+        role: 'user' as const,
+        content: '这是用户上传的全身照。请分析身材比例、视觉重心、肩腰胯比例、适合的廓形和需要避开的版型。',
+        imageBase64: dto.fullBodyImageBase64,
+      });
+    }
+
+    this.logger.log(
+      `开始 AI 风格档案分析 | 正脸照: ${hasFaceImage ? '是' : '否'} | 全身照: ${hasFullBodyImage ? '是' : '否'} | 候选: ${dto.candidates.length}`,
+    );
+    const startTime = Date.now();
+    const response = await this.llmFactory.chat(messages, {
+      temperature: 0.45,
+      maxTokens: 2600,
+      timeoutMs: 90000,
+    });
+
+    const parsed = this.parseStyleProfileResponse(response.content);
+    this.logger.log(`AI 风格档案分析完成 | 耗时 ${Date.now() - startTime}ms | 模型: ${response.model}`);
+
+    return {
+      aiEnabled: true,
+      providerModel: response.model,
+      ...parsed,
+    };
+  }
 
   /**
    * 对穿搭照片进行多维度评分
@@ -81,6 +133,102 @@ export class ScoringService {
       dimensions: this.validateDimensions(parsed.dimensions),
       itemComments: parsed.itemComments || [],
       improvements: parsed.improvements || [],
+    };
+  }
+
+  private buildStyleProfileSystemPrompt(): string {
+    return `你是 StyleMate 的专业形象顾问，服务 16-25 岁年轻用户。你的任务是把用户照片、基础画像、自述想法和本地候选风格，整合成一个真实可执行的风格档案。
+
+表达要求：
+- 专业但年轻化，不油腻，不营销。
+- 先给简洁结论，再展开原因。
+- 可以明确指出“不适合”，但语气保持尊重，给替代方案。
+- 不要声称识别了身份、年龄、种族或敏感属性；只分析穿搭相关视觉特征。
+- 如果照片缺失，就说明该部分依据文字和基础画像判断。
+
+必须只返回 JSON，不要 markdown，不要解释 JSON 外的文字。结构如下：
+{
+  "summary": "一句话核心结论",
+  "visualAnalysis": {
+    "face": "正脸照相关观察；没有照片则说明未提供",
+    "body": "全身照/身材比例相关观察；没有照片则说明未提供",
+    "confidence": 0.0
+  },
+  "intentAnalysis": {
+    "likedKeywords": ["..."],
+    "dislikedKeywords": ["..."],
+    "desiredImpression": ["..."],
+    "scenes": ["..."],
+    "constraints": ["..."],
+    "cleanedStatement": "把用户凌乱自述整理成适合推荐系统使用的一段话"
+  },
+  "recommendedStyles": [
+    {
+      "styleId": "候选风格 ID，只能来自候选列表",
+      "score": 0,
+      "reasons": ["为什么适合，2-4条"],
+      "notices": ["需要注意或不适合的点，1-3条"]
+    }
+  ],
+  "avoidanceAdvice": ["明确不建议的版型/元素/搭法"],
+  "nextActions": ["下一步可执行建议"]
+}`;
+  }
+
+  private buildStyleProfileUserPrompt(dto: AnalyzeStyleProfileRequestDto): string {
+    const profile = dto.profile;
+    const candidates = dto.candidates.slice(0, 12).map((candidate) => ({
+      styleId: candidate.styleId,
+      styleName: candidate.styleName,
+      category: candidate.category,
+      localScore: candidate.localScore,
+      description: candidate.description,
+      keyItems: candidate.keyItems,
+      localReasons: candidate.matchReasons,
+    }));
+
+    return `用户输入如下：
+${JSON.stringify(profile, null, 2)}
+
+本地规则初筛候选风格如下，请在这些候选中重排和选择，不要编造不存在的 styleId：
+${JSON.stringify(candidates, null, 2)}`;
+  }
+
+  private parseStyleProfileResponse(content: string) {
+    let jsonStr = content.trim();
+    const jsonBlockMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (jsonBlockMatch) {
+      jsonStr = jsonBlockMatch[1].trim();
+    }
+
+    const parsed = JSON.parse(jsonStr);
+    const recommendedStyles = Array.isArray(parsed.recommendedStyles)
+      ? parsed.recommendedStyles.map((item: any) => ({
+          styleId: String(item.styleId ?? ''),
+          score: Math.max(0, Math.min(100, Math.round(Number(item.score ?? 70)))),
+          reasons: Array.isArray(item.reasons) ? item.reasons.map(String).slice(0, 4) : [],
+          notices: Array.isArray(item.notices) ? item.notices.map(String).slice(0, 3) : [],
+        })).filter((item: { styleId: string }) => item.styleId)
+      : [];
+
+    return {
+      summary: String(parsed.summary ?? '已完成 AI 风格分析。'),
+      visualAnalysis: {
+        face: String(parsed.visualAnalysis?.face ?? '未提供正脸照，暂不做脸部视觉分析。'),
+        body: String(parsed.visualAnalysis?.body ?? '未提供全身照，暂不做全身比例视觉分析。'),
+        confidence: Number(parsed.visualAnalysis?.confidence ?? 0.6),
+      },
+      intentAnalysis: {
+        likedKeywords: Array.isArray(parsed.intentAnalysis?.likedKeywords) ? parsed.intentAnalysis.likedKeywords.map(String) : [],
+        dislikedKeywords: Array.isArray(parsed.intentAnalysis?.dislikedKeywords) ? parsed.intentAnalysis.dislikedKeywords.map(String) : [],
+        desiredImpression: Array.isArray(parsed.intentAnalysis?.desiredImpression) ? parsed.intentAnalysis.desiredImpression.map(String) : [],
+        scenes: Array.isArray(parsed.intentAnalysis?.scenes) ? parsed.intentAnalysis.scenes.map(String) : [],
+        constraints: Array.isArray(parsed.intentAnalysis?.constraints) ? parsed.intentAnalysis.constraints.map(String) : [],
+        cleanedStatement: String(parsed.intentAnalysis?.cleanedStatement ?? ''),
+      },
+      recommendedStyles,
+      avoidanceAdvice: Array.isArray(parsed.avoidanceAdvice) ? parsed.avoidanceAdvice.map(String).slice(0, 6) : [],
+      nextActions: Array.isArray(parsed.nextActions) ? parsed.nextActions.map(String).slice(0, 6) : [],
     };
   }
 

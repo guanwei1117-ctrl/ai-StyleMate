@@ -1,6 +1,3 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,81 +14,144 @@ import type { StyleMatchResult } from '@/lib/onboarding-types';
 import type { OnboardingAnswers } from '@/lib/onboarding-types';
 import type { BodyShape } from '@/lib/onboarding-types';
 import { generateExplanation } from '@/lib/style-explain';
+import { extractStyleIntent } from '@/lib/style-profile-storage';
+import type { AiStyleProfileAnalysis } from '@/lib/style-profile-api';
 import { BodyExplainCard } from './explain-sections';
 import { AvoidanceZone } from './explain-sections';
 import { MultiDimensionPanel } from './explain-sections';
-import { type ToneMode, PROFILE_TONE } from '@/lib/tone-mode';
-import StickerPop from './sticker-pop';
 
 interface ResultViewProps {
   results: StyleMatchResult[];
   answers: OnboardingAnswers;
   bodyShape: BodyShape;
+  aiAnalysis: AiStyleProfileAnalysis | null;
+  analysisError: string | null;
   onRestart: () => void;
 }
 
-export default function ResultView({ results, answers, bodyShape, onRestart }: ResultViewProps) {
+export default function ResultView({ results, answers, bodyShape, aiAnalysis, analysisError, onRestart }: ResultViewProps) {
   const top1 = results[0];
   const explanation = generateExplanation(results, answers, bodyShape);
-  const [toneMode, setToneMode] = useState<ToneMode>('nice');
-  const [stickerTrigger, setStickerTrigger] = useState(0);
-  const profileTitle = PROFILE_TONE[toneMode].title;
-
-  // 切到毒舌模式时，刷新一次贴纸弹窗
-  const handleToneChange = (mode: ToneMode) => {
-    setToneMode(mode);
-    if (mode === 'roast') {
-      setStickerTrigger((n) => n + 1);
-    }
-  };
+  const extractedIntent = extractStyleIntent(answers.userStatement);
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-10">
-      {/* ============ 毒舌贴纸弹窗 ============ */}
-      <StickerPop trigger={stickerTrigger} />
-
-      {/* ============ 毒舌/夸夸切换 ============ */}
-      <div className="flex justify-center">
-        <div className="inline-flex rounded-full bg-creme-200 p-0.5">
-          <button
-            onClick={() => handleToneChange('nice')}
-            className={cn(
-              'px-4 py-2 rounded-full text-sm font-medium transition-all',
-              toneMode === 'nice'
-                ? 'bg-white text-ink-900 shadow-sm'
-                : 'text-ink-400 hover:text-ink-600',
-            )}
-          >
-            😇 夸夸模式
-          </button>
-          <button
-            onClick={() => handleToneChange('roast')}
-            className={cn(
-              'px-4 py-2 rounded-full text-sm font-medium transition-all',
-              toneMode === 'roast'
-                ? 'bg-white text-ink-900 shadow-sm'
-                : 'text-ink-400 hover:text-ink-600',
-            )}
-          >
-            😈 毒舌模式
-          </button>
+    <div className="w-full max-w-5xl mx-auto space-y-10">
+      <div className="grid gap-6 border-b border-ink-900/10 pb-9 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+        <div>
+          <p className="mb-4 text-xs tracking-[0.28em] text-ink-400">STYLE PROFILE REPORT</p>
+          <h1 className="font-display text-[clamp(2.7rem,6vw,6rem)] leading-[0.9] text-ink-900">
+            你的风格
+            <br />
+            档案已生成
+          </h1>
+          <p className="mt-6 max-w-2xl text-sm leading-7 text-ink-500">
+            先看核心结论，再看为什么适合、怎么穿、哪些地方需要调整。
+          </p>
         </div>
+        {top1 && (
+          <Link
+            href={`/styles/${top1.styleId}`}
+            className="block border border-ink-900/10 bg-[#e8ece8] p-6 transition-all hover:bg-[#dde2dd] group"
+          >
+            <p className="text-xs tracking-[0.24em] text-ink-500">CORE STYLE</p>
+            <div className="mt-6 flex items-end justify-between gap-6">
+              <div>
+                <h2 className="font-display text-4xl leading-none group-hover:text-ink-700 transition-colors">
+                  {top1.styleName}
+                </h2>
+                <p className="mt-3 text-sm text-ink-500">
+                  {CATEGORY_LABELS[top1.category as keyof typeof CATEGORY_LABELS] || top1.category}
+                </p>
+              </div>
+              <ScoreBadge score={top1.score} size="lg" />
+            </div>
+            <p className="mt-3 text-xs text-ink-400 group-hover:text-ink-600 transition-colors">
+              查看风格详情 →
+            </p>
+          </Link>
+        )}
       </div>
 
-      {/* ============ 顶部摘要 ============ */}
-      <div className="text-center space-y-3">
-        <p className="text-xs tracking-[0.2em] text-ink-400 uppercase">你的穿搭人设</p>
-        <h1 className="text-display font-display text-ink-900">
-          你的穿搭人设报告
-        </h1>
-        <p className="text-ink-500 font-light max-w-lg mx-auto leading-relaxed">
-          别急着下定论，先看看你的身体和数据怎么说
-        </p>
+      <div className="grid gap-4 border border-ink-900/10 bg-[#e8ece8] p-5 md:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <p className="mb-2 text-xs tracking-[0.22em] text-ink-500">AI STATUS</p>
+          <h3 className="font-display text-3xl leading-none text-ink-900">
+            {aiAnalysis ? 'AI 深度分析报告' : '本地规则回落报告'}
+          </h3>
+          <p className="mt-3 text-sm leading-6 text-ink-500">
+            {aiAnalysis
+              ? `已调用 ${aiAnalysis.providerModel}，结合照片、自述和风格库候选完成综合判断。`
+              : '当前未完成 AI 深度视觉/语言分析，结果来自基础画像、自述关键词和风格库规则的混合匹配。'}
+          </p>
+          {analysisError && (
+            <p className="mt-3 border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+              AI 调用未成功：{analysisError}
+            </p>
+          )}
+        </div>
+        {aiAnalysis ? (
+          <div className="space-y-3 border border-ink-900/10 bg-[#fbfaf6]/75 p-4">
+            <p className="text-xs tracking-[0.18em] text-ink-400">AI 核心结论</p>
+            <p className="text-sm leading-7 text-ink-700">{aiAnalysis.summary}</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <AiMiniBlock title="正脸视觉" copy={aiAnalysis.visualAnalysis.face} />
+              <AiMiniBlock title="全身比例" copy={aiAnalysis.visualAnalysis.body} />
+            </div>
+          </div>
+        ) : answers.userStatement.trim() && (
+          <div className="border border-ink-900/10 bg-[#fbfaf6]/75 p-4">
+            <p className="mb-2 text-xs tracking-[0.18em] text-ink-400">你的自述摘要</p>
+            <p className="line-clamp-5 text-sm leading-7 text-ink-600">{answers.userStatement}</p>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {[
+                ...extractedIntent.likedKeywords,
+                ...extractedIntent.desiredImpression,
+                ...extractedIntent.scenes,
+                ...extractedIntent.constraints,
+              ].slice(0, 10).map((item) => (
+                <span key={item} className="bg-white/75 px-2.5 py-1 text-xs text-ink-500">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {aiAnalysis && (
+        <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
+          <div className="border border-ink-900/10 bg-white/45 p-5">
+            <p className="mb-3 text-xs tracking-[0.22em] text-ink-400">AI INTENT</p>
+            <p className="text-sm leading-7 text-ink-600">{aiAnalysis.intentAnalysis.cleanedStatement}</p>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {[
+                ...aiAnalysis.intentAnalysis.likedKeywords,
+                ...aiAnalysis.intentAnalysis.desiredImpression,
+                ...aiAnalysis.intentAnalysis.scenes,
+                ...aiAnalysis.intentAnalysis.constraints,
+              ].slice(0, 12).map((item) => (
+                <span key={item} className="bg-[#e8ece8] px-2.5 py-1 text-xs text-ink-500">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="border border-ink-900/10 bg-white/45 p-5">
+            <p className="mb-3 text-xs tracking-[0.22em] text-ink-400">AI NEXT ACTIONS</p>
+            <ul className="space-y-2">
+              {[...aiAnalysis.avoidanceAdvice, ...aiAnalysis.nextActions].slice(0, 6).map((item) => (
+                <li key={item} className="text-sm leading-6 text-ink-600">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* ============ 用户画像卡片（三支柱）============ */}
-      <div className="p-6 bg-creme-200/60 rounded-2xl border border-creme-200">
-        <h3 className="text-sm tracking-wider text-ink-400 mb-4">{profileTitle}</h3>
+      <div className="border border-ink-900/10 bg-white/45 p-6">
+        <h3 className="text-xs tracking-[0.24em] text-ink-400 mb-5">PROFILE INPUT</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 审美适配 */}
           <div className="space-y-3">
@@ -179,22 +239,22 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
       </div>
 
       {/* ============ 体型解读（NEW）============ */}
-      <BodyExplainCard explain={explanation.bodyExplain} tone={toneMode} />
+      <BodyExplainCard explain={explanation.bodyExplain} tone="nice" />
 
       {/* ============ 多维评分（NEW）============ */}
-      <MultiDimensionPanel score={explanation.multiDimension} tone={toneMode} />
+      <MultiDimensionPanel score={explanation.multiDimension} tone="nice" />
 
       {/* ============ 避雷专区（NEW）============ */}
-      <AvoidanceZone advice={explanation.avoidanceAdvice} tone={toneMode} />
+      <AvoidanceZone advice={explanation.avoidanceAdvice} tone="nice" />
 
       {/* ============ 最佳匹配 ============ */}
       <div>
-        <h2 className="text-lg font-display text-ink-900 mb-4">🏆 第一名</h2>
+        <h2 className="text-xs tracking-[0.24em] text-ink-400 mb-4">BEST MATCH</h2>
 
         {top1 && (
           <Link
             href={`/styles/${top1.styleId}`}
-            className="block p-6 sm:p-8 bg-ink-900 text-creme-100 rounded-2xl hover:bg-ink-800 transition-all group"
+            className="block bg-ink-900 p-6 text-creme-100 transition-all hover:bg-ink-800 sm:p-8 group"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -251,7 +311,7 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
             </ul>
 
             <p className="mt-4 text-xs text-creme-400 group-hover:text-creme-300 transition-colors">
-              点我看看这个风格长啥样 →
+              查看完整风格档案 →
             </p>
           </Link>
         )}
@@ -260,13 +320,13 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
       {/* ============ 更多推荐 ============ */}
       {results.length > 1 && (
         <div>
-          <h2 className="text-lg font-display text-ink-900 mb-4">✨ 更多推荐</h2>
+          <h2 className="text-xs tracking-[0.24em] text-ink-400 mb-4">SECONDARY STYLES</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {results.slice(1).map((r) => (
               <Link
                 key={r.styleId}
                 href={`/styles/${r.styleId}`}
-                className="block p-5 bg-white rounded-2xl border border-creme-200 hover:border-ink-300 hover:shadow-md transition-all group"
+                className="block border border-ink-900/10 bg-white/55 p-5 transition-all hover:border-ink-900/35 group"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -295,7 +355,7 @@ export default function ResultView({ results, answers, bodyShape, onRestart }: R
       )}
 
       {/* ============ 操作区 ============ */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center pt-6 border-t border-creme-200">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center pt-6 border-t border-ink-900/10">
         <Link href="/wardrobe">
           <Button variant="default" size="lg">
             去衣柜搭一套看看 →
@@ -326,6 +386,15 @@ function ScoreBadge({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' 
     )}>
       <span>{score}</span>
       {size === 'lg' && <span className="text-[8px] leading-none text-ink-400">分</span>}
+    </div>
+  );
+}
+
+function AiMiniBlock({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div className="bg-white/60 p-3">
+      <p className="mb-1 text-xs text-ink-400">{title}</p>
+      <p className="text-xs leading-5 text-ink-600">{copy}</p>
     </div>
   );
 }

@@ -211,6 +211,8 @@ export interface OnboardingAnswers {
   // Step 1: 照片
   photo: File | null;
   photoPreview: string | null;
+  fullBodyPhoto: File | null;
+  fullBodyPhotoPreview: string | null;
 
   // Step 2: 身体数据
   gender: Gender | null;
@@ -240,6 +242,9 @@ export interface OnboardingAnswers {
   priorities: PriorityDimension[];          // 必填排序
   styleOpenness: number | null;             // 选填 1-5
   openToNewStyles: boolean | null;          // 选填
+
+  // 用户自述：由选项自动生成，用户可以继续编辑补充
+  userStatement: string;
 }
 
 /** AI 照片分析结果（预留接口） */
@@ -371,6 +376,8 @@ export function createDefaultAnswers(): OnboardingAnswers {
   return {
     photo: null,
     photoPreview: null,
+    fullBodyPhoto: null,
+    fullBodyPhotoPreview: null,
     gender: null,
     height: null,
     weight: null,
@@ -390,5 +397,6 @@ export function createDefaultAnswers(): OnboardingAnswers {
     priorities: [],
     styleOpenness: null,
     openToNewStyles: null,
+    userStatement: '',
   };
 }

@@ -5,11 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 
 const NAV_LINKS = [
-  { label: '风格百科', href: '/styles' },
-  { label: '博主评价', href: '/score-outfit' },
-  { label: '灵感墙', href: '#trending' },
+  { label: '风格测评', href: '/onboarding' },
+  { label: '穿搭诊断', href: '/score-outfit' },
+  { label: '风格库', href: '/styles' },
   { label: '衣橱', href: '/wardrobe' },
-  { label: '关于', href: '#story' },
 ];
 
 export default function Navigation() {

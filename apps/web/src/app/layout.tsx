@@ -1,28 +1,15 @@
 import type { Metadata } from 'next';
-import { Playfair_Display, Inter } from 'next/font/google';
 import './globals.css';
 
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
 export const metadata: Metadata = {
-  title: 'StyleMate — Define Your Everyday',
-  description: '发现属于你的穿搭风格。AI 驱动的个性化穿搭推荐平台。',
-  keywords: ['穿搭', '风格', '时尚', 'AI推荐', '搭配'],
+  title: 'StyleMate - AI 个人风格顾问',
+  description: '为 16-25 岁用户建立个人风格档案，提供专业、年轻、可执行的穿搭建议。',
+  keywords: ['穿搭', '风格', 'AI 形象顾问', '风格测评', '穿搭诊断'],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="zh-CN">
       <body className="font-sans">{children}</body>
     </html>
   );

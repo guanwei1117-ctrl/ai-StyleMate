@@ -4,10 +4,10 @@ const FOOTER_LINKS = {
   explore: {
     title: '探索',
     links: [
-      { label: '风格百科', href: '#' },
-      { label: '趋势发现', href: '#' },
-      { label: '穿搭灵感', href: '#' },
-      { label: '精选单品', href: '#' },
+      { label: '风格测评', href: '/onboarding' },
+      { label: '穿搭诊断', href: '/score-outfit' },
+      { label: '风格库', href: '/styles' },
+      { label: '智能衣橱', href: '/wardrobe' },
     ],
   },
   company: {
@@ -42,9 +42,9 @@ export default function Footer() {
               STYLEMATE
             </h3>
             <p className="text-creme-200/40 text-sm leading-relaxed font-light max-w-xs">
-              融合毒舌测评 + 知识拆解 + 真人试穿三种穿搭视角。
+              用 AI 建立个人风格档案，给出清晰、年轻、可执行的穿搭建议。
               <br />
-              我们不只是 AI，我们是一个很会穿的朋友。
+              不追逐每一种流行，只帮你找到更适合自己的风格区间。
             </p>
             {/* Social */}
             <div className="flex items-center gap-4 mt-6">

@@ -66,25 +66,31 @@ export class LLMFactory {
 
       const providerStartTime = Date.now();
 
-      const result = await Promise.race([
-        provider.chat(messages, options),
-        new Promise<LLMResponse>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`${provider.name} 调用超时 (${timeoutMs}ms)`)),
-            timeoutMs,
+      try {
+        const result = await Promise.race([
+          provider.chat(messages, options),
+          new Promise<LLMResponse>((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`${provider.name} 调用超时 (${timeoutMs}ms)`)),
+              timeoutMs,
+            ),
           ),
-        ),
-      ]);
+        ]);
 
-      const elapsed = Date.now() - providerStartTime;
+        const elapsed = Date.now() - providerStartTime;
 
-      if (result) {
-        this.logger.log(`✅ 主 Provider: ${provider.name} | 总耗时 ${elapsed}ms`);
-        return result;
-      }
-
-      if (!isLast) {
-        this.logger.warn(`⚠️ ${provider.name} 超时，fallback 到 ${providers[i + 1].name}`);
+        if (result) {
+          this.logger.log(`✅ 主 Provider: ${provider.name} | 总耗时 ${elapsed}ms`);
+          return result;
+        }
+      } catch (err) {
+        const elapsed = Date.now() - providerStartTime;
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`⚠️ ${provider.name} 调用失败 (${elapsed}ms): ${errMsg}${isLast ? '' : '，fallback 到 ' + providers[i + 1].name}`);
+        if (isLast) {
+          throw new Error(`所有 LLM Provider 均不可用: ${errMsg}`);
+        }
+        continue;
       }
     }
 

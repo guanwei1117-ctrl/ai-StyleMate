@@ -14,10 +14,16 @@ export default function DimensionCard({ dimension, index }: DimensionCardProps) 
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.08, duration: 0.3 }}
-      className="group p-4 rounded-xl bg-white border border-[#e5dfd7] hover:border-[#c4a35a] transition-all duration-200"
+      className="group border border-ink-900/10 bg-white/55 p-4 transition-all duration-200 hover:border-ink-900/35"
     >
-      <span className="text-sm font-semibold text-[#1a1a2e] block mb-1">{dimension.label}</span>
-      <p className="text-xs text-[#5c5c5c] leading-relaxed">{dimension.comment}</p>
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <span className="block text-sm font-semibold text-ink-900">{dimension.label}</span>
+        <span className="font-display text-2xl leading-none text-ink-900">{dimension.score}</span>
+      </div>
+      <div className="mb-3 h-1 bg-ink-900/10">
+        <div className="h-full bg-ink-900" style={{ width: `${Math.max(0, Math.min(100, dimension.score))}%` }} />
+      </div>
+      <p className="text-xs leading-relaxed text-ink-500">{dimension.comment}</p>
     </motion.div>
   );
 }

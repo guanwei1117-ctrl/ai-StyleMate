@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ScoringService } from './scoring.service';
 import { EvaluateOutfitRequestDto } from './dto/evaluate-outfit.dto';
+import { AnalyzeStyleProfileRequestDto } from './dto/analyze-style-profile.dto';
 import { getBloggerById, bloggerRegistry } from './bloggers/blogger-profiles';
 import { EvaluateOutfitResponse, ApiResponse as ApiResponseType } from '@stylemate/shared';
 
@@ -32,6 +33,26 @@ export class ScoringController {
     return {
       code: 200,
       message: '评分完成',
+      data: result,
+    };
+  }
+
+  @Post('style-profile')
+  @ApiOperation({ summary: '对用户风格测评进行 AI 视觉与语言综合分析' })
+  @ApiResponse({
+    status: 200,
+    description: '返回 AI 风格结论、视觉分析、意图提取和风格重排结果',
+  })
+  async analyzeStyleProfile(
+    @Body() dto: AnalyzeStyleProfileRequestDto,
+  ): Promise<ApiResponseType<unknown>> {
+    this.logger.log(`收到风格档案 AI 分析请求 | 候选: ${dto.candidates?.length ?? 0}`);
+
+    const result = await this.scoringService.analyzeStyleProfile(dto);
+
+    return {
+      code: 200,
+      message: 'AI 风格分析完成',
       data: result,
     };
   }

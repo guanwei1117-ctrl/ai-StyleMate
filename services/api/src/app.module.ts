@@ -35,7 +35,7 @@ if (process.env.ENABLE_DB === 'true') {
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     ...dbModules,
     StyleEngineModule,
     ScoringModule,

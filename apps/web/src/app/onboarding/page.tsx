@@ -1,61 +1,175 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Camera,
+  Check,
+  ChevronLeft,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  UserRound,
+  X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { deriveBodyShape } from '@/lib/body-analysis';
 import { matchStyles } from '@/lib/style-matcher';
 import {
+  AGE_GROUP_OPTIONS,
+  BUDGET_OPTIONS,
+  CLIMATE_OPTIONS,
+  DRESSING_GOAL_OPTIONS,
+  OCCUPATION_OPTIONS,
+  PRIORITY_OPTIONS,
+  STYLE_OPENNESS_OPTIONS,
   createDefaultAnswers,
-  type OnboardingAnswers,
+  type AgeGroup,
   type BodyShape,
+  type BudgetLevel,
+  type ClimateZone,
+  type DressingGoal,
+  type Gender,
+  type Occupation,
+  type OnboardingAnswers,
+  type PriorityDimension,
   type StyleMatchResult,
 } from '@/lib/onboarding-types';
-
-import PhotoUploadStep from '@/components/onboarding/photo-upload-step';
-import BodyStep from '@/components/onboarding/body-step';
-import StylePickStep from '@/components/onboarding/style-pick-step';
-import InterestsStep from '@/components/onboarding/interests-step';
-import BudgetStep from '@/components/onboarding/budget-step';
-import LifestyleStep from '@/components/onboarding/lifestyle-step';
+import {
+  CATEGORY_LABELS,
+  DIMENSIONS,
+  DIMENSION_LABELS,
+  STYLES,
+  type StyleDimension,
+} from '@/data/styles';
+import styleImages from '@/data/style-images.json';
 import ResultView from '@/components/onboarding/result-view';
+import {
+  analyzeStyleProfileWithAi,
+  mergeAiStyleResults,
+  type AiStyleProfileAnalysis,
+} from '@/lib/style-profile-api';
+import {
+  buildGeneratedStatement,
+  createStoredStyleProfile,
+  extractStyleIntent,
+  saveStyleProfile,
+} from '@/lib/style-profile-storage';
 
-// ============================================================
-// 步骤配置
-// ============================================================
-const STEPS = [
-  { id: 'photo', label: '照片' },
-  { id: 'body', label: '身体' },
-  { id: 'style_pick', label: '风格' },
-  { id: 'interests', label: '兴趣' },
-  { id: 'budget', label: '预算' },
-  { id: 'lifestyle', label: '生活方式' },
+const FLOW = [
+  { id: 'profile', label: '照片与画像', desc: '可选照片、身体比例与场景' },
+  { id: 'taste', label: '偏好选择', desc: '喜欢风格与穿衣目标' },
+  { id: 'intent', label: '自述编辑器', desc: '把想法整理成 AI 输入' },
 ] as const;
 
-const TOTAL_STEPS = STEPS.length;
+const genderOptions: { label: string; value: Gender }[] = [
+  { label: '不限定', value: 'other' },
+  { label: '女性', value: 'female' },
+  { label: '男性', value: 'male' },
+];
+
+function getStyleImage(styleId: string): string | undefined {
+  return (styleImages as Record<string, string>)[styleId];
+}
 
 export default function OnboardingPage() {
+  const faceInputRef = useRef<HTMLInputElement>(null);
+  const fullBodyInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>(createDefaultAnswers);
   const [results, setResults] = useState<StyleMatchResult[]>([]);
   const [bodyShape, setBodyShape] = useState<BodyShape>('unknown');
+  const [activeDimension, setActiveDimension] = useState<StyleDimension | '全部'>('全部');
+  const [statementEdited, setStatementEdited] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<AiStyleProfileAnalysis | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'ai' | 'fallback'>('idle');
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  // 是否在结果页
-  const isResultStep = step === TOTAL_STEPS;
+  const isResultStep = step === FLOW.length;
+  const progress = isResultStep ? 100 : Math.round(((step + 1) / FLOW.length) * 100);
 
   const updateAnswers = useCallback((patch: Partial<OnboardingAnswers>) => {
     setAnswers((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  const handleNext = useCallback(() => {
-    setStep((s) => Math.min(s + 1, TOTAL_STEPS));
-  }, []);
+  useEffect(() => {
+    if (!statementEdited) {
+      setAnswers((prev) => ({ ...prev, userStatement: buildGeneratedStatement(prev) }));
+    }
+  }, [
+    statementEdited,
+    answers.gender,
+    answers.height,
+    answers.weight,
+    answers.ageGroup,
+    answers.occupation,
+    answers.city,
+    answers.climate,
+    answers.preferredStyleIds,
+    answers.budget,
+    answers.dressingGoals,
+    answers.priorities,
+  ]);
 
-  const handleBack = useCallback(() => {
-    if (step > 0) setStep((s) => s - 1);
-  }, [step]);
+  const handlePhotoChange = (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const preview = URL.createObjectURL(file);
+    if (kind === 'face') {
+      if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
+      updateAnswers({ photo: file, photoPreview: preview });
+    } else {
+      if (answers.fullBodyPhotoPreview) URL.revokeObjectURL(answers.fullBodyPhotoPreview);
+      updateAnswers({ fullBodyPhoto: file, fullBodyPhotoPreview: preview });
+    }
+    event.target.value = '';
+  };
 
-  // 提交问卷 → 计算结果
-  const handleSubmit = useCallback(() => {
+  const filteredStyles = useMemo(() => {
+    if (activeDimension === '全部') return STYLES;
+    return STYLES.filter((style) => style.dimension === activeDimension);
+  }, [activeDimension]);
+
+  const toggleStyle = (styleId: string) => {
+    const selected = answers.preferredStyleIds;
+    updateAnswers({
+      preferredStyleIds: selected.includes(styleId)
+        ? selected.filter((id) => id !== styleId)
+        : [...selected, styleId],
+    });
+  };
+
+  const toggleGoal = (goal: DressingGoal) => {
+    const selected = answers.dressingGoals;
+    updateAnswers({
+      dressingGoals: selected.includes(goal)
+        ? selected.filter((item) => item !== goal)
+        : [...selected, goal],
+    });
+  };
+
+  const togglePriority = (priority: PriorityDimension) => {
+    const selected = answers.priorities;
+    updateAnswers({
+      priorities: selected.includes(priority)
+        ? selected.filter((item) => item !== priority)
+        : [...selected, priority],
+    });
+  };
+
+  const canContinue = useMemo(() => {
+    if (step === 0) {
+      return !!answers.gender && !!answers.height && !!answers.weight && !!answers.ageGroup;
+    }
+    if (step === 1) return true; // 审美偏好改为选填
+    if (step === 2) return answers.userStatement.trim().length >= 20;
+    return false;
+  }, [answers, step]);
+
+  const handleSubmit = async () => {
     const shape = deriveBodyShape(
       answers.height!,
       answers.weight!,
@@ -63,145 +177,751 @@ export default function OnboardingPage() {
       answers.waist,
       answers.hip,
     );
-    setBodyShape(shape);
-
     const matched = matchStyles(answers);
+    setAnalysisStatus('ai');
+    setAnalysisError(null);
+
+    try {
+      const ai = await analyzeStyleProfileWithAi(answers, shape, matched);
+      const aiMatched = mergeAiStyleResults(matched, ai);
+      setAiAnalysis(ai);
+      setBodyShape(shape);
+      setResults(aiMatched);
+      saveStyleProfile(createStoredStyleProfile(answers, shape, aiMatched, ai));
+      setAnalysisStatus('idle');
+      setStep(FLOW.length);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AI 风格分析失败，已回落到本地规则。';
+      setAnalysisError(message);
+      setAnalysisStatus('fallback');
+      console.warn('[onboarding] AI style profile failed, using local result:', error);
+    }
+
+    setAiAnalysis(null);
+    setBodyShape(shape);
     setResults(matched);
+    saveStyleProfile(createStoredStyleProfile(answers, shape, matched));
+    setAnalysisStatus('idle');
+    setStep(FLOW.length);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    setStep(TOTAL_STEPS);
-  }, [answers]);
-
-  // 重新测试
-  const handleRestart = useCallback(() => {
+  const handleRestart = () => {
+    if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
+    if (answers.fullBodyPhotoPreview) URL.revokeObjectURL(answers.fullBodyPhotoPreview);
     setAnswers(createDefaultAnswers());
     setResults([]);
     setBodyShape('unknown');
+    setStatementEdited(false);
+    setAiAnalysis(null);
+    setAnalysisStatus('idle');
+    setAnalysisError(null);
     setStep(0);
-  }, []);
-
-  // 当前步骤进度
-  const progress = useMemo(() => {
-    if (isResultStep) return 100;
-    return Math.round((step / TOTAL_STEPS) * 100);
-  }, [step, isResultStep]);
+  };
 
   return (
-    <div className={cn(
-      'min-h-screen flex flex-col items-center justify-center px-4 py-12',
-      'bg-gradient-to-br from-creme-50 via-white to-creme-200',
-    )}>
-      {/* ======== 进度指示器 ======== */}
-      {!isResultStep && (
-        <div className="w-full max-w-md mb-8">
-          {/* 步骤标签 */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-ink-400">
-              步骤 {step + 1}/{TOTAL_STEPS}
-            </span>
-            <span className="text-xs font-medium text-ink-600">
-              {STEPS[step]?.label}
-            </span>
-          </div>
-          {/* 进度条 */}
-          <div className="h-1.5 bg-creme-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-ink-800 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+    <main className="min-h-screen bg-[#f4f1ea] text-ink-900">
+      <div className="fixed inset-x-0 top-0 z-40 border-b border-ink-900/10 bg-[#f4f1ea]/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-ink-500 hover:text-ink-900">
+            <ArrowLeft size={16} />
+            返回首页
+          </Link>
+          <p className="font-display text-lg tracking-wide">STYLEMATE</p>
+          <p className="hidden text-xs tracking-[0.25em] text-ink-400 sm:block">STYLE PROFILE</p>
         </div>
-      )}
-
-      {/* ======== 步骤卡片 ======== */}
-      <div className={cn(
-        'bg-white rounded-3xl shadow-xl shadow-ink-100/30 p-8 sm:p-10',
-        isResultStep ? 'w-full max-w-4xl' : 'w-full max-w-md',
-        isResultStep && 'sm:p-12',
-      )}>
-        {/* 步骤内容 */}
-        {step === 0 && (
-          <PhotoUploadStep
-            answers={answers}
-            onUpdate={updateAnswers}
-            onNext={handleNext}
-          />
-        )}
-
-        {step === 1 && (
-          <BodyStep
-            answers={answers}
-            onUpdate={updateAnswers}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
-
-        {step === 2 && (
-          <StylePickStep
-            answers={answers}
-            onUpdate={updateAnswers}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
-
-        {step === 3 && (
-          <InterestsStep
-            answers={answers}
-            onUpdate={updateAnswers}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
-
-        {step === 4 && (
-          <BudgetStep
-            answers={answers}
-            onUpdate={updateAnswers}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
-
-        {step === 5 && (
-          <LifestyleStep
-            answers={answers}
-            onUpdate={updateAnswers}
-            onSubmit={handleSubmit}
-            onBack={handleBack}
-          />
-        )}
-
-        {/* 结果页 */}
-        {isResultStep && results.length > 0 && (
-          <ResultView
-            results={results}
-            answers={answers}
-            bodyShape={bodyShape}
-            onRestart={handleRestart}
-          />
-        )}
       </div>
 
-      {/* ======== 底部提示 ======== */}
-      {!isResultStep && (
-        <p className="mt-6 text-xs text-ink-300 text-center">
-          你的数据仅用于个性化推荐，不会泄露给第三方
-        </p>
-      )}
+      <section className="mx-auto max-w-7xl px-6 pb-20 pt-28 lg:px-10">
+        <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
+          <aside className="lg:sticky lg:top-24">
+            <p className="mb-5 text-xs tracking-[0.3em] text-ink-400">AI STYLE ASSESSMENT</p>
+            <h1 className="font-display text-[clamp(3.2rem,7vw,7.6rem)] leading-[0.88]">
+              建立你的
+              <br />
+              风格档案
+            </h1>
+            <p className="mt-7 max-w-xl text-sm leading-7 text-ink-500">
+              先用最少的信息判断风格坐标，再把适合的颜色、版型和避雷点写进一份可行动的报告。
+            </p>
 
-      {/* 结果页回到顶部 */}
-      {isResultStep && results.length === 0 && (
-        <div className="w-full max-w-md text-center">
-          <p className="text-ink-500 font-light mb-6">正在分析你的风格 DNA...（比挑衣服快多了）</p>
-          <button
-            onClick={handleRestart}
-            className="text-sm text-ink-400 hover:text-ink-600 underline underline-offset-2"
-          >
-            返回重新填写
-          </button>
+            {!isResultStep && (
+              <div className="mt-10 space-y-5">
+                <div className="h-1 overflow-hidden bg-ink-900/10">
+                  <div className="h-full bg-ink-900 transition-all duration-500" style={{ width: `${progress}%` }} />
+                </div>
+                <div className="space-y-3">
+                  {FLOW.map((item, index) => (
+                    <button
+                      key={item.id}
+                      onClick={() => index < step && setStep(index)}
+                      className={cn(
+                        'grid w-full grid-cols-[32px_1fr] gap-4 border-t border-ink-900/10 py-4 text-left',
+                        index <= step ? 'text-ink-900' : 'text-ink-300',
+                      )}
+                    >
+                      <span className={cn(
+                        'flex h-8 w-8 items-center justify-center rounded-full border text-xs',
+                        index < step
+                          ? 'border-ink-900 bg-ink-900 text-creme-100'
+                          : index === step
+                            ? 'border-ink-900 text-ink-900'
+                            : 'border-ink-900/15',
+                      )}>
+                        {index < step ? <Check size={14} /> : `0${index + 1}`}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-medium">{item.label}</span>
+                        <span className="mt-1 block text-xs text-ink-400">{item.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+
+          <AnimatePresence mode="wait">
+            {!isResultStep ? (
+              <motion.section
+                key={step}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -18 }}
+                transition={{ duration: 0.35 }}
+                className="border border-ink-900/10 bg-[#fbfaf6]"
+              >
+                {step === 0 && (
+                  <ProfileStep
+                    answers={answers}
+                    updateAnswers={updateAnswers}
+                    faceInputRef={faceInputRef}
+                    fullBodyInputRef={fullBodyInputRef}
+                    onPhotoChange={handlePhotoChange}
+                  />
+                )}
+                {step === 1 && (
+                  <TasteStep
+                    answers={answers}
+                    filteredStyles={filteredStyles}
+                    activeDimension={activeDimension}
+                    setActiveDimension={setActiveDimension}
+                    toggleStyle={toggleStyle}
+                    toggleGoal={toggleGoal}
+                    togglePriority={togglePriority}
+                    updateAnswers={updateAnswers}
+                  />
+                )}
+                {step === 2 && (
+                  <IntentStep
+                    answers={answers}
+                    updateAnswers={updateAnswers}
+                    statementEdited={statementEdited}
+                    setStatementEdited={setStatementEdited}
+                  />
+                )}
+
+                <div className="flex items-center justify-between border-t border-ink-900/10 p-5 sm:p-7">
+                  <button
+                    onClick={() => setStep((current) => Math.max(0, current - 1))}
+                    disabled={step === 0}
+                    className="inline-flex items-center gap-2 text-sm text-ink-500 transition hover:text-ink-900 disabled:opacity-30"
+                  >
+                    <ChevronLeft size={16} />
+                    上一步
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (step === FLOW.length - 1) handleSubmit();
+                      else setStep((current) => current + 1);
+                    }}
+                    disabled={!canContinue || analysisStatus === 'ai'}
+                    className="inline-flex items-center gap-2 bg-ink-900 px-6 py-3 text-sm text-creme-100 transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200"
+                  >
+                    {analysisStatus === 'ai' ? 'AI 正在分析...' : step === FLOW.length - 1 ? '生成风格档案' : '继续'}
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </motion.section>
+            ) : (
+              <motion.section
+                key="result"
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="border border-ink-900/10 bg-[#fbfaf6] p-5 sm:p-8"
+              >
+                <ResultView
+                  results={results}
+                  answers={answers}
+                  bodyShape={bodyShape}
+                  aiAnalysis={aiAnalysis}
+                  analysisError={analysisError}
+                  onRestart={handleRestart}
+                />
+              </motion.section>
+            )}
+          </AnimatePresence>
         </div>
+      </section>
+    </main>
+  );
+}
+
+function SectionHeader({ icon: Icon, label, title, copy }: {
+  icon: typeof UserRound;
+  label: string;
+  title: string;
+  copy: string;
+}) {
+  return (
+    <div className="border-b border-ink-900/10 p-6 sm:p-8">
+      <div className="mb-7 flex h-11 w-11 items-center justify-center border border-ink-900/15 bg-white/50">
+        <Icon size={19} />
+      </div>
+      <p className="mb-3 text-xs tracking-[0.25em] text-ink-400">{label}</p>
+      <h2 className="font-display text-[clamp(2rem,4vw,4rem)] leading-none">{title}</h2>
+      <p className="mt-4 max-w-xl text-sm leading-7 text-ink-500">{copy}</p>
+    </div>
+  );
+}
+
+function PhotoSlot({
+  label,
+  desc,
+  preview,
+  onClick,
+}: {
+  label: string;
+  desc: string;
+  preview: string | null;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative flex min-h-[260px] flex-col justify-between overflow-hidden border border-dashed border-ink-900/20 bg-[#f4f1ea] p-5 text-left transition hover:border-ink-900/45"
+    >
+      {preview ? (
+        <img src={preview} alt={label} className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_0%,transparent_48%,rgba(10,10,10,0.08)_49%,rgba(10,10,10,0.08)_51%,transparent_52%)] bg-[length:28px_28px]" />
+      )}
+      <span className="relative z-10 flex h-10 w-10 items-center justify-center bg-white/80 backdrop-blur">
+        <Camera size={18} />
+      </span>
+      <div className="relative z-10 bg-[#fbfaf6]/90 p-4 backdrop-blur">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="mt-1 text-xs leading-5 text-ink-500">{desc}</p>
+      </div>
+    </button>
+  );
+}
+
+function ProfileStep({
+  answers,
+  updateAnswers,
+  faceInputRef,
+  fullBodyInputRef,
+  onPhotoChange,
+}: {
+  answers: OnboardingAnswers;
+  updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
+  faceInputRef: React.RefObject<HTMLInputElement>;
+  fullBodyInputRef: React.RefObject<HTMLInputElement>;
+  onPhotoChange: (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <>
+      <SectionHeader
+        icon={UserRound}
+        label="STEP 01"
+        title="照片与基础画像"
+        copy="正脸照和全身照都可选。生成档案时会把照片和自述一起交给 AI 做视觉与语言综合分析。"
+      />
+      <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          <PhotoSlot
+            label="可选正脸照"
+            desc="未来用于脸型、五官量感、肤色和气质分析。"
+            preview={answers.photoPreview}
+            onClick={() => faceInputRef.current?.click()}
+          />
+          <PhotoSlot
+            label="可选全身照"
+            desc="未来用于身材比例、视觉重心和穿搭轮廓分析。"
+            preview={answers.fullBodyPhotoPreview}
+            onClick={() => fullBodyInputRef.current?.click()}
+          />
+          <input ref={faceInputRef} type="file" accept="image/*" onChange={(event) => onPhotoChange('face', event)} className="hidden" />
+          <input ref={fullBodyInputRef} type="file" accept="image/*" onChange={(event) => onPhotoChange('fullBody', event)} className="hidden" />
+        </div>
+
+        <div className="space-y-7">
+          <FieldGroup title="性别表达">
+            <div className="grid grid-cols-3 gap-2">
+              {genderOptions.map((option) => (
+                <ChoiceButton
+                  key={option.value}
+                  active={answers.gender === option.value}
+                  onClick={() => updateAnswers({ gender: option.value })}
+                >
+                  {option.label}
+                </ChoiceButton>
+              ))}
+            </div>
+          </FieldGroup>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <NumberInput
+              label="身高"
+              unit="cm"
+              value={answers.height ?? ''}
+              placeholder="165"
+              onChange={(value) => updateAnswers({ height: value ? Number(value) : null })}
+            />
+            <NumberInput
+              label="体重"
+              unit="kg"
+              value={answers.weight ?? ''}
+              placeholder="55"
+              onChange={(value) => updateAnswers({ weight: value ? Number(value) : null })}
+            />
+          </div>
+
+          <FieldGroup title="年龄段">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {AGE_GROUP_OPTIONS.slice(0, 3).map((option) => (
+                <ChoiceButton
+                  key={option.value}
+                  active={answers.ageGroup === option.value}
+                  onClick={() => updateAnswers({ ageGroup: option.value as AgeGroup })}
+                >
+                  {option.label}
+                </ChoiceButton>
+              ))}
+            </div>
+          </FieldGroup>
+
+          <FieldGroup title="日常场景" optional>
+            <div className="flex flex-wrap gap-2">
+              {OCCUPATION_OPTIONS.slice(0, 6).map((option) => (
+                <ChoiceButton
+                  key={option.value}
+                  active={answers.occupation === option.value}
+                  onClick={() => updateAnswers({ occupation: answers.occupation === option.value ? null : option.value as Occupation })}
+                  compact
+                >
+                  {option.label}
+                </ChoiceButton>
+              ))}
+            </div>
+          </FieldGroup>
+
+          <FieldGroup title="三围数据" optional>
+            <div className="grid grid-cols-3 gap-3">
+              <NumberInput label="胸围" unit="cm" value={answers.bust ?? ''} placeholder="88" onChange={(value) => updateAnswers({ bust: value ? Number(value) : null })} />
+              <NumberInput label="腰围" unit="cm" value={answers.waist ?? ''} placeholder="68" onChange={(value) => updateAnswers({ waist: value ? Number(value) : null })} />
+              <NumberInput label="臀围" unit="cm" value={answers.hip ?? ''} placeholder="92" onChange={(value) => updateAnswers({ hip: value ? Number(value) : null })} />
+            </div>
+          </FieldGroup>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function TasteStep({
+  answers,
+  filteredStyles,
+  activeDimension,
+  setActiveDimension,
+  toggleStyle,
+  toggleGoal,
+  togglePriority,
+  updateAnswers,
+}: {
+  answers: OnboardingAnswers;
+  filteredStyles: typeof STYLES;
+  activeDimension: StyleDimension | '全部';
+  setActiveDimension: (dimension: StyleDimension | '全部') => void;
+  toggleStyle: (styleId: string) => void;
+  toggleGoal: (goal: DressingGoal) => void;
+  togglePriority: (priority: PriorityDimension) => void;
+  updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const displayStyles = useMemo(() => {
+    if (!searchQuery.trim()) return filteredStyles;
+    const q = searchQuery.trim().toLowerCase();
+    return filteredStyles.filter(
+      (style) =>
+        style.name.toLowerCase().includes(q) ||
+        style.description.toLowerCase().includes(q) ||
+        style.category.toLowerCase().includes(q) ||
+        (CATEGORY_LABELS[style.category] || '').toLowerCase().includes(q) ||
+        style.keyItems.some((item) => item.toLowerCase().includes(q)),
+    );
+  }, [filteredStyles, searchQuery]);
+
+  return (
+    <>
+      <SectionHeader
+        icon={Sparkles}
+        label="STEP 02"
+        title="审美偏好"
+        copy="选择你会停留多看一眼的风格（选填），不用考虑是否能完全驾驭，AI 会负责判断适合度。"
+      />
+      <div className="p-6 sm:p-8">
+        <div className="mb-8 space-y-7 border-b border-ink-900/10 pb-8">
+          <FieldGroup title="单件预算" optional>
+            <div className="grid gap-3 md:grid-cols-3">
+              {BUDGET_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => updateAnswers({ budget: option.value as BudgetLevel })}
+                  className={cn(
+                    'border p-4 text-left transition',
+                    answers.budget === option.value
+                      ? 'border-ink-900 bg-ink-900 text-creme-100'
+                      : 'border-ink-900/10 bg-white/50 text-ink-700 hover:border-ink-900/30',
+                  )}
+                >
+                  <p className="font-medium">{option.label}</p>
+                  <p className={cn('mt-2 text-xs', answers.budget === option.value ? 'text-creme-200/70' : 'text-ink-400')}>
+                    {option.range}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </FieldGroup>
+
+          <FieldGroup title="穿衣目标" optional>
+            <div className="flex flex-wrap gap-2">
+              {DRESSING_GOAL_OPTIONS.map((option) => (
+                <ChoiceButton
+                  key={option.value}
+                  active={answers.dressingGoals.includes(option.value)}
+                  onClick={() => toggleGoal(option.value as DressingGoal)}
+                  compact
+                >
+                  {option.label}
+                </ChoiceButton>
+              ))}
+            </div>
+          </FieldGroup>
+
+          <FieldGroup title="优先考虑" optional>
+            <div className="grid gap-3 md:grid-cols-2">
+              {PRIORITY_OPTIONS.map((option) => {
+                const index = answers.priorities.indexOf(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => togglePriority(option.value as PriorityDimension)}
+                    className={cn(
+                      'grid grid-cols-[40px_1fr] gap-3 border p-4 text-left transition',
+                      index >= 0
+                        ? 'border-ink-900 bg-[#e8ece8]'
+                        : 'border-ink-900/10 bg-white/50 hover:border-ink-900/30',
+                    )}
+                  >
+                    <span className={cn(
+                      'flex h-10 w-10 items-center justify-center rounded-full border text-sm',
+                      index >= 0 ? 'border-ink-900 bg-ink-900 text-creme-100' : 'border-ink-900/15 text-ink-300',
+                    )}>
+                      {index >= 0 ? index + 1 : '+'}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-medium">{option.label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-ink-500">{option.desc}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </FieldGroup>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <FieldGroup title="风格接受度" optional>
+              <select
+                value={answers.styleOpenness ?? ''}
+                onChange={(event) => updateAnswers({ styleOpenness: event.target.value ? Number(event.target.value) : null })}
+                className="w-full border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
+              >
+                <option value="">保持默认</option>
+                {STYLE_OPENNESS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} - {option.desc}
+                  </option>
+                ))}
+              </select>
+            </FieldGroup>
+            <FieldGroup title="城市与气候" optional>
+              <div className="grid grid-cols-[1fr_1fr] gap-3">
+                <input
+                  value={answers.city}
+                  onChange={(event) => updateAnswers({ city: event.target.value })}
+                  placeholder="城市"
+                  className="border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
+                />
+                <select
+                  value={answers.climate ?? ''}
+                  onChange={(event) => updateAnswers({ climate: event.target.value ? event.target.value as ClimateZone : null })}
+                  className="border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
+                >
+                  <option value="">气候</option>
+                  {CLIMATE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+            </FieldGroup>
+          </div>
+        </div>
+
+        <div className="mb-6 flex flex-wrap gap-2">
+          {(['全部', ...DIMENSIONS] as const).map((dimension) => (
+            <button
+              key={dimension}
+              onClick={() => setActiveDimension(dimension)}
+              className={cn(
+                'border px-4 py-2 text-xs tracking-[0.12em] transition',
+                activeDimension === dimension
+                  ? 'border-ink-900 bg-ink-900 text-creme-100'
+                  : 'border-ink-900/10 bg-white/45 text-ink-500 hover:border-ink-900/30 hover:text-ink-900',
+              )}
+            >
+              {dimension === '全部' ? '全部风格' : DIMENSION_LABELS[dimension]}
+            </button>
+          ))}
+        </div>
+
+        {/* 搜索框 */}
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-300" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="搜索风格名称、关键词..."
+            className="w-full border border-ink-900/10 bg-white/50 py-3 pl-11 pr-11 text-sm text-ink-700 outline-none transition placeholder:text-ink-300 focus:border-ink-900/40"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              aria-label="清除搜索"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="grid max-h-[640px] gap-4 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
+          {displayStyles.map((style) => {
+            const selected = answers.preferredStyleIds.includes(style.id);
+            const imageUrl = getStyleImage(style.id);
+            return (
+              <button
+                key={style.id}
+                onClick={() => toggleStyle(style.id)}
+                className={cn(
+                  'group overflow-hidden border bg-white/55 text-left transition',
+                  selected ? 'border-ink-900 shadow-[0_18px_50px_rgba(10,10,10,0.12)]' : 'border-ink-900/10 hover:border-ink-900/30',
+                )}
+              >
+                <div className="relative aspect-[4/3] bg-[#ebe7df]">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt={style.name} className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.03]" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-ink-300">IMAGE SLOT</div>
+                  )}
+                  {selected && (
+                    <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center bg-ink-900 text-creme-100">
+                      <Check size={15} />
+                    </span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="font-display text-2xl leading-none">{style.name}</h3>
+                    <span className="shrink-0 text-[10px] tracking-[0.16em] text-ink-400">
+                      {CATEGORY_LABELS[style.category] || style.category}
+                    </span>
+                  </div>
+                  <p className="line-clamp-2 text-xs leading-5 text-ink-500">{style.description}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {displayStyles.length === 0 && (
+          <div className="py-16 text-center text-sm text-ink-400">
+            {searchQuery ? `没有找到与 "${searchQuery}" 相关的风格` : '该分类暂无风格'}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function IntentStep({
+  answers,
+  updateAnswers,
+  statementEdited,
+  setStatementEdited,
+}: {
+  answers: OnboardingAnswers;
+  updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
+  statementEdited: boolean;
+  setStatementEdited: (value: boolean) => void;
+}) {
+  const extracted = useMemo(() => extractStyleIntent(answers.userStatement), [answers.userStatement]);
+
+  return (
+    <>
+      <SectionHeader
+        icon={SlidersHorizontal}
+        label="STEP 03"
+        title="自述编辑器"
+        copy="前面的选择会自动整理成一段可编辑陈述。你可以继续写最近喜欢什么、讨厌什么、想呈现什么状态。"
+      />
+      <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.15fr_0.85fr]">
+        <div>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs tracking-[0.22em] text-ink-400">STYLE INTENT INPUT</p>
+            <button
+              type="button"
+              onClick={() => {
+                setStatementEdited(false);
+                updateAnswers({ userStatement: buildGeneratedStatement(answers) });
+              }}
+              className="border border-ink-900/10 bg-white/55 px-4 py-2 text-xs text-ink-500 transition hover:border-ink-900/30 hover:text-ink-900"
+            >
+              根据选项重新整理
+            </button>
+          </div>
+          <textarea
+            value={answers.userStatement}
+            onChange={(event) => {
+              setStatementEdited(true);
+              updateAnswers({ userStatement: event.target.value });
+            }}
+            placeholder="例如：我最近喜欢干净、有质感、稍微显高的穿搭，不想太甜，也不想看起来很网红。日常上学和周末出门比较多，希望舒服但有一点态度。"
+            className="min-h-[380px] w-full resize-none border border-ink-900/10 bg-white/55 p-5 text-sm leading-7 text-ink-700 outline-none transition placeholder:text-ink-300 focus:border-ink-900/40"
+          />
+          <div className="mt-3 flex items-center justify-between text-xs text-ink-400">
+            <span>{statementEdited ? '已手动编辑' : '由前面选项自动生成'}</span>
+            <span>{answers.userStatement.trim().length}/20 字以上可生成</span>
+          </div>
+        </div>
+
+        <aside className="border border-ink-900/10 bg-[#e8ece8] p-5">
+          <p className="mb-4 text-xs tracking-[0.22em] text-ink-500">LOCAL INTENT EXTRACT</p>
+          <div className="mb-6 border border-ink-900/10 bg-[#fbfaf6]/70 p-4 text-xs leading-6 text-ink-500">
+            这里先做本地预提取，帮你检查文字里有没有可用信息。点击生成后，会调用 AI 结合照片、自述和风格库候选做深度判断。
+          </div>
+          <IntentList title="喜欢/倾向" items={extracted.likedKeywords} />
+          <IntentList title="排斥/雷区" items={extracted.dislikedKeywords} />
+          <IntentList title="想呈现的感觉" items={extracted.desiredImpression} />
+          <IntentList title="使用场景" items={extracted.scenes} />
+          <IntentList title="现实限制" items={extracted.constraints} />
+        </aside>
+      </div>
+    </>
+  );
+}
+
+function IntentList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="mb-5 last:mb-0">
+      <p className="mb-2 text-xs text-ink-400">{title}</p>
+      {items.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {items.map((item) => (
+            <span key={item} className="bg-white/65 px-2.5 py-1 text-xs text-ink-600">
+              {item}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-ink-300">暂未提取</p>
       )}
     </div>
+  );
+}
+
+function FieldGroup({ title, optional, children }: { title: string; optional?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-ink-800">{title}</h3>
+        {optional && <span className="text-xs text-ink-300">选填</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ChoiceButton({
+  active,
+  compact,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  compact?: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'border text-sm transition',
+        compact ? 'px-4 py-2' : 'px-4 py-3',
+        active
+          ? 'border-ink-900 bg-ink-900 text-creme-100'
+          : 'border-ink-900/10 bg-white/50 text-ink-600 hover:border-ink-900/35 hover:text-ink-900',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function NumberInput({
+  label,
+  unit,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  unit: string;
+  value: string | number;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-ink-800">
+        {label}
+        <span className="ml-1 text-xs text-ink-300">{unit}</span>
+      </span>
+      <input
+        type="number"
+        inputMode="decimal"
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none transition placeholder:text-ink-200 focus:border-ink-900/40"
+      />
+    </label>
   );
 }
