@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 export default function WardrobePage() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -10,8 +8,8 @@ export default function WardrobePage() {
             <h1 className="text-3xl font-bold text-gray-900">我的衣橱</h1>
             <p className="mt-1 text-gray-500">管理你的所有单品</p>
           </div>
-          <button className="rounded-full bg-primary-600 px-6 py-2.5 text-white font-medium hover:bg-primary-700 transition-colors">
-            + 添加衣物
+          <button disabled className="cursor-not-allowed rounded-full bg-gray-300 px-6 py-2.5 font-medium text-gray-500">
+            + 添加衣物（即将上线）
           </button>
         </div>
 
@@ -20,14 +18,14 @@ export default function WardrobePage() {
           <div className="text-6xl mb-4">👔</div>
           <h3 className="text-xl font-semibold text-gray-900">衣橱还是空的</h3>
           <p className="mt-2 text-gray-500 max-w-md mx-auto">
-            拍照或手动添加你的第一件衣物，AI 会帮你自动识别类型、颜色和风格
+            衣橱管理正在规划中。下一步会优先支持手动录入，再接入拍照识别类型、颜色和风格。
           </p>
           <div className="mt-8 flex gap-4 justify-center">
-            <button className="rounded-full bg-primary-600 px-6 py-3 text-white font-medium hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200">
-              📸 拍照添加
+            <button disabled className="cursor-not-allowed rounded-full bg-gray-300 px-6 py-3 font-medium text-gray-500 shadow-lg shadow-gray-200">
+              📸 拍照添加（即将上线）
             </button>
-            <button className="rounded-full bg-white px-6 py-3 text-gray-900 font-medium hover:bg-gray-50 transition-colors border border-gray-200">
-              ✏️ 手动录入
+            <button disabled className="cursor-not-allowed rounded-full border border-gray-200 bg-white px-6 py-3 font-medium text-gray-400">
+              ✏️ 手动录入（即将上线）
             </button>
           </div>
         </div>

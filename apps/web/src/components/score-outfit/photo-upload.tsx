@@ -3,6 +3,7 @@
 import { useCallback, useState, useRef } from "react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { ACCEPTED_IMAGE_MIME_TYPES, IMAGE_UPLOAD_SIZE_LABEL, validateImageFile } from "@/lib/image-upload-rules";
 
 interface PhotoUploadProps {
   onPhotoReady: (base64: string) => void;
@@ -11,17 +12,28 @@ interface PhotoUploadProps {
 export default function PhotoUpload({ onPhotoReady }: PhotoUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback(
     (file: File) => {
-      if (!file.type.startsWith("image/")) return;
+      const validation = validateImageFile(file);
+      if (!validation.ok) {
+        setError(validation.message);
+        onPhotoReady("");
+        return;
+      }
 
+      setError(null);
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result as string;
         setPreview(base64);
         onPhotoReady(base64);
+      };
+      reader.onerror = () => {
+        setError('图片读取失败，请重新选择。');
+        onPhotoReady('');
       };
       reader.readAsDataURL(file);
     },
@@ -42,6 +54,7 @@ export default function PhotoUpload({ onPhotoReady }: PhotoUploadProps) {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) processFile(file);
+      e.target.value = '';
     },
     [processFile]
   );
@@ -80,14 +93,19 @@ export default function PhotoUpload({ onPhotoReady }: PhotoUploadProps) {
                 上传完整 Look
               </p>
               <p className="mt-3 text-sm leading-6 text-ink-500">
-                支持 JPG / PNG / WebP。建议使用自然光全身照，鞋子和外套边界尽量完整。
+                支持 JPG / PNG / WebP，单张不超过 {IMAGE_UPLOAD_SIZE_LABEL}。建议使用自然光全身照，鞋子和外套边界尽量完整。
               </p>
+              {error && (
+                <p className="mt-3 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
             </div>
           </div>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={ACCEPTED_IMAGE_MIME_TYPES}
             onChange={handleFileSelect}
             className="hidden"
           />

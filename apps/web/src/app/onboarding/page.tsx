@@ -58,6 +58,7 @@ import {
   extractStyleIntent,
   saveStyleProfile,
 } from '@/lib/style-profile-storage';
+import { ACCEPTED_IMAGE_MIME_TYPES, IMAGE_UPLOAD_SIZE_LABEL, validateImageFile } from '@/lib/image-upload-rules';
 
 const FLOW = [
   { id: 'profile', label: '照片与画像', desc: '可选照片、身体比例与场景' },
@@ -87,6 +88,7 @@ export default function OnboardingPage() {
   const [aiAnalysis, setAiAnalysis] = useState<AiStyleProfileAnalysis | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'ai' | 'fallback'>('idle');
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const isResultStep = step === FLOW.length;
   const progress = isResultStep ? 100 : Math.round(((step + 1) / FLOW.length) * 100);
@@ -116,7 +118,16 @@ export default function OnboardingPage() {
 
   const handlePhotoChange = (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file) return;
+
+    const validation = validateImageFile(file);
+    if (!validation.ok) {
+      setPhotoError(validation.message);
+      event.target.value = '';
+      return;
+    }
+
+    setPhotoError(null);
     const preview = URL.createObjectURL(file);
     if (kind === 'face') {
       if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
@@ -299,6 +310,7 @@ export default function OnboardingPage() {
                     updateAnswers={updateAnswers}
                     faceInputRef={faceInputRef}
                     fullBodyInputRef={fullBodyInputRef}
+                    photoError={photoError}
                     onPhotoChange={handlePhotoChange}
                   />
                 )}
@@ -425,12 +437,14 @@ function ProfileStep({
   updateAnswers,
   faceInputRef,
   fullBodyInputRef,
+  photoError,
   onPhotoChange,
 }: {
   answers: OnboardingAnswers;
   updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
   faceInputRef: React.RefObject<HTMLInputElement>;
   fullBodyInputRef: React.RefObject<HTMLInputElement>;
+  photoError: string | null;
   onPhotoChange: (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
@@ -441,22 +455,30 @@ function ProfileStep({
         title="照片与基础画像"
         copy="正脸照和全身照都可选。生成档案时会把照片和自述一起交给 AI 做视觉与语言综合分析。"
       />
+      <div className="mx-6 mt-6 border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800 sm:mx-8">
+        照片和身体数据仅用于穿搭、比例、色彩与风格分析，不用于身份识别。生成 AI 深度档案时，照片会发送给已配置的第三方 AI 服务处理；档案默认保存在本机浏览器，可在诊断页清除。
+      </div>
       <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
           <PhotoSlot
             label="可选正脸照"
-            desc="未来用于脸型、五官量感、肤色和气质分析。"
+            desc={`用于脸型、五官量感、肤色和气质分析，单张不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
             preview={answers.photoPreview}
             onClick={() => faceInputRef.current?.click()}
           />
           <PhotoSlot
             label="可选全身照"
-            desc="未来用于身材比例、视觉重心和穿搭轮廓分析。"
+            desc={`用于身材比例、视觉重心和穿搭轮廓分析，单张不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
             preview={answers.fullBodyPhotoPreview}
             onClick={() => fullBodyInputRef.current?.click()}
           />
-          <input ref={faceInputRef} type="file" accept="image/*" onChange={(event) => onPhotoChange('face', event)} className="hidden" />
-          <input ref={fullBodyInputRef} type="file" accept="image/*" onChange={(event) => onPhotoChange('fullBody', event)} className="hidden" />
+          {photoError && (
+            <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2 lg:col-span-1">
+              {photoError}
+            </p>
+          )}
+          <input ref={faceInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('face', event)} className="hidden" />
+          <input ref={fullBodyInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('fullBody', event)} className="hidden" />
         </div>
 
         <div className="space-y-7">

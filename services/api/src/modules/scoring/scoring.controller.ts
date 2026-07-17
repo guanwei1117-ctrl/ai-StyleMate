@@ -1,17 +1,23 @@
-import { Controller, Post, Get, Body, Logger } from '@nestjs/common';
+import { Controller, Post, Get, Body, Logger, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { ScoringService } from './scoring.service';
 import { EvaluateOutfitRequestDto } from './dto/evaluate-outfit.dto';
 import { AnalyzeStyleProfileRequestDto } from './dto/analyze-style-profile.dto';
-import { getBloggerById, bloggerRegistry } from './bloggers/blogger-profiles';
+import { bloggerRegistry } from './bloggers/blogger-profiles';
 import { EvaluateOutfitResponse, ApiResponse as ApiResponseType } from '@stylemate/shared';
+import { validateImageDataUrl } from './image-data-url.validator';
+import { AiRateLimiter } from './ai-rate-limiter';
 
 @ApiTags('AI 穿搭评分')
 @Controller('scoring')
 export class ScoringController {
   private readonly logger = new Logger(ScoringController.name);
 
-  constructor(private readonly scoringService: ScoringService) {}
+  constructor(
+    private readonly scoringService: ScoringService,
+    private readonly aiRateLimiter: AiRateLimiter,
+  ) {}
 
   @Post('evaluate')
   @ApiOperation({ summary: '对穿搭照片进行 AI 多维度评分' })
@@ -21,7 +27,10 @@ export class ScoringController {
   })
   async evaluateOutfit(
     @Body() dto: EvaluateOutfitRequestDto,
+    @Req() req: Request,
   ): Promise<ApiResponseType<EvaluateOutfitResponse>> {
+    this.assertAiRequestAllowed(req);
+    validateImageDataUrl(dto.imageBase64, 'imageBase64');
     this.logger.log(`收到评分请求 | 博主: ${dto.bloggerId}`);
 
     const result = await this.scoringService.evaluateOutfit(
@@ -45,7 +54,11 @@ export class ScoringController {
   })
   async analyzeStyleProfile(
     @Body() dto: AnalyzeStyleProfileRequestDto,
+    @Req() req: Request,
   ): Promise<ApiResponseType<unknown>> {
+    this.assertAiRequestAllowed(req);
+    if (dto.faceImageBase64) validateImageDataUrl(dto.faceImageBase64, 'faceImageBase64');
+    if (dto.fullBodyImageBase64) validateImageDataUrl(dto.fullBodyImageBase64, 'fullBodyImageBase64');
     this.logger.log(`收到风格档案 AI 分析请求 | 候选: ${dto.candidates?.length ?? 0}`);
 
     const result = await this.scoringService.analyzeStyleProfile(dto);
@@ -90,4 +103,12 @@ export class ScoringController {
       data: bloggers,
     };
   }
+
+  private assertAiRequestAllowed(req: Request): void {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const forwardedIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0];
+    const key = forwardedIp?.trim() || req.ip || req.socket.remoteAddress || 'unknown';
+    this.aiRateLimiter.assertAllowed(key);
+  }
 }
+

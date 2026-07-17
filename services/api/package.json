@@ -6,7 +6,8 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main",
-    "lint": "eslint \"{src,test}/**/*.ts\" --fix"
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/modules/scoring/image-data-url.validator.test.ts src/modules/scoring/ai-rate-limiter.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

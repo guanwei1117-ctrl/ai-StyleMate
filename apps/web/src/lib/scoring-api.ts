@@ -1,4 +1,5 @@
 import { EvaluateOutfitResponse, BloggerInfo } from './scoring-types';
+import { buildApiErrorMessage } from './api-error';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -41,7 +42,7 @@ export async function evaluateOutfit(params: {
   });
 
   if (!res.ok) {
-    throw new Error(`评分请求失败: ${res.status}`);
+    throw new Error(await buildApiErrorMessage(res, '评分请求失败'));
   }
 
   const json: ApiResponse<EvaluateOutfitResponse> = await res.json();

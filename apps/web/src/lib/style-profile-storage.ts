@@ -11,8 +11,7 @@ import {
   type StyleMatchResult,
 } from '@/lib/onboarding-types';
 import type { AiStyleProfileAnalysis } from '@/lib/style-profile-api';
-
-export const STYLE_PROFILE_STORAGE_KEY = 'stylemate.styleProfile.v1';
+import { clearStyleProfileFromStorage, STYLE_PROFILE_STORAGE_KEY } from '@/lib/style-profile-storage-core';
 
 export interface ExtractedStyleIntent {
   likedKeywords: string[];
@@ -165,3 +164,10 @@ export function loadStyleProfile(): StoredStyleProfile | null {
     return null;
   }
 }
+
+export function clearStyleProfile() {
+  if (typeof window === 'undefined') return;
+  clearStyleProfileFromStorage(window.localStorage);
+}
+
+

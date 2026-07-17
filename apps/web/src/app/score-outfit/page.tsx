@@ -9,7 +9,13 @@ import BloggerSelector from "@/components/score-outfit/blogger-selector";
 import ScoreResult from "@/components/score-outfit/score-result";
 import { evaluateOutfit } from "@/lib/scoring-api";
 import { EvaluateOutfitResponse, ScoringState } from "@/lib/scoring-types";
-import { loadStyleProfile, type StoredStyleProfile } from "@/lib/style-profile-storage";
+import {
+  clearScoringHistory,
+  loadScoringHistory,
+  saveScoringHistoryRecord,
+  type ScoringHistoryRecord,
+} from "@/lib/scoring-history";
+import { clearStyleProfile, loadStyleProfile, type StoredStyleProfile } from "@/lib/style-profile-storage";
 
 const STEPS = [
   { key: "upload" as const, label: "上传 Look" },
@@ -23,6 +29,7 @@ export default function ScoreOutfitPage() {
   const [bloggerId, setBloggerId] = useState<string | null>(null);
   const [result, setResult] = useState<EvaluateOutfitResponse | null>(null);
   const [styleProfile, setStyleProfile] = useState<StoredStyleProfile | null>(null);
+  const [history, setHistory] = useState<ScoringHistoryRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +37,7 @@ export default function ScoreOutfitPage() {
 
   useEffect(() => {
     setStyleProfile(loadStyleProfile());
+    setHistory(loadScoringHistory());
   }, []);
 
   const handlePhotoReady = useCallback((base64: string) => {
@@ -62,6 +70,7 @@ export default function ScoreOutfitPage() {
           : undefined,
       });
       setResult(res);
+      setHistory(saveScoringHistoryRecord(res));
     } catch (err) {
       setError(err instanceof Error ? err.message : "诊断失败，请稍后重试");
       setState("select-blogger");
@@ -76,6 +85,24 @@ export default function ScoreOutfitPage() {
     setBloggerId(null);
     setResult(null);
     setError(null);
+  }, []);
+
+  const handleClearStyleProfile = useCallback(() => {
+    const confirmed = window.confirm('确定清除当前风格档案吗？清除后本次诊断将不再引用你的身高、体型和偏好。');
+    if (!confirmed) return;
+
+    clearStyleProfile();
+    setStyleProfile(null);
+    setError('已清除当前风格档案，本次诊断将按通用视角进行。');
+  }, []);
+
+  const handleClearHistory = useCallback(() => {
+    const confirmed = window.confirm('确定清空最近诊断记录吗？');
+    if (!confirmed) return;
+
+    clearScoringHistory();
+    setHistory([]);
+    setError('已清空最近诊断记录。');
   }, []);
 
   return (
@@ -101,9 +128,14 @@ export default function ScoreOutfitPage() {
               穿搭状态
             </h1>
           </div>
-          <p className="max-w-xl text-sm leading-7 text-ink-500 lg:justify-self-end">
-            上传一张完整 Look，选择诊断视角。StyleMate 会从比例、色彩、场景、完整度和实穿性拆解问题，并给出可马上执行的修改建议。
-          </p>
+          <div className="max-w-xl lg:justify-self-end">
+            <p className="text-sm leading-7 text-ink-500">
+              上传一张完整 Look，选择诊断视角。StyleMate 会从比例、色彩、场景、完整度和实穿性拆解问题，并给出可马上执行的修改建议。
+            </p>
+            <p className="mt-4 border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800">
+              照片仅用于穿搭分析，不用于身份识别。开始诊断后，图片会发送给已配置的第三方 AI 服务处理。
+            </p>
+          </div>
         </div>
 
         <div className="mb-8 grid gap-3 sm:grid-cols-3">
@@ -124,8 +156,55 @@ export default function ScoreOutfitPage() {
 
         {error && (
           <div className="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
+            <p>{error}</p>
+            {imageBase64 && bloggerId && state !== "result" && (
+              <button
+                type="button"
+                onClick={handleStartScoring}
+                disabled={loading}
+                className="mt-3 inline-flex items-center justify-center border border-red-300 px-4 py-2 text-xs transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                重新诊断
+              </button>
+            )}
           </div>
+        )}
+
+        {history.length > 0 && (
+          <section className="mb-8 border border-ink-900/10 bg-[#fbfaf6] p-5 sm:p-6">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="mb-2 text-xs tracking-[0.22em] text-ink-400">RECENT DIAGNOSIS</p>
+                <h2 className="font-display text-3xl leading-none">最近诊断</h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearHistory}
+                className="inline-flex items-center justify-center border border-ink-900/10 px-4 py-2 text-xs text-ink-500 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+              >
+                清空记录
+              </button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {history.map((item) => (
+                <article key={item.id} className="border border-ink-900/10 bg-white/50 p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs tracking-[0.18em] text-ink-400">{new Date(item.createdAt).toLocaleString()}</p>
+                      <h3 className="mt-2 font-display text-2xl leading-none">{item.bloggerName}</h3>
+                    </div>
+                    <span className="border border-ink-900 bg-ink-900 px-2 py-1 text-xs text-creme-100">
+                      {item.averageScore}
+                    </span>
+                  </div>
+                  <p className="line-clamp-3 text-sm leading-6 text-ink-500">{item.overallComment}</p>
+                  {item.improvements.length > 0 && (
+                    <p className="mt-3 text-xs leading-5 text-ink-400">建议：{item.improvements[0]}</p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="mb-8 border border-ink-900/10 bg-[#fbfaf6] p-5 sm:p-6">
@@ -140,6 +219,21 @@ export default function ScoreOutfitPage() {
                     ? ` 该档案已由 AI 深度分析生成，模型会继续按这个方向理解你的 Look。`
                     : ` 该档案来自本地规则，建议重新生成一次 AI 深度档案。`}
                 </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Link
+                    href="/onboarding"
+                    className="inline-flex items-center justify-center border border-ink-900 px-4 py-2 text-xs text-ink-900 transition hover:bg-ink-900 hover:text-creme-100"
+                  >
+                    重新生成档案
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleClearStyleProfile}
+                    className="inline-flex items-center justify-center border border-ink-900/10 px-4 py-2 text-xs text-ink-500 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                  >
+                    清除当前档案
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {styleProfile.results.slice(0, 3).map((item) => (

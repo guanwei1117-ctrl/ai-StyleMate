@@ -2,6 +2,7 @@ import type { OnboardingAnswers, StyleMatchResult } from '@/lib/onboarding-types
 import type { StyleCard } from '@/data/styles';
 import { STYLES } from '@/data/styles';
 import { extractStyleIntent } from '@/lib/style-profile-storage';
+import { buildApiErrorMessage } from '@/lib/api-error';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -100,7 +101,7 @@ export async function analyzeStyleProfileWithAi(
   });
 
   if (!res.ok) {
-    throw new Error(`AI 风格分析请求失败: ${res.status}`);
+    throw new Error(await buildApiErrorMessage(res, 'AI 风格分析请求失败'));
   }
 
   const json: ApiResponse<AiStyleProfileAnalysis> = await res.json();

@@ -1,78 +1,64 @@
-import { Instagram, Twitter, Mail } from 'lucide-react';
+import { Instagram, Mail, Twitter } from 'lucide-react';
 
-const FOOTER_LINKS = {
-  explore: {
-    title: '探索',
+const columns = [
+  {
+    title: 'EXPLORE',
     links: [
-      { label: '风格测评', href: '/onboarding' },
-      { label: '穿搭诊断', href: '/score-outfit' },
       { label: '风格库', href: '/styles' },
+      { label: '喜爱榜', href: '/styles' },
+      { label: '风格测评', href: '/onboarding' },
+    ],
+  },
+  {
+    title: 'TOOLS',
+    links: [
+      { label: '穿搭诊断', href: '/score-outfit' },
       { label: '智能衣橱', href: '/wardrobe' },
+      { label: '投稿入口', href: '/styles' },
     ],
   },
-  company: {
-    title: '关于',
+  {
+    title: 'NOTICE',
     links: [
-      { label: '我们的故事', href: '#' },
-      { label: '联系我们', href: '#' },
-      { label: '加入我们', href: '#' },
-      { label: '隐私政策', href: '#' },
+      { label: '非商用展示', href: '#' },
+      { label: '侵权联系删除', href: '#' },
+      { label: '来源链接说明', href: '#' },
     ],
   },
-  support: {
-    title: '支持',
-    links: [
-      { label: '常见问题', href: '#' },
-      { label: '尺码指南', href: '#' },
-      { label: '退换政策', href: '#' },
-      { label: '合作咨询', href: '#' },
-    ],
-  },
-};
+];
 
 export default function Footer() {
   return (
-    <footer className="bg-ink-900 text-creme-100 pt-24 pb-10">
-      <div className="max-w-7xl mx-auto px-6 lg:px-10">
-        {/* Main grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-16">
-          {/* Brand column */}
-          <div className="col-span-2">
-            <h3 className="font-display text-xl lg:text-2xl tracking-wide mb-4">
-              STYLEMATE
-            </h3>
-            <p className="text-creme-200/40 text-sm leading-relaxed font-light max-w-xs">
-              用 AI 建立个人风格档案，给出清晰、年轻、可执行的穿搭建议。
-              <br />
-              不追逐每一种流行，只帮你找到更适合自己的风格区间。
+    <footer className="border-t border-white/12 bg-black px-6 py-16 text-white lg:px-10">
+      <div className="mx-auto max-w-[1440px]">
+        <div className="mb-12 grid h-1 max-w-xs grid-cols-3">
+          <span className="bg-[#0066b1]" />
+          <span className="bg-[#1c69d4]" />
+          <span className="bg-[#e22718]" />
+        </div>
+
+        <div className="grid gap-10 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
+          <div>
+            <h3 className="text-2xl font-black uppercase tracking-[0.18em]">STYLEMATE</h3>
+            <p className="mt-5 max-w-sm text-sm font-light leading-7 text-white/42">
+              一个以图片、风格、博主内容和用户互动为核心的视觉风格库。
             </p>
-            {/* Social */}
-            <div className="flex items-center gap-4 mt-6">
-              {[Instagram, Twitter, Mail].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-9 h-9 flex items-center justify-center rounded-full border border-creme-100/10 text-creme-200/40 hover:text-creme-100 hover:border-creme-100/30 transition-all duration-300"
-                >
+            <div className="mt-7 flex items-center gap-3">
+              {[Instagram, Twitter, Mail].map((Icon, index) => (
+                <a key={index} href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/55 transition hover:bg-white hover:text-black" aria-label="社交入口">
                   <Icon size={15} />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Link columns */}
-          {Object.values(FOOTER_LINKS).map((col) => (
-            <div key={col.title}>
-              <h4 className="text-[10px] tracking-[0.25em] text-creme-200/30 uppercase mb-5">
-                {col.title}
-              </h4>
+          {columns.map((column) => (
+            <div key={column.title}>
+              <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.24em] text-white/36">{column.title}</h4>
               <ul className="space-y-3">
-                {col.links.map((link) => (
+                {column.links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-xs text-creme-200/40 hover:text-creme-100 transition-colors duration-300 font-light"
-                    >
+                    <a href={link.href} className="text-sm font-light text-white/50 transition hover:text-white">
                       {link.label}
                     </a>
                   </li>
@@ -82,14 +68,9 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-20 pt-8 border-t border-creme-100/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[10px] tracking-wider text-creme-200/20 uppercase font-light">
-            &copy; 2026 StyleMate. All rights reserved.
-          </p>
-          <p className="text-[10px] tracking-wider text-creme-200/20 font-light">
-            真诚建议，不敷衍每一件衣服。
-          </p>
+        <div className="mt-14 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 text-xs uppercase tracking-[0.16em] text-white/24 sm:flex-row">
+          <p>© 2026 STYLEMATE</p>
+          <p>NON-COMMERCIAL STYLE REFERENCE</p>
         </div>
       </div>
     </footer>

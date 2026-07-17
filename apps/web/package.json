@@ -6,7 +6,8 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/lib/image-upload-rules.test.ts src/lib/style-profile-storage.test.ts src/lib/api-error.test.ts src/lib/scoring-history.test.ts src/lib/scoring-summary.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

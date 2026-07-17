@@ -12,7 +12,8 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
-import { Lightbulb, RotateCcw, Shirt, Sparkles } from "lucide-react";
+import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles } from "lucide-react";
+import { buildScoringSummaryText } from "@/lib/scoring-summary";
 
 interface ScoreResultProps {
   result: EvaluateOutfitResponse;
@@ -21,7 +22,18 @@ interface ScoreResultProps {
 
 export default function ScoreResult({ result, onReset }: ScoreResultProps) {
   const [mounted, setMounted] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
   useEffect(() => { setMounted(true); }, []);
+
+  const handleCopySummary = async () => {
+    const summary = buildScoringSummaryText(result);
+    try {
+      await navigator.clipboard.writeText(summary);
+      setCopyMessage("已复制诊断摘要");
+    } catch {
+      setCopyMessage("复制失败，请手动复制页面内容");
+    }
+  };
 
   const radarData = result.dimensions.map((d) => ({
     dimension: d.label,
@@ -31,12 +43,23 @@ export default function ScoreResult({ result, onReset }: ScoreResultProps) {
   return (
     <div className="w-full space-y-8">
       <div className="border-b border-ink-900/10 pb-8">
-        <p className="mb-4 text-xs tracking-[0.28em] text-ink-400">DIAGNOSIS REPORT</p>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs tracking-[0.28em] text-ink-400">DIAGNOSIS REPORT</p>
+          <button
+            type="button"
+            onClick={handleCopySummary}
+            className="inline-flex items-center justify-center gap-2 border border-ink-900/10 px-4 py-2 text-xs text-ink-600 transition hover:border-ink-900 hover:text-ink-900"
+          >
+            <Clipboard size={14} />
+            复制报告摘要
+          </button>
+        </div>
         <h1 className="font-display text-[clamp(2.5rem,5vw,5rem)] leading-[0.9] text-ink-900">
           今日 Look
           <br />
           诊断完成
         </h1>
+        {copyMessage && <p className="mt-4 text-sm text-ink-500">{copyMessage}</p>}
       </div>
 
       <motion.div

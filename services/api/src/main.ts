@@ -7,9 +7,9 @@ import express from 'express';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
 
-  // 全局增大请求体大小限制（支持 Base64 图片上传）
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  // 支持最多两张 8MB 图片转 Base64 后的 JSON 请求，具体图片大小仍在 scoring 接口二次校验
+  app.use(express.json({ limit: '30mb' }));
+  app.use(express.urlencoded({ limit: '30mb', extended: true }));
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
