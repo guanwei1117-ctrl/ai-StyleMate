@@ -1,66 +1,50 @@
-import { Instagram, Mail, Twitter } from 'lucide-react';
+import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 
 const columns = [
   {
-    title: 'EXPLORE',
+    title: '功能',
     links: [
       { label: '风格库', href: '/styles' },
-      { label: '喜爱榜', href: '/styles' },
       { label: '风格测评', href: '/onboarding' },
-    ],
-  },
-  {
-    title: 'TOOLS',
-    links: [
       { label: '穿搭诊断', href: '/score-outfit' },
-      { label: '智能衣橱', href: '/wardrobe' },
-      { label: '投稿入口', href: '/styles' },
     ],
   },
   {
-    title: 'NOTICE',
+    title: '探索',
     links: [
-      { label: '非商用展示', href: '#' },
-      { label: '侵权联系删除', href: '#' },
-      { label: '来源链接说明', href: '#' },
+      { label: '我的衣橱', href: '/wardrobe' },
+      { label: '最近诊断', href: '/score-outfit' },
+      { label: '查看文档', href: '/styles' },
     ],
   },
 ];
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/12 bg-black px-6 py-16 text-white lg:px-10">
-      <div className="mx-auto max-w-[1440px]">
-        <div className="mb-12 grid h-1 max-w-xs grid-cols-3">
-          <span className="bg-[#0066b1]" />
-          <span className="bg-[#1c69d4]" />
-          <span className="bg-[#e22718]" />
-        </div>
-
-        <div className="grid gap-10 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
+    <footer className="border-t border-[#eadfce] bg-[#fffdf8] px-6 py-14 text-[#2d2926] lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_0.8fr_0.8fr]">
           <div>
-            <h3 className="text-2xl font-black uppercase tracking-[0.18em]">STYLEMATE</h3>
-            <p className="mt-5 max-w-sm text-sm font-light leading-7 text-white/42">
-              一个以图片、风格、博主内容和用户互动为核心的视觉风格库。
+            <h3 className="font-display text-4xl leading-none">StyleMate</h3>
+            <p className="mt-5 max-w-md text-sm leading-7 text-[#7a7168]">
+              一个温暖、轻盈的 AI 穿搭助手。帮你建立风格档案，诊断今日 Look，并把建议落到颜色、版型和单品上。
             </p>
-            <div className="mt-7 flex items-center gap-3">
-              {[Instagram, Twitter, Mail].map((Icon, index) => (
-                <a key={index} href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/55 transition hover:bg-white hover:text-black" aria-label="社交入口">
-                  <Icon size={15} />
-                </a>
-              ))}
+            <div className="mt-6 flex gap-3 rounded-2xl border border-[#eadfce] bg-[#f7f2ea] p-4 text-sm leading-6 text-[#7a7168]">
+              <ShieldCheck className="mt-1 shrink-0 text-[#7c8f73]" size={18} />
+              照片只用于穿搭分析，不做身份识别。档案可随时清除。
             </div>
           </div>
 
           {columns.map((column) => (
             <div key={column.title}>
-              <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.24em] text-white/36">{column.title}</h4>
+              <h4 className="mb-5 text-xs font-semibold tracking-[0.22em] text-[#9b8f80]">{column.title}</h4>
               <ul className="space-y-3">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="text-sm font-light text-white/50 transition hover:text-white">
+                    <Link href={link.href} className="text-sm text-[#7a7168] transition hover:text-[#2d2926]">
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -68,9 +52,9 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 text-xs uppercase tracking-[0.16em] text-white/24 sm:flex-row">
+        <div className="mt-12 flex flex-col justify-between gap-3 border-t border-[#eadfce] pt-6 text-xs tracking-[0.14em] text-[#9b8f80] sm:flex-row">
           <p>© 2026 STYLEMATE</p>
-          <p>NON-COMMERCIAL STYLE REFERENCE</p>
+          <p>AI STYLE COMPANION</p>
         </div>
       </div>
     </footer>
