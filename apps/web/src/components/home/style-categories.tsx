@@ -10,56 +10,56 @@ const CATEGORIES = [
     id: 'jp_fresh',
     name: '日系清新',
     desc: '柔和色调、宽松廓形',
-    image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80',
+    image: '/styles/jp_zen/Japanese_zen_minimalist_fashio_2026-06-30T06-49-07.png',
     accent: 'bg-haze-pale',
   },
   {
     id: 'kr_minimal',
     name: '韩系简约',
     desc: '干净线条、高级日常',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80',
+    image: '/styles/kr_effortless/Korean_minimalist_casual_fashi_2026-06-30T06-49-46.png',
     accent: 'bg-silver-pale',
   },
   {
     id: 'cn_new_chinese',
     name: '新中式',
     desc: '东方元素、现代剪裁',
-    image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80',
+    image: '/styles/cn_new_chinese/Modern_Chinese_neo_traditional_2026-06-30T06-49-15.png',
     accent: 'bg-almond-pale',
   },
   {
     id: 'fr_elegance',
     name: '法式优雅',
     desc: '简约精致、随性魅力',
-    image: 'https://images.unsplash.com/photo-1502716119720-b23a93e5fe1b?w=800&q=80',
+    image: '/styles/fr_effortless/A_fashion_lookbook_photo_of_an_2026-06-30T06-47-50.png',
     accent: 'bg-olive-pale',
   },
   {
     id: 'minimalist',
     name: '极简主义',
     desc: '少即是多、质感为王',
-    image: 'https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=800&q=80',
+    image: '/styles/minimalist/Extreme_minimalist_fashion__a__2026-06-30T06-51-32.png',
     accent: 'bg-creme-200',
   },
   {
     id: 'streetwear',
     name: '街头潮流',
     desc: '态度穿搭、打破规则',
-    image: 'https://images.unsplash.com/photo-1523398002811-999ca8dec234?w=800&q=80',
+    image: '/styles/us_street/American_streetwear_hip_hop_fa_2026-06-30T06-48-37.png',
     accent: 'bg-haze-pale',
   },
   {
     id: 'commute',
     name: '通勤穿搭',
     desc: '职场气场、利落干练',
-    image: 'https://images.unsplash.com/photo-1434389677669-e08b4cda3a20?w=800&q=80',
+    image: '/styles/office_boss/Office_elite_corporate_fashion_2026-06-30T06-55-39.png',
     accent: 'bg-silver-pale',
   },
   {
     id: 'us_vintage',
     name: '美式复古',
     desc: '经典回潮、自在随性',
-    image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&q=80',
+    image: '/styles/us_prep_vintage/American_90s_high_school_vinta_2026-06-30T06-48-32.png',
     accent: 'bg-almond-pale',
   },
 ];
@@ -124,7 +124,7 @@ export default function StyleCategories() {
             href="/styles"
             className="hidden lg:inline-flex items-center gap-2 text-xs tracking-[0.15em] text-ink-500 hover:text-ink-900 transition-colors duration-300"
           >
-            浏览全部 22 种风格 <ArrowUpRight size={14} />
+            浏览全部 80 种风格 <ArrowUpRight size={14} />
           </Link>
         </ScrollReveal>
 
@@ -139,7 +139,7 @@ export default function StyleCategories() {
             href="/styles"
             className="inline-flex items-center gap-2 text-xs tracking-[0.15em] text-ink-500 hover:text-ink-900 transition-colors"
           >
-            浏览全部 22 种风格 <ArrowUpRight size={14} />
+            浏览全部 80 种风格 <ArrowUpRight size={14} />
           </Link>
         </div>
       </div>

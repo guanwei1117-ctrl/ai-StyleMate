@@ -7,7 +7,7 @@ import { ArrowUpRight, Heart } from 'lucide-react';
 const PICKS = [
   {
     id: 1,
-    image: 'https://images.unsplash.com/photo-1434389677669-e08b4cda3a20?w=600&q=80',
+    image: '/styles/office_boss/Office_elite_corporate_fashion_2026-06-30T06-55-39.png',
     brand: 'COS',
     name: '宽松羊毛大衣',
     style: '极简',
@@ -15,7 +15,7 @@ const PICKS = [
   },
   {
     id: 2,
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',
+    image: '/styles/jp_zen/Japanese_zen_minimalist_fashio_2026-06-30T06-49-07.png',
     brand: 'Uniqlo U',
     name: '纯棉府绸衬衫',
     style: '日系',
@@ -23,7 +23,7 @@ const PICKS = [
   },
   {
     id: 3,
-    image: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=600&q=80',
+    image: '/styles/kr_street/Korean_street_idol_inspired_fa_2026-06-30T06-49-48.png',
     brand: 'Ader Error',
     name: '解构阔腿西裤',
     style: '韩系',
@@ -31,7 +31,7 @@ const PICKS = [
   },
   {
     id: 4,
-    image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&q=80',
+    image: '/styles/fr_effortless/A_fashion_lookbook_photo_of_an_2026-06-30T06-47-50.png',
     brand: 'Lemaire',
     name: '牛角包皮革手袋',
     style: '法式',
@@ -39,7 +39,7 @@ const PICKS = [
   },
   {
     id: 5,
-    image: 'https://images.unsplash.com/photo-1543163521-1bf539c9f9f2?w=600&q=80',
+    image: '/styles/earthy_relax/Earthy_relaxed_tonal_fashion___2026-06-30T06-53-28.png',
     brand: 'MUJI',
     name: '美利奴羊毛针织衫',
     style: '日系',
@@ -47,7 +47,7 @@ const PICKS = [
   },
   {
     id: 6,
-    image: 'https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=600&q=80',
+    image: '/styles/avant_garde/Avant_garde_experimental_fashi_2026-06-30T06-55-41.png',
     brand: 'Marni',
     name: '雕塑跟短靴',
     style: '前卫',

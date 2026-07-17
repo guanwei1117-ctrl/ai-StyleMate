@@ -1,33 +1,24 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 
 const NAV_LINKS = [
-  { label: '风格库', href: '/styles' },
-  { label: '测评', href: '/onboarding' },
-  { label: '诊断', href: '/score-outfit' },
+  { label: '风格百科', href: '/styles' },
+  { label: '风格测评', href: '/onboarding' },
+  { label: '博主评价', href: '/score-outfit' },
+  { label: '灵感墙', href: '#trending' },
   { label: '衣橱', href: '/wardrobe' },
+  { label: '关于', href: '#story' },
 ];
-
-function BrandMark() {
-  return (
-    <Link href="/" className="flex items-center gap-3">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7c8f73] font-display text-sm text-white">S</span>
-      <span className="text-sm font-semibold tracking-[0.2em] text-[#2d2926]">STYLEMATE</span>
-    </Link>
-  );
-}
 
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
+    const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -37,44 +28,78 @@ export default function Navigation() {
       <motion.nav
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.45 }}
-        className={`fixed left-0 right-0 top-0 z-50 border-b border-[#eadfce]/80 transition-colors duration-300 ${scrolled ? 'bg-[#fffdf8]/92 shadow-sm backdrop-blur' : 'bg-[#fffdf8]/76 backdrop-blur-md'}`}
+        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          scrolled
+            ? 'bg-creme-100/85 backdrop-blur-xl shadow-[0_1px_0_0_rgba(0,0,0,0.04)]'
+            : 'bg-transparent'
+        }`}
       >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
-          <BrandMark />
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-16 lg:h-20">
+          {/* Logo */}
+          <a
+            href="#"
+            className={`font-display text-xl lg:text-2xl tracking-wide transition-colors duration-300 ${
+              scrolled ? 'text-ink-900' : 'text-creme-100'
+            }`}
+          >
+            STYLEMATE
+          </a>
 
-          <div className="hidden items-center gap-8 md:flex">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map((link) => (
-              <Link key={link.label} href={link.href} className="text-sm text-[#6f665d] transition hover:text-[#2d2926]">
+              <a
+                key={link.label}
+                href={link.href}
+                className={`text-sm tracking-widest uppercase transition-colors duration-300 ${
+                  scrolled
+                    ? 'text-ink-600 hover:text-ink-900'
+                    : 'text-creme-200/90 hover:text-creme-100'
+                }`}
+              >
                 {link.label}
-              </Link>
+              </a>
             ))}
           </div>
 
-          <Link href="/onboarding" className="hidden rounded-full bg-[#7c8f73] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#6d8065] lg:inline-flex">
-            开始测评
-          </Link>
-
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-[#2d2926] md:hidden" aria-label="打开菜单">
+          {/* Mobile toggle */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className={`md:hidden p-2 transition-colors duration-300 ${
+              scrolled ? 'text-ink-900' : 'text-creme-100'
+            }`}
+            aria-label="Menu"
+          >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </motion.nav>
 
+      {/* Mobile menu */}
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-[#f7f2ea] pt-24 text-[#2d2926] md:hidden">
-            <div className="px-6">
-              <div className="flex flex-col gap-6">
-                {NAV_LINKS.map((link, index) => (
-                  <motion.a key={link.label} href={link.href} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + index * 0.04 }} onClick={() => setMobileOpen(false)} className="font-display text-4xl leading-none">
-                    {link.label}
-                  </motion.a>
-                ))}
-              </div>
-              <Link href="/onboarding" onClick={() => setMobileOpen(false)} className="mt-10 inline-flex rounded-full bg-[#7c8f73] px-6 py-3 text-sm font-semibold text-white">
-                开始风格测评
-              </Link>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-40 bg-creme-100/95 backdrop-blur-xl pt-20"
+          >
+            <div className="flex flex-col items-center justify-center h-full gap-8 -mt-16">
+              {NAV_LINKS.map((link, i) => (
+                <motion.a
+                  key={link.label}
+                  href={link.href}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.06 }}
+                  onClick={() => setMobileOpen(false)}
+                  className="font-display text-2xl text-ink-800 tracking-wide"
+                >
+                  {link.label}
+                </motion.a>
+              ))}
             </div>
           </motion.div>
         )}

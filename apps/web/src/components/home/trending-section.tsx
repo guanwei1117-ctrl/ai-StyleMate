@@ -1,77 +1,28 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { Heart } from 'lucide-react';
 import ScrollReveal from './scroll-reveal';
+import { LOOKS, type Look } from '@/data/looks';
 
-const TRENDING_LOOKS = [
-  {
-    id: 1,
-    image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600&q=80',
-    style: '极简主义',
-    title: '极简层次穿搭',
-    pieces: 4,
-    by: '张微',
-  },
-  {
-    id: 2,
-    image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&q=80',
-    style: '法式优雅',
-    title: '毫不费力的时髦',
-    pieces: 3,
-    by: '李娜',
-  },
-  {
-    id: 3,
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=80',
-    style: '韩系简约',
-    title: '温柔通勤日常',
-    pieces: 4,
-    by: '金秀雅',
-  },
-  {
-    id: 4,
-    image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&q=80',
-    style: '日系清新',
-    title: '周末柔软时光',
-    pieces: 3,
-    by: '陈雨',
-  },
-  {
-    id: 5,
-    image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=600&q=80',
-    style: '街头潮流',
-    title: '都市街头态度',
-    pieces: 5,
-    by: '王放',
-  },
-  {
-    id: 6,
-    image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80',
-    style: '美式复古',
-    title: '九零复古回潮',
-    pieces: 4,
-    by: '赵磊',
-  },
-  {
-    id: 7,
-    image: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=600&q=80',
-    style: '新中式',
-    title: '东方留白之美',
-    pieces: 4,
-    by: '刘梅',
-  },
-  {
-    id: 8,
-    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80',
-    style: '原宿风',
-    title: '不被定义的色彩',
-    pieces: 6,
-    by: '林小希',
-  },
+type TabKey = 'monthly' | 'all';
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'monthly', label: '美月榜' },
+  { key: 'all', label: '总榜单' },
 ];
 
-function TrendingCard({ look, index }: { look: (typeof TRENDING_LOOKS)[0]; index: number }) {
+function TrendingCard({
+  look,
+  index,
+  tab,
+}: {
+  look: Look;
+  index: number;
+  tab: TabKey;
+}) {
+  const likes = tab === 'monthly' ? look.monthlyLikes : look.likes;
   return (
     <motion.a
       href="#"
@@ -100,6 +51,16 @@ function TrendingCard({ look, index }: { look: (typeof TRENDING_LOOKS)[0]; index
           <span className="text-xs text-ink-400 font-light">{look.pieces} 件单品</span>
         </div>
         <p className="text-xs text-ink-400 mt-1 font-light">来自 {look.by}</p>
+        <p className="mt-2 text-sm text-ink-500 font-light leading-relaxed line-clamp-2">
+          {look.description}
+        </p>
+        <div className="mt-3 flex items-center gap-1.5 text-ink-800">
+          <Heart size={14} className="text-[#C75D5D]" fill="#C75D5D" />
+          <span className="text-sm font-medium tabular-nums">{likes.toLocaleString()}</span>
+          <span className="text-xs text-ink-400 font-light">
+            {tab === 'monthly' ? '本月喜欢' : '累计喜欢'}
+          </span>
+        </div>
       </div>
     </motion.a>
   );
@@ -107,11 +68,17 @@ function TrendingCard({ look, index }: { look: (typeof TRENDING_LOOKS)[0]; index
 
 export default function TrendingSection() {
   const ref = useRef<HTMLElement>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>('monthly');
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start end', 'end start'],
   });
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '15%']);
+
+  const sortedLooks = useMemo(() => {
+    const metric = activeTab === 'monthly' ? 'monthlyLikes' : 'likes';
+    return [...LOOKS].sort((a, b) => b[metric] - a[metric]);
+  }, [activeTab]);
 
   return (
     <section id="trending" className="relative py-28 lg:py-36 overflow-hidden bg-creme-200">
@@ -123,7 +90,7 @@ export default function TrendingSection() {
       </motion.div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
-        <ScrollReveal className="mb-14">
+        <ScrollReveal className="mb-10">
           <p className="text-xs tracking-[0.25em] text-ink-400 mb-4">灵感墙</p>
           <h2 className="font-display text-section text-ink-900">
             大家最近<span className="italic">怎么穿</span>
@@ -133,10 +100,30 @@ export default function TrendingSection() {
           </p>
         </ScrollReveal>
 
+        {/* 榜单 Tab 切换 */}
+        <div className="flex items-center gap-3 mb-8">
+          {TABS.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-5 py-2 rounded-full text-sm tracking-wider transition-all duration-300 ${
+                  active
+                    ? 'bg-ink-900 text-creme-100'
+                    : 'bg-transparent border border-ink-200 text-ink-500 hover:text-ink-900 hover:border-ink-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex gap-6 lg:gap-8 overflow-x-auto pb-4 -mx-6 px-6 lg:-mx-10 lg:px-10 scrollbar-hide snap-x snap-mandatory">
-          {TRENDING_LOOKS.map((look, i) => (
+          {sortedLooks.map((look, i) => (
             <div key={look.id} className="snap-start">
-              <TrendingCard look={look} index={i} />
+              <TrendingCard look={look} index={i} tab={activeTab} />
             </div>
           ))}
         </div>

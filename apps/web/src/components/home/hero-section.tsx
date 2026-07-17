@@ -19,7 +19,7 @@ export default function HeroSection() {
     <section ref={ref} className="relative h-screen overflow-hidden bg-ink-900">
       {/* Background image */}
       <motion.div style={{ scale: bgScale }} className="absolute inset-0">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1920&q=85')] bg-cover bg-center" />
+        <div className="absolute inset-0 bg-[url('/styles/quiet_luxury/Quiet_luxury_silent_wealth_fas_2026-06-30T06-51-40.png')] bg-cover bg-center" />
         {/* Lighter gradient — more natural, less dramatic */}
         <div className="absolute inset-0 bg-gradient-to-b from-ink-900/25 via-transparent to-ink-900/50" />
       </motion.div>
