@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Camera,
   Check,
   ChevronLeft,
@@ -59,11 +60,12 @@ import {
   saveStyleProfile,
 } from '@/lib/style-profile-storage';
 import { ACCEPTED_IMAGE_MIME_TYPES, IMAGE_UPLOAD_SIZE_LABEL, validateImageFile } from '@/lib/image-upload-rules';
+import { ONBOARDING_GUIDE_SECTIONS } from '@/lib/onboarding-guide';
 
 const FLOW = [
-  { id: 'profile', label: '照片与画像', desc: '可选照片、身体比例与场景' },
-  { id: 'taste', label: '偏好选择', desc: '喜欢风格与穿衣目标' },
-  { id: 'intent', label: '自述编辑器', desc: '把想法整理成 AI 输入' },
+  { id: 'profile', label: '基础', desc: '身高 / 体重 / 年龄' },
+  { id: 'taste', label: '喜好', desc: '风格 / 预算 / 目标' },
+  { id: 'intent', label: '生成', desc: '确认后出报告' },
 ] as const;
 
 const genderOptions: { label: string; value: Gender }[] = [
@@ -89,6 +91,7 @@ export default function OnboardingPage() {
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'ai' | 'fallback'>('idle');
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const isResultStep = step === FLOW.length;
   const progress = isResultStep ? 100 : Math.round(((step + 1) / FLOW.length) * 100);
@@ -245,17 +248,19 @@ export default function OnboardingPage() {
         </div>
       </div>
 
+      <OnboardingGuideDialog open={guideOpen} onClose={() => setGuideOpen(false)} />
+
       <section className="mx-auto max-w-7xl px-6 pb-20 pt-28 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
           <aside className="lg:sticky lg:top-24">
-            <p className="mb-5 text-xs tracking-[0.3em] text-ink-400">AI STYLE ASSESSMENT</p>
-            <h1 className="font-display text-[clamp(3.2rem,7vw,7.6rem)] leading-[0.88]">
-              建立你的
+            <p className="mb-5 text-xs tracking-[0.3em] text-ink-400">STYLE TEST</p>
+            <h1 className="font-display text-[clamp(3rem,7vw,6.6rem)] leading-[0.9]">
+              测测
               <br />
-              风格档案
+              适合什么
             </h1>
-            <p className="mt-7 max-w-xl text-sm leading-7 text-ink-500">
-              先用最少的信息判断风格坐标，再把适合的颜色、版型和避雷点写进一份可行动的报告。
+            <p className="mt-6 max-w-xl text-sm leading-7 text-ink-500">
+              填基础，选喜好，生成建议。
             </p>
 
             {!isResultStep && (
@@ -388,13 +393,60 @@ function SectionHeader({ icon: Icon, label, title, copy }: {
   copy: string;
 }) {
   return (
-    <div className="border-b border-ink-900/10 p-6 sm:p-8">
-      <div className="mb-7 flex h-11 w-11 items-center justify-center border border-ink-900/15 bg-white/50">
-        <Icon size={19} />
+    <div className="flex items-start gap-4 border-b border-ink-900/10 p-6 sm:p-8">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-ink-900/15 bg-white/50">
+        <Icon size={18} />
       </div>
-      <p className="mb-3 text-xs tracking-[0.25em] text-ink-400">{label}</p>
-      <h2 className="font-display text-[clamp(2rem,4vw,4rem)] leading-none">{title}</h2>
-      <p className="mt-4 max-w-xl text-sm leading-7 text-ink-500">{copy}</p>
+      <div>
+        <p className="mb-2 text-xs tracking-[0.22em] text-ink-400">{label}</p>
+        <h2 className="font-display text-[clamp(1.8rem,3vw,3rem)] leading-none">{title}</h2>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-ink-500">{copy}</p>
+      </div>
+    </div>
+  );
+}
+
+function OnboardingGuideDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/35 px-5 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className="w-full max-w-xl border border-ink-900/10 bg-[#fbfaf6] p-6 shadow-[0_24px_80px_rgba(10,10,10,0.18)]"
+      >
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="mb-2 text-xs tracking-[0.22em] text-ink-400">说明书</p>
+            <h2 className="font-display text-4xl leading-none">怎么测？</h2>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 text-ink-400 transition hover:text-ink-900" aria-label="关闭说明书">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {ONBOARDING_GUIDE_SECTIONS.map((section, index) => (
+            <section key={section.title} className="grid grid-cols-[36px_1fr] gap-4 border-t border-ink-900/10 pt-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-900 text-xs text-creme-100">0{index + 1}</span>
+              <div>
+                <h3 className="text-sm font-semibold text-ink-900">{section.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-ink-500">{section.copy}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {section.items.map((item) => (
+                    <span key={item} className="bg-white/70 px-3 py-1 text-xs text-ink-500">{item}</span>
+                  ))}
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <button type="button" onClick={onClose} className="mt-7 w-full bg-ink-900 px-5 py-3 text-sm text-creme-100 transition hover:bg-ink-800">
+          知道了
+        </button>
+      </motion.div>
     </div>
   );
 }
@@ -461,14 +513,14 @@ function ProfileStep({
       <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
           <PhotoSlot
-            label="可选正脸照"
-            desc={`用于脸型、五官量感、肤色和气质分析，单张不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
+            label="正脸照"
+            desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
             preview={answers.photoPreview}
             onClick={() => faceInputRef.current?.click()}
           />
           <PhotoSlot
-            label="可选全身照"
-            desc={`用于身材比例、视觉重心和穿搭轮廓分析，单张不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
+            label="全身照"
+            desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
             preview={answers.fullBodyPhotoPreview}
             onClick={() => fullBodyInputRef.current?.click()}
           />
@@ -593,13 +645,13 @@ function TasteStep({
     <>
       <SectionHeader
         icon={Sparkles}
-        label="STEP 02"
-        title="审美偏好"
-        copy="选择你会停留多看一眼的风格（选填），不用考虑是否能完全驾驭，AI 会负责判断适合度。"
+        label="02"
+        title="喜好"
+        copy="都选填。不确定就跳过。"
       />
       <div className="p-6 sm:p-8">
         <div className="mb-8 space-y-7 border-b border-ink-900/10 pb-8">
-          <FieldGroup title="单件预算" optional>
+          <FieldGroup title="预算" optional>
             <div className="grid gap-3 md:grid-cols-3">
               {BUDGET_OPTIONS.map((option) => (
                 <button
@@ -729,7 +781,7 @@ function TasteStep({
             type="text"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="搜索风格名称、关键词..."
+            placeholder="搜索风格"
             className="w-full border border-ink-900/10 bg-white/50 py-3 pl-11 pr-11 text-sm text-ink-700 outline-none transition placeholder:text-ink-300 focus:border-ink-900/40"
           />
           {searchQuery && (
@@ -809,9 +861,9 @@ function IntentStep({
     <>
       <SectionHeader
         icon={SlidersHorizontal}
-        label="STEP 03"
-        title="自述编辑器"
-        copy="前面的选择会自动整理成一段可编辑陈述。你可以继续写最近喜欢什么、讨厌什么、想呈现什么状态。"
+        label="03"
+        title="生成"
+        copy="确认这段话，或简单改几句。"
       />
       <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.15fr_0.85fr]">
         <div>
@@ -825,7 +877,7 @@ function IntentStep({
               }}
               className="border border-ink-900/10 bg-white/55 px-4 py-2 text-xs text-ink-500 transition hover:border-ink-900/30 hover:text-ink-900"
             >
-              根据选项重新整理
+重新整理
             </button>
           </div>
           <textarea
@@ -844,10 +896,7 @@ function IntentStep({
         </div>
 
         <aside className="border border-ink-900/10 bg-[#e8ece8] p-5">
-          <p className="mb-4 text-xs tracking-[0.22em] text-ink-500">LOCAL INTENT EXTRACT</p>
-          <div className="mb-6 border border-ink-900/10 bg-[#fbfaf6]/70 p-4 text-xs leading-6 text-ink-500">
-            这里先做本地预提取，帮你检查文字里有没有可用信息。点击生成后，会调用 AI 结合照片、自述和风格库候选做深度判断。
-          </div>
+          <p className="mb-4 text-xs tracking-[0.22em] text-ink-500">已识别</p>
           <IntentList title="喜欢/倾向" items={extracted.likedKeywords} />
           <IntentList title="排斥/雷区" items={extracted.dislikedKeywords} />
           <IntentList title="想呈现的感觉" items={extracted.desiredImpression} />
