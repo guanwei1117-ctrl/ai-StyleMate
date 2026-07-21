@@ -1,8 +1,9 @@
-import type { OnboardingAnswers, StyleMatchResult } from '@/lib/onboarding-types';
-import type { StyleCard } from '@/data/styles';
-import { STYLES } from '@/data/styles';
-import { extractStyleIntent } from '@/lib/style-profile-storage';
-import { buildApiErrorMessage } from '@/lib/api-error';
+import type { OnboardingAnswers, StyleMatchResult } from './onboarding-types';
+import { DAILY_SCENE_LABELS } from './onboarding-types';
+import type { StyleCard } from '../data/styles';
+import { DIMENSION_LABELS, STYLES } from '../data/styles';
+import { extractStyleIntent } from './style-profile-storage';
+import { buildApiErrorMessage } from './api-error';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -52,6 +53,66 @@ function findStyle(styleId: string): StyleCard | undefined {
   return STYLES.find((style) => style.id === styleId);
 }
 
+export function buildStyleProfilePayload(
+  answers: OnboardingAnswers,
+  bodyShape: string,
+  localResults: StyleMatchResult[],
+  faceImageBase64?: string,
+  fullBodyImageBase64?: string,
+) {
+  const candidates = localResults.slice(0, 12).map((result) => {
+    const style = findStyle(result.styleId);
+    return {
+      styleId: result.styleId,
+      styleName: result.styleName,
+      category: result.category,
+      dimension: style?.dimension,
+      dimensionLabel: style ? DIMENSION_LABELS[style.dimension] : undefined,
+      localScore: result.score,
+      pillars: result.pillars,
+      breakdown: result.matchBreakdown,
+      description: style?.description,
+      philosophy: style?.philosophy,
+      difficulty: style?.difficulty,
+      silhouette: style?.silhouette ?? [],
+      keyItems: style?.keyItems ?? [],
+      colorPalette: style?.colorPalette ?? [],
+      matchReasons: result.matchReasons,
+    };
+  });
+
+  return {
+    profile: {
+      gender: answers.gender,
+      ageGroup: answers.ageGroup,
+      height: answers.height,
+      weight: answers.weight,
+      bust: answers.bust,
+      waist: answers.waist,
+      hip: answers.hip,
+      bodyShape,
+      occupation: answers.occupation,
+      dailyScenes: answers.dailyScenes,
+      customScene: answers.customScene.trim(),
+      sceneLabels: answers.dailyScenes.map((scene) => DAILY_SCENE_LABELS[scene]),
+      city: answers.city,
+      climate: answers.climate,
+      budget: answers.budget,
+      dressingGoals: answers.dressingGoals,
+      priorities: answers.priorities,
+      styleOpenness: answers.styleOpenness,
+      preferredStyleIds: answers.preferredStyleIds,
+      userStatement: answers.userStatement,
+      hasFacePhoto: !!answers.photo,
+      hasFullBodyPhoto: !!answers.fullBodyPhoto,
+      extractedIntent: extractStyleIntent(answers.userStatement),
+    },
+    candidates,
+    faceImageBase64,
+    fullBodyImageBase64,
+  };
+}
+
 export async function analyzeStyleProfileWithAi(
   answers: OnboardingAnswers,
   bodyShape: string,
@@ -62,42 +123,10 @@ export async function analyzeStyleProfileWithAi(
     answers.fullBodyPhoto ? fileToDataUrl(answers.fullBodyPhoto) : Promise.resolve(undefined),
   ]);
 
-  const candidates = localResults.slice(0, 12).map((result) => {
-    const style = findStyle(result.styleId);
-    return {
-      styleId: result.styleId,
-      styleName: result.styleName,
-      category: result.category,
-      localScore: result.score,
-      description: style?.description,
-      keyItems: style?.keyItems ?? [],
-      matchReasons: result.matchReasons,
-    };
-  });
-
   const res = await fetch(`${API_BASE}/scoring/style-profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      profile: {
-        gender: answers.gender,
-        ageGroup: answers.ageGroup,
-        height: answers.height,
-        weight: answers.weight,
-        bodyShape,
-        occupation: answers.occupation,
-        city: answers.city,
-        climate: answers.climate,
-        budget: answers.budget,
-        userStatement: answers.userStatement,
-        hasFacePhoto: !!answers.photo,
-        hasFullBodyPhoto: !!answers.fullBodyPhoto,
-        extractedIntent: extractStyleIntent(answers.userStatement),
-      },
-      candidates,
-      faceImageBase64,
-      fullBodyImageBase64,
-    }),
+    body: JSON.stringify(buildStyleProfilePayload(answers, bodyShape, localResults, faceImageBase64, fullBodyImageBase64)),
   });
 
   if (!res.ok) {

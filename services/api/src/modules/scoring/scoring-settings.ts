@@ -1,0 +1,1 @@
+export const STYLE_PROFILE_TEMPERATURE = 0.3;

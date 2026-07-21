@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LLMFactory } from './llm/llm-factory';
+import { STYLE_PROFILE_TEMPERATURE } from './scoring-settings';
 import { ChatMessage } from './llm/llm-provider.interface';
 import { buildSystemPrompt } from './prompts/system-prompts';
 import { getBloggerById } from './bloggers/blogger-profiles';
@@ -63,7 +64,7 @@ export class ScoringService {
     );
     const startTime = Date.now();
     const response = await this.llmFactory.chat(messages, {
-      temperature: 0.45,
+      temperature: STYLE_PROFILE_TEMPERATURE,
       maxTokens: 2600,
       timeoutMs: 90000,
     });
@@ -187,10 +188,10 @@ export class ScoringService {
       localReasons: candidate.matchReasons,
     }));
 
-    return `用户输入如下：
+    return `用户填写信息如下，请把性别、身高体重、三围、职业、日常场景、自定义场景、城市气候、预算、目标、偏好和自述全部纳入判断：
 ${JSON.stringify(profile, null, 2)}
 
-本地规则初筛候选风格如下，请在这些候选中重排和选择，不要编造不存在的 styleId：
+风格库候选如下。每个候选包含本地规则分数、三支柱分、风格维度、理念、难度、廓形、核心单品、颜色和本地匹配理由。请综合用户填写信息 + 候选风格库信息，重排和选择最适合的风格，不要编造不存在的 styleId：
 ${JSON.stringify(candidates, null, 2)}`;
   }
 

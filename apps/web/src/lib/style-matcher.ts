@@ -20,6 +20,7 @@ import type {
   AgeGroup,
   Occupation,
   ClimateZone,
+  DailyScene,
   DressingGoal,
   PriorityDimension,
 } from './onboarding-types';
@@ -120,6 +121,25 @@ const CLIMATE_CATEGORY_MAP: Record<ClimateZone, string[]> = {
   mild:     [],
   hot:      ['休闲度假', '法式', '韩系', '清新甜美', '运动休闲'],
   variable: ['户外运动', '层叠'],
+};
+
+const DAILY_SCENE_CATEGORY_MAP: Record<DailyScene, string[]> = {
+  school: ['学院', '休闲度假', '日系', '韩系', '街头潮流'],
+  commute: ['职场精英', '极简', '韩系', '质感主义'],
+  office: ['职场精英', '极简', '质感主义', '法式'],
+  client_meeting: ['职场精英', '英伦', '意式', '质感主义'],
+  interview: ['职场精英', '极简', '英伦', '质感主义'],
+  date: ['法式', '清新甜美', '韩系', '意式'],
+  street: ['街头潮流', '美式', '韩系', '运动休闲'],
+  party: ['音乐舞台', '视觉元素', '意式', '亚文化'],
+  travel: ['休闲度假', '法式', '日系', '户外运动'],
+  photo_shoot: ['视觉元素', '法式', '意式', '人物原型'],
+  workout: ['运动休闲', '户外运动', '美式'],
+  home: ['休闲度假', '日系', '韩系', '运动休闲'],
+  wedding_formal: ['意式', '法式', '质感主义', '职场精英'],
+  music_festival: ['音乐舞台', '波西米亚', '街头潮流', '亚文化'],
+  parenting: ['休闲度假', '运动休闲', '日系', '韩系'],
+  on_camera: ['质感主义', '色彩美学', '职场精英', '法式'],
 };
 
 // ============================================================
@@ -301,6 +321,17 @@ function scoreScene(style: StyleCard, answers: OnboardingAnswers): number {
     const cats = OCCUPATION_CATEGORY_MAP[answers.occupation] || [];
     if (cats.includes(style.category)) score += 3;
     else if (cats.length > 0) score -= 1;
+  }
+
+  // 具体日常场景匹配
+  if (answers.dailyScenes.length > 0) {
+    const sceneHits = answers.dailyScenes.filter((scene) => (DAILY_SCENE_CATEGORY_MAP[scene] || []).includes(style.category)).length;
+    score += Math.min(3, sceneHits);
+  }
+
+  const customScene = answers.customScene.trim();
+  if (customScene && (style.keyItems.some((item) => customScene.includes(item)) || customScene.includes(style.category))) {
+    score += 1;
   }
 
   // 气候匹配

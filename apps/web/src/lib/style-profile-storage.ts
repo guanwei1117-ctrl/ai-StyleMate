@@ -1,17 +1,18 @@
-import { STYLES } from '@/data/styles';
+import { STYLES } from '../data/styles';
 import {
   AGE_GROUP_LABELS,
   BUDGET_OPTIONS,
   CLIMATE_LABELS,
+  DAILY_SCENE_LABELS,
   DRESSING_GOAL_LABELS,
   OCCUPATION_LABELS,
   PRIORITY_LABELS,
   type BodyShape,
   type OnboardingAnswers,
   type StyleMatchResult,
-} from '@/lib/onboarding-types';
-import type { AiStyleProfileAnalysis } from '@/lib/style-profile-api';
-import { clearStyleProfileFromStorage, STYLE_PROFILE_STORAGE_KEY } from '@/lib/style-profile-storage-core';
+} from './onboarding-types';
+import type { AiStyleProfileAnalysis } from './style-profile-api';
+import { clearStyleProfileFromStorage, STYLE_PROFILE_STORAGE_KEY } from './style-profile-storage-core';
 
 export interface ExtractedStyleIntent {
   likedKeywords: string[];
@@ -37,6 +38,8 @@ export interface StoredStyleProfile {
     preferredStyles: string[];
     dressingGoals: string[];
     priorities: string[];
+    dailyScenes: string[];
+    customScene: string;
     city: string;
     climate: string | null;
     hasFacePhoto: boolean;
@@ -57,7 +60,7 @@ const negativeKeywords = [
   '太甜', '太成熟', '太幼稚', '太花', '网红', '紧身', '夸张', '复杂',
 ];
 
-const sceneKeywords = ['上学', '通勤', '上班', '约会', '出街', '旅行', '面试', '拍照', '见客户', '聚会'];
+const sceneKeywords = ['上学', '通勤', '上班', '办公室', '约会', '出街', '旅行', '面试', '拍照', '见客户', '客户会议', '聚会', '运动', '健身', '居家', '正式场合', '婚礼', '演出', '音乐节', '带娃', '亲子', '直播', '上镜', '探店'];
 const impressionKeywords = ['干净', '清冷', '成熟', '亲和', '专业', '有钱', '有审美', '显高', '显瘦', '有气场', '温柔'];
 const constraintKeywords = ['预算', '平价', '不露', '遮肉', '腿短', '肩宽', '胯宽', '小个子', '偏瘦', '微胖', '学生'];
 
@@ -140,6 +143,8 @@ export function createStoredStyleProfile(
         .filter(Boolean) as string[],
       dressingGoals: answers.dressingGoals.map((goal) => DRESSING_GOAL_LABELS[goal]),
       priorities: answers.priorities.map((priority) => PRIORITY_LABELS[priority]),
+      dailyScenes: answers.dailyScenes.map((scene) => DAILY_SCENE_LABELS[scene]),
+      customScene: answers.customScene,
       city: answers.city,
       climate: answers.climate ? CLIMATE_LABELS[answers.climate] : null,
       hasFacePhoto: !!answers.photoPreview,

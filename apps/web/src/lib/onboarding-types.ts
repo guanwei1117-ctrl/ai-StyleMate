@@ -140,6 +140,32 @@ export const OCCUPATION_LABELS: Record<Occupation, string> = {
   other: '其他',
 };
 
+/** 日常穿搭场景（选填，可多选） */
+export const DAILY_SCENE_OPTIONS = [
+  { label: '上学', value: 'school' },
+  { label: '通勤', value: 'commute' },
+  { label: '办公室', value: 'office' },
+  { label: '见客户', value: 'client_meeting' },
+  { label: '面试', value: 'interview' },
+  { label: '约会', value: 'date' },
+  { label: '出街', value: 'street' },
+  { label: '聚会', value: 'party' },
+  { label: '旅行', value: 'travel' },
+  { label: '拍照', value: 'photo_shoot' },
+  { label: '运动', value: 'workout' },
+  { label: '居家', value: 'home' },
+  { label: '正式场合', value: 'wedding_formal' },
+  { label: '音乐节/演出', value: 'music_festival' },
+  { label: '带娃/亲子', value: 'parenting' },
+  { label: '上镜/直播', value: 'on_camera' },
+] as const;
+
+export type DailyScene = typeof DAILY_SCENE_OPTIONS[number]['value'];
+
+export const DAILY_SCENE_LABELS: Record<DailyScene, string> = Object.fromEntries(
+  DAILY_SCENE_OPTIONS.map((item) => [item.value, item.label]),
+) as Record<DailyScene, string>;
+
 /** 气候区域（选填） */
 export const CLIMATE_OPTIONS = [
   { label: '寒冷（冬季漫长）', value: 'cold', emoji: '❄️' },
@@ -234,6 +260,8 @@ export interface OnboardingAnswers {
   // Step 6: 生活方式 —— 现实约束 + 行为偏好
   ageGroup: AgeGroup | null;               // 必填
   occupation: Occupation | null;            // 选填
+  dailyScenes: DailyScene[];                // 选填多选
+  customScene: string;                      // 选填，自定义场景
   city: string;                             // 选填
   climate: ClimateZone | null;              // 选填
   monthlyBudgetMin: number | null;          // 选填，元
@@ -389,6 +417,8 @@ export function createDefaultAnswers(): OnboardingAnswers {
     budget: null,
     ageGroup: null,
     occupation: null,
+    dailyScenes: [],
+    customScene: '',
     city: '',
     climate: null,
     monthlyBudgetMin: null,

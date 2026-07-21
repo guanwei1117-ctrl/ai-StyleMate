@@ -23,6 +23,7 @@ import {
   AGE_GROUP_OPTIONS,
   BUDGET_OPTIONS,
   CLIMATE_OPTIONS,
+  DAILY_SCENE_OPTIONS,
   DRESSING_GOAL_OPTIONS,
   OCCUPATION_OPTIONS,
   PRIORITY_OPTIONS,
@@ -32,6 +33,7 @@ import {
   type BodyShape,
   type BudgetLevel,
   type ClimateZone,
+  type DailyScene,
   type DressingGoal,
   type Gender,
   type Occupation,
@@ -92,9 +94,10 @@ export default function OnboardingPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [measurementsOpen, setMeasurementsOpen] = useState(false);
 
   const isResultStep = step === FLOW.length;
-  const progress = isResultStep ? 100 : Math.round(((step + 1) / FLOW.length) * 100);
+
 
   const updateAnswers = useCallback((patch: Partial<OnboardingAnswers>) => {
     setAnswers((prev) => ({ ...prev, ...patch }));
@@ -244,7 +247,14 @@ export default function OnboardingPage() {
             返回首页
           </Link>
           <p className="font-display text-lg tracking-wide">STYLEMATE</p>
-          <p className="hidden text-xs tracking-[0.25em] text-ink-400 sm:block">STYLE PROFILE</p>
+          <button
+            type="button"
+            onClick={() => setGuideOpen(true)}
+            className="inline-flex items-center gap-2 text-xs tracking-[0.18em] text-ink-400 transition hover:text-ink-900"
+          >
+            <BookOpen size={15} />
+            说明书
+          </button>
         </div>
       </div>
 
@@ -262,41 +272,6 @@ export default function OnboardingPage() {
             <p className="mt-6 max-w-xl text-sm leading-7 text-ink-500">
               填基础，选喜好，生成建议。
             </p>
-
-            {!isResultStep && (
-              <div className="mt-10 space-y-5">
-                <div className="h-1 overflow-hidden bg-ink-900/10">
-                  <div className="h-full bg-ink-900 transition-all duration-500" style={{ width: `${progress}%` }} />
-                </div>
-                <div className="space-y-3">
-                  {FLOW.map((item, index) => (
-                    <button
-                      key={item.id}
-                      onClick={() => index < step && setStep(index)}
-                      className={cn(
-                        'grid w-full grid-cols-[32px_1fr] gap-4 border-t border-ink-900/10 py-4 text-left',
-                        index <= step ? 'text-ink-900' : 'text-ink-300',
-                      )}
-                    >
-                      <span className={cn(
-                        'flex h-8 w-8 items-center justify-center rounded-full border text-xs',
-                        index < step
-                          ? 'border-ink-900 bg-ink-900 text-creme-100'
-                          : index === step
-                            ? 'border-ink-900 text-ink-900'
-                            : 'border-ink-900/15',
-                      )}>
-                        {index < step ? <Check size={14} /> : `0${index + 1}`}
-                      </span>
-                      <span>
-                        <span className="block text-sm font-medium">{item.label}</span>
-                        <span className="mt-1 block text-xs text-ink-400">{item.desc}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </aside>
 
           <AnimatePresence mode="wait">
@@ -316,6 +291,8 @@ export default function OnboardingPage() {
                     faceInputRef={faceInputRef}
                     fullBodyInputRef={fullBodyInputRef}
                     photoError={photoError}
+                    measurementsOpen={measurementsOpen}
+                    setMeasurementsOpen={setMeasurementsOpen}
                     onPhotoChange={handlePhotoChange}
                   />
                 )}
@@ -490,6 +467,8 @@ function ProfileStep({
   faceInputRef,
   fullBodyInputRef,
   photoError,
+  measurementsOpen,
+  setMeasurementsOpen,
   onPhotoChange,
 }: {
   answers: OnboardingAnswers;
@@ -497,18 +476,20 @@ function ProfileStep({
   faceInputRef: React.RefObject<HTMLInputElement>;
   fullBodyInputRef: React.RefObject<HTMLInputElement>;
   photoError: string | null;
+  measurementsOpen: boolean;
+  setMeasurementsOpen: (open: boolean) => void;
   onPhotoChange: (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <>
       <SectionHeader
         icon={UserRound}
-        label="STEP 01"
-        title="照片与基础画像"
-        copy="正脸照和全身照都可选。生成档案时会把照片和自述一起交给 AI 做视觉与语言综合分析。"
+        label="01"
+        title="基础"
+        copy="必填：性别、身高、体重、年龄。"
       />
       <div className="mx-6 mt-6 border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800 sm:mx-8">
-        照片和身体数据仅用于穿搭、比例、色彩与风格分析，不用于身份识别。生成 AI 深度档案时，照片会发送给已配置的第三方 AI 服务处理；档案默认保存在本机浏览器，可在诊断页清除。
+        照片选填，只用于穿搭分析。
       </div>
       <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
@@ -579,9 +560,9 @@ function ProfileStep({
             </div>
           </FieldGroup>
 
-          <FieldGroup title="日常场景" optional>
+          <FieldGroup title="职业" optional>
             <div className="flex flex-wrap gap-2">
-              {OCCUPATION_OPTIONS.slice(0, 6).map((option) => (
+              {OCCUPATION_OPTIONS.map((option) => (
                 <ChoiceButton
                   key={option.value}
                   active={answers.occupation === option.value}
@@ -594,13 +575,51 @@ function ProfileStep({
             </div>
           </FieldGroup>
 
-          <FieldGroup title="三围数据" optional>
-            <div className="grid grid-cols-3 gap-3">
-              <NumberInput label="胸围" unit="cm" value={answers.bust ?? ''} placeholder="88" onChange={(value) => updateAnswers({ bust: value ? Number(value) : null })} />
-              <NumberInput label="腰围" unit="cm" value={answers.waist ?? ''} placeholder="68" onChange={(value) => updateAnswers({ waist: value ? Number(value) : null })} />
-              <NumberInput label="臀围" unit="cm" value={answers.hip ?? ''} placeholder="92" onChange={(value) => updateAnswers({ hip: value ? Number(value) : null })} />
+          <FieldGroup title="日常场景" optional>
+            <div className="flex flex-wrap gap-2">
+              {DAILY_SCENE_OPTIONS.map((option) => (
+                <ChoiceButton
+                  key={option.value}
+                  active={answers.dailyScenes.includes(option.value)}
+                  onClick={() => {
+                    const value = option.value as DailyScene;
+                    updateAnswers({
+                      dailyScenes: answers.dailyScenes.includes(value)
+                        ? answers.dailyScenes.filter((item) => item !== value)
+                        : [...answers.dailyScenes, value],
+                    });
+                  }}
+                  compact
+                >
+                  {option.label}
+                </ChoiceButton>
+              ))}
             </div>
+            <input
+              value={answers.customScene}
+              onChange={(event) => updateAnswers({ customScene: event.target.value })}
+              placeholder="其他场景，比如直播上镜、周末探店、公司着装要求"
+              className="mt-3 w-full border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
+            />
           </FieldGroup>
+
+          <div className="border border-ink-900/10 bg-white/40">
+            <button
+              type="button"
+              onClick={() => setMeasurementsOpen(!measurementsOpen)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-ink-800"
+            >
+              <span>三围 <span className="ml-2 text-xs font-normal text-ink-300">选填，填写后体型更准</span></span>
+              <span className="text-xs text-ink-400">{measurementsOpen ? '收起' : '填写'}</span>
+            </button>
+            {measurementsOpen && (
+              <div className="grid grid-cols-3 gap-3 border-t border-ink-900/10 p-4">
+                <NumberInput label="胸围" unit="cm" value={answers.bust ?? ''} placeholder="88" onChange={(value) => updateAnswers({ bust: value ? Number(value) : null })} />
+                <NumberInput label="腰围" unit="cm" value={answers.waist ?? ''} placeholder="68" onChange={(value) => updateAnswers({ waist: value ? Number(value) : null })} />
+                <NumberInput label="臀围" unit="cm" value={answers.hip ?? ''} placeholder="92" onChange={(value) => updateAnswers({ hip: value ? Number(value) : null })} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
