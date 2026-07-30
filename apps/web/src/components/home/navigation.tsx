@@ -3,25 +3,39 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import AboutDialog from './about-dialog';
 
-const NAV_LINKS = [
+type NavItem = { label: string; href: string } | { label: string; dialog: true };
+
+const NAV_LINKS: NavItem[] = [
   { label: '风格百科', href: '/styles' },
   { label: '风格测评', href: '/onboarding' },
-  { label: '博主评价', href: '/score-outfit' },
+  { label: '我的档案', href: '/onboarding?view=history' },
   { label: '灵感墙', href: '#trending' },
   { label: '衣橱', href: '/wardrobe' },
-  { label: '关于', href: '#story' },
+  { label: '关于', dialog: true },
 ];
+
+function isDialogItem(item: NavItem): item is { label: string; dialog: true } {
+  return 'dialog' in item;
+}
 
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const linkClass = `text-sm tracking-widest uppercase transition-colors duration-300 ${
+    scrolled
+      ? 'text-ink-600 hover:text-ink-900'
+      : 'text-creme-200/90 hover:text-creme-100'
+  }`;
 
   return (
     <>
@@ -48,19 +62,22 @@ export default function Navigation() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className={`text-sm tracking-widest uppercase transition-colors duration-300 ${
-                  scrolled
-                    ? 'text-ink-600 hover:text-ink-900'
-                    : 'text-creme-200/90 hover:text-creme-100'
-                }`}
-              >
-                {link.label}
-              </a>
-            ))}
+            {NAV_LINKS.map((item) =>
+              isDialogItem(item) ? (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => setAboutOpen(true)}
+                  className={linkClass}
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <a key={item.label} href={item.href} className={linkClass}>
+                  {item.label}
+                </a>
+              ),
+            )}
           </div>
 
           {/* Mobile toggle */}
@@ -87,23 +104,34 @@ export default function Navigation() {
             className="fixed inset-0 z-40 bg-creme-100/95 backdrop-blur-xl pt-20"
           >
             <div className="flex flex-col items-center justify-center h-full gap-8 -mt-16">
-              {NAV_LINKS.map((link, i) => (
-                <motion.a
-                  key={link.label}
-                  href={link.href}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.06 }}
-                  onClick={() => setMobileOpen(false)}
-                  className="font-display text-2xl text-ink-800 tracking-wide"
-                >
-                  {link.label}
-                </motion.a>
-              ))}
+              {NAV_LINKS.map((item, i) => {
+                const handle = () => {
+                  setMobileOpen(false);
+                  if (isDialogItem(item)) setAboutOpen(true);
+                };
+                const commonProps = {
+                  initial: { opacity: 0, y: 16 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { delay: 0.1 + i * 0.06 },
+                  onClick: handle,
+                  className: 'font-display text-2xl text-ink-800 tracking-wide',
+                };
+                return isDialogItem(item) ? (
+                  <motion.button key={item.label} type="button" {...commonProps}>
+                    {item.label}
+                  </motion.button>
+                ) : (
+                  <motion.a key={item.label} href={item.href} {...commonProps}>
+                    {item.label}
+                  </motion.a>
+                );
+              })}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </>
   );
 }

@@ -433,6 +433,26 @@ export interface EvaluateOutfitRequest {
   };
 }
 
+/** 结构化穿搭分析 — 单品项 */
+export interface StructuredOutfitItem {
+  type: 'top' | 'bottom' | 'outerwear' | 'dress' | 'shoes' | 'accessory';
+  name: string;
+  color: string;
+  style: string[];
+  season: string[];
+  formality: number;
+  matchability: number;
+}
+
+/** 结构化穿搭分析结果 */
+export interface StructuredOutfitResult {
+  items: StructuredOutfitItem[];
+  body_suggestions: string[];
+  style_tags: string[];
+  problems: string[];
+  improvements: string[];
+}
+
 /** 评分响应 */
 export interface EvaluateOutfitResponse {
   bloggerName: string;
@@ -442,4 +462,6 @@ export interface EvaluateOutfitResponse {
   dimensions: DimensionScore[];
   itemComments: string[];
   improvements: string[];
+  /** 结构化分析结果（Phase 1 新增），用于数字衣柜/推荐等功能复用 */
+  structured?: StructuredOutfitResult;
 }

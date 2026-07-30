@@ -36,12 +36,56 @@ export class StyleCandidateDto {
   @ApiPropertyOptional({ description: '关键单品' })
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
   keyItems?: string[];
 
   @ApiPropertyOptional({ description: '推荐理由' })
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
   matchReasons?: string[];
+
+  @ApiPropertyOptional({ description: '风格维度' })
+  @IsOptional()
+  @IsString()
+  dimension?: string;
+
+  @ApiPropertyOptional({ description: '风格维度标签（中文）' })
+  @IsOptional()
+  @IsString()
+  dimensionLabel?: string;
+
+  @ApiPropertyOptional({ description: '三支柱分' })
+  @IsOptional()
+  @IsObject()
+  pillars?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ description: '匹配分项明细' })
+  @IsOptional()
+  @IsObject()
+  breakdown?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ description: '风格理念' })
+  @IsOptional()
+  @IsString()
+  philosophy?: string;
+
+  @ApiPropertyOptional({ description: '风格难度' })
+  @IsOptional()
+  @IsString()
+  difficulty?: string;
+
+  @ApiPropertyOptional({ description: '廓形' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  silhouette?: string[];
+
+  @ApiPropertyOptional({ description: '配色' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  colorPalette?: string[];
 }
 
 export class StyleProfileInputDto {
@@ -65,6 +109,21 @@ export class StyleProfileInputDto {
   @IsNumber()
   weight?: number;
 
+  @ApiPropertyOptional({ description: '胸围 cm' })
+  @IsOptional()
+  @IsNumber()
+  bust?: number;
+
+  @ApiPropertyOptional({ description: '腰围 cm' })
+  @IsOptional()
+  @IsNumber()
+  waist?: number;
+
+  @ApiPropertyOptional({ description: '臀围 cm' })
+  @IsOptional()
+  @IsNumber()
+  hip?: number;
+
   @ApiPropertyOptional({ description: '本地推导体型' })
   @IsOptional()
   @IsString()
@@ -74,6 +133,23 @@ export class StyleProfileInputDto {
   @IsOptional()
   @IsString()
   occupation?: string;
+
+  @ApiPropertyOptional({ description: '日常穿搭场景（多选，value 数组）' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  dailyScenes?: string[];
+
+  @ApiPropertyOptional({ description: '自定义场景补充' })
+  @IsOptional()
+  @IsString()
+  customScene?: string;
+
+  @ApiPropertyOptional({ description: '日常场景标签（中文）' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  sceneLabels?: string[];
 
   @ApiPropertyOptional({ description: '城市' })
   @IsOptional()
@@ -89,6 +165,29 @@ export class StyleProfileInputDto {
   @IsOptional()
   @IsString()
   budget?: string;
+
+  @ApiPropertyOptional({ description: '穿衣目标（多选）' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  dressingGoals?: string[];
+
+  @ApiPropertyOptional({ description: '穿衣优先级维度排序' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  priorities?: string[];
+
+  @ApiPropertyOptional({ description: '风格接受度档位 1-5' })
+  @IsOptional()
+  @IsNumber()
+  styleOpenness?: number;
+
+  @ApiPropertyOptional({ description: '偏好风格 ID 列表' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredStyleIds?: string[];
 
   @ApiPropertyOptional({ description: '用户自述' })
   @IsOptional()
@@ -132,4 +231,9 @@ export class AnalyzeStyleProfileRequestDto {
   @IsOptional()
   @IsString()
   fullBodyImageBase64?: string;
+
+  @ApiPropertyOptional({ description: '博主语言风格 ID（选填，影响分析报告的语言风格）' })
+  @IsOptional()
+  @IsString()
+  bloggerId?: string;
 }

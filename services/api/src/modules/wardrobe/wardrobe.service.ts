@@ -1,17 +1,68 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WardrobeItem } from './entities/wardrobe-item.entity';
 import { Outfit } from './entities/outfit.entity';
+import { GarmentRecognitionSkill } from '../ai-skills/garment-recognition/garment-recognition.skill';
+import { GarmentRecognitionResult } from '../ai-skills/garment-recognition/garment-recognition.dto';
 
 @Injectable()
 export class WardrobeService {
+  private readonly logger = new Logger(WardrobeService.name);
+
   constructor(
     @InjectRepository(WardrobeItem)
     private readonly itemRepo: Repository<WardrobeItem>,
     @InjectRepository(Outfit)
     private readonly outfitRepo: Repository<Outfit>,
+    private readonly garmentRecognitionSkill: GarmentRecognitionSkill,
   ) {}
+
+  /**
+   * AI 识别衣物并直接落库
+   *
+   * @param userId 用户 ID
+   * @param imageBase64 衣物图片 base64
+   * @param imageUrls 可选：图片 URL 列表（用于前端展示）
+   * @returns 创建好的 WardrobeItem
+   */
+  async recognizeAndAddItem(
+    userId: string,
+    imageBase64: string,
+    imageUrls?: string[],
+  ): Promise<{ item: WardrobeItem; recognition: GarmentRecognitionResult }> {
+    this.logger.log(`开始 AI 识别衣物 | userId: ${userId}`);
+    const recognition = await this.garmentRecognitionSkill.recognize({ imageBase64 });
+
+    const item = this.itemRepo.create({
+      userId,
+      category: recognition.category as WardrobeItem['category'],
+      subCategory: recognition.subCategory,
+      color: recognition.color,
+      pattern: recognition.pattern,
+      material: recognition.material,
+      season: recognition.season,
+      imageUrls: imageUrls ?? [],
+      styleTags: recognition.styleTags,
+      occasionTags: recognition.occasionTags,
+      formalityScore: recognition.formalityScore,
+      warmthScore: recognition.warmthScore,
+      matchabilityScore: recognition.matchabilityScore,
+      fitRisk: recognition.fitRisk,
+      matchColors: recognition.matchColors,
+      matchCategories: recognition.matchCategories,
+      aiSummary: recognition.aiSummary,
+      aiTags: {
+        recognized: true,
+        matchColors: recognition.matchColors,
+        matchCategories: recognition.matchCategories,
+      },
+    });
+
+    const saved = await this.itemRepo.save(item);
+    this.logger.log(`衣物识别并落库完成 | itemId: ${saved.id}`);
+    return { item: saved, recognition };
+  }
 
   // ---------- 衣物管理 ----------
   async addItem(data: Partial<WardrobeItem>): Promise<WardrobeItem> {
@@ -42,8 +93,10 @@ export class WardrobeService {
     await this.itemRepo.remove(item);
   }
 
-  async incrementWearCount(id: string): Promise<void> {
+  async incrementWearCount(id: string): Promise<WardrobeItem> {
     await this.itemRepo.increment({ id }, 'wearCount', 1);
+    await this.itemRepo.update(id, { lastWornAt: new Date() });
+    return this.getItemById(id);
   }
 
   // ---------- 搭配管理 ----------

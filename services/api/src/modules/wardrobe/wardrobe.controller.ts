@@ -7,18 +7,45 @@ import {
   Param,
   Query,
   Body,
+  Logger,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { WardrobeService } from './wardrobe.service';
+import { validateImageDataUrl } from '../scoring/image-data-url.validator';
+import { AiRateLimiter } from '../scoring/ai-rate-limiter';
 
 @ApiTags('衣橱管理')
 @Controller('wardrobe')
 export class WardrobeController {
-  constructor(private readonly wardrobeService: WardrobeService) {}
+  private readonly logger = new Logger(WardrobeController.name);
+
+  constructor(
+    private readonly wardrobeService: WardrobeService,
+    private readonly aiRateLimiter: AiRateLimiter,
+  ) {}
 
   // --- 衣物 ---
+
+  @Post('items/recognize')
+  @ApiOperation({ summary: 'AI 识别衣物图片并落库' })
+  async recognizeAndAddItem(
+    @Body() body: { userId: string; imageBase64: string; imageUrls?: string[] },
+    @Req() req: Request,
+  ) {
+    this.assertAiRequestAllowed(req);
+    validateImageDataUrl(body.imageBase64, 'imageBase64');
+    this.logger.log(`收到衣物识别请求 | userId: ${body.userId}`);
+    return this.wardrobeService.recognizeAndAddItem(
+      body.userId,
+      body.imageBase64,
+      body.imageUrls,
+    );
+  }
+
   @Post('items')
-  @ApiOperation({ summary: '添加衣物' })
+  @ApiOperation({ summary: '添加衣物（手动录入）' })
   addItem(@Body() body: Record<string, unknown>) {
     return this.wardrobeService.addItem(body);
   }
@@ -79,5 +106,15 @@ export class WardrobeController {
   @ApiOperation({ summary: '删除搭配' })
   deleteOutfit(@Param('id') id: string) {
     return this.wardrobeService.deleteOutfit(id);
+  }
+
+  private assertAiRequestAllowed(req: Request): void {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const forwardedIp = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : forwardedFor?.split(',')[0];
+    const key =
+      forwardedIp?.trim() || req.ip || req.socket.remoteAddress || 'unknown';
+    this.aiRateLimiter.assertAllowed(key);
   }
 }

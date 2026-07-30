@@ -14,18 +14,81 @@ interface BloggerSelectorProps {
 export default function BloggerSelector({ onSelect, selectedId }: BloggerSelectorProps) {
   const [bloggers, setBloggers] = useState<BloggerInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchBloggers()
-      .then(setBloggers)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const load = () => {
+      setLoading(true);
+      setError(null);
+      fetchBloggers()
+        .then((data) => {
+          if (cancelled) return;
+          setBloggers(data);
+          setError(null);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          console.error(err);
+          const msg =
+            err?.message === 'BLOGGER_API_UNREACHABLE'
+              ? '后端服务未启动，无法加载博主列表。请启动后端 API 后重试。'
+              : '博主列表加载失败，请稍后重试。';
+          setError(msg);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-900 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-3">
+        <div className="border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800">
+          {error}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setBloggers([]);
+            setError(null);
+            setLoading(true);
+            fetchBloggers()
+              .then((data) => setBloggers(data))
+              .catch((err) => {
+                const msg =
+                  err?.message === 'BLOGGER_API_UNREACHABLE'
+                    ? '后端服务未启动，无法加载博主列表。请启动后端 API 后重试。'
+                    : '博主列表加载失败，请稍后重试。';
+                setError(msg);
+              })
+              .finally(() => setLoading(false));
+          }}
+          className="border border-ink-900/15 bg-white/60 px-4 py-2 text-xs text-ink-600 transition hover:border-ink-900/40 hover:text-ink-900"
+        >
+          重新加载
+        </button>
+      </div>
+    );
+  }
+
+  if (bloggers.length === 0) {
+    return (
+      <div className="border border-ink-900/10 bg-white/40 px-4 py-6 text-center text-xs text-ink-400">
+        暂无可用博主
       </div>
     );
   }
@@ -62,7 +125,7 @@ export default function BloggerSelector({ onSelect, selectedId }: BloggerSelecto
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-display text-2xl leading-none text-ink-900">
+                      <h3 className="font-display text-xl leading-none text-ink-900">
                         {blogger.name}
                       </h3>
                       <span className="border border-ink-900/10 px-2 py-0.5 text-[10px] tracking-[0.14em] text-ink-400">

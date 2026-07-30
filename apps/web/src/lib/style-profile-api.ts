@@ -110,6 +110,7 @@ export function buildStyleProfilePayload(
     candidates,
     faceImageBase64,
     fullBodyImageBase64,
+    bloggerId: answers.bloggerId ?? undefined,
   };
 }
 
@@ -123,11 +124,17 @@ export async function analyzeStyleProfileWithAi(
     answers.fullBodyPhoto ? fileToDataUrl(answers.fullBodyPhoto) : Promise.resolve(undefined),
   ]);
 
-  const res = await fetch(`${API_BASE}/scoring/style-profile`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildStyleProfilePayload(answers, bodyShape, localResults, faceImageBase64, fullBodyImageBase64)),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/scoring/style-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildStyleProfilePayload(answers, bodyShape, localResults, faceImageBase64, fullBodyImageBase64)),
+    });
+  } catch (err) {
+    // 网络层失败：后端未启动 / CORS / DNS 等，浏览器统一抛 TypeError: Failed to fetch
+    throw new Error('无法连接 AI 服务，请确认后端 API（localhost:4000）已启动。');
+  }
 
   if (!res.ok) {
     throw new Error(await buildApiErrorMessage(res, 'AI 风格分析请求失败'));

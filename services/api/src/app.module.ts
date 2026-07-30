@@ -6,9 +6,10 @@ import { StyleEngineModule } from './modules/style-engine/style-engine.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
 
 // 仅在 PostgreSQL 可用时加载数据库相关模块
-// 设置环境变量 ENABLE_DB=true 启用完整数据库功能
+// Phase 1 起默认启用数据库持久化（设置环境变量 ENABLE_DB=false 可显式关闭）
+const dbEnabled = process.env.ENABLE_DB !== 'false';
 const dbModules: any[] = [];
-if (process.env.ENABLE_DB === 'true') {
+if (dbEnabled) {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { UserModule } = require('./modules/user/user.module');
   // eslint-disable-next-line @typescript-eslint/no-var-requires

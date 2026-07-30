@@ -13,7 +13,12 @@ export interface ApiResponse<T> {
  * 获取可用的博主列表
  */
 export async function fetchBloggers(): Promise<BloggerInfo[]> {
-  const res = await fetch(`${API_BASE}/scoring/bloggers`);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/scoring/bloggers`);
+  } catch {
+    throw new Error('BLOGGER_API_UNREACHABLE');
+  }
   if (!res.ok) {
     throw new Error(`获取博主列表失败: ${res.status}`);
   }

@@ -63,6 +63,37 @@ export class WardrobeItem {
   @Column({ name: 'wear_count', default: 0 })
   wearCount: number;
 
+  // --- Phase 1 新增字段：AI 结构化标签 ---
+  @Column('simple-array', { name: 'style_tags', nullable: true })
+  styleTags: string[];
+
+  @Column('simple-array', { name: 'occasion_tags', nullable: true })
+  occasionTags: string[];
+
+  @Column({ name: 'formality_score', default: 3 })
+  formalityScore: number;
+
+  @Column({ name: 'warmth_score', default: 3 })
+  warmthScore: number;
+
+  @Column({ name: 'matchability_score', default: 5 })
+  matchabilityScore: number;
+
+  @Column({ name: 'fit_risk', nullable: true })
+  fitRisk: string;
+
+  @Column('simple-array', { name: 'match_colors', nullable: true })
+  matchColors: string[];
+
+  @Column('simple-array', { name: 'match_categories', nullable: true })
+  matchCategories: string[];
+
+  @Column({ name: 'ai_summary', nullable: true })
+  aiSummary: string;
+
+  @Column({ name: 'last_worn_at', type: 'timestamptz', nullable: true })
+  lastWornAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

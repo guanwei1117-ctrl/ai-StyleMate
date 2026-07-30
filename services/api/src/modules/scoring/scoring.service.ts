@@ -1,14 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LLMFactory } from './llm/llm-factory';
+import { LLMFactory } from '../llm/llm-factory';
 import { STYLE_PROFILE_TEMPERATURE } from './scoring-settings';
-import { ChatMessage } from './llm/llm-provider.interface';
+import { ChatMessage } from '../llm/llm-provider.interface';
 import { buildSystemPrompt } from './prompts/system-prompts';
 import { getBloggerById } from './bloggers/blogger-profiles';
 import { buildDimensionsPrompt } from './prompts/scoring-dimensions';
+import { StructuredOutfitSkill } from '../ai-skills/structured-outfit/structured-outfit.skill';
+import { StructuredOutfitResult } from '../ai-skills/structured-outfit/structured-outfit.dto';
 import {
   EvaluateOutfitResponse,
   DimensionScore,
   ScoringDimensionKey,
+  BloggerPersona,
 } from '@stylemate/shared';
 import { AnalyzeStyleProfileRequestDto } from './dto/analyze-style-profile.dto';
 
@@ -27,12 +30,16 @@ const REQUIRED_DIMENSION_KEYS: ScoringDimensionKey[] = [
 export class ScoringService {
   private readonly logger = new Logger(ScoringService.name);
 
-  constructor(private readonly llmFactory: LLMFactory) {}
+  constructor(
+    private readonly llmFactory: LLMFactory,
+    private readonly structuredOutfitSkill: StructuredOutfitSkill,
+  ) {}
 
   async analyzeStyleProfile(dto: AnalyzeStyleProfileRequestDto) {
     const hasFaceImage = !!dto.faceImageBase64;
     const hasFullBodyImage = !!dto.fullBodyImageBase64;
-    const systemPrompt = this.buildStyleProfileSystemPrompt();
+    const blogger = dto.bloggerId ? getBloggerById(dto.bloggerId) : undefined;
+    const systemPrompt = this.buildStyleProfileSystemPrompt(blogger);
     const profilePrompt = this.buildStyleProfileUserPrompt(dto);
 
     const messages: ChatMessage[] = [
@@ -126,6 +133,19 @@ export class ScoringService {
     // 6. 解析 JSON 结果
     const parsed = this.parseResponse(response.content, blogger.name);
 
+    // 7. 并行调用结构化分析 skill（复用同一张图片，生成可被数字衣柜/推荐复用的结构化结果）
+    let structured: StructuredOutfitResult | undefined;
+    try {
+      structured = await this.structuredOutfitSkill.analyze({
+        imageBase64,
+        occasion: userContext?.occasion,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `结构化穿搭分析失败，仅返回评分结果: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
     return {
       bloggerName: blogger.name,
       bloggerId: blogger.id,
@@ -134,18 +154,31 @@ export class ScoringService {
       dimensions: this.validateDimensions(parsed.dimensions),
       itemComments: parsed.itemComments || [],
       improvements: parsed.improvements || [],
+      structured,
     };
   }
 
-  private buildStyleProfileSystemPrompt(): string {
+  private buildStyleProfileSystemPrompt(blogger?: BloggerPersona): string {
+    const bloggerToneSection = blogger
+      ? `\n\n## 语言风格（用户选择的博主风格）
+你将使用以下博主的说话风格来撰写报告，但分析逻辑保持专业客观：
+- 博主：${blogger.name}（${blogger.platform}）
+- 风格签名：${blogger.styleSignature}
+- 人设：${blogger.toneProfile.personality}
+- 夸赞方式：${blogger.toneProfile.praiseStyle}
+- 批评方式：${blogger.toneProfile.critiqueStyle}
+- 标志性用语：${blogger.toneProfile.signaturePhrases.join('、')}
+请让 summary、visualAnalysis、intentAnalysis.cleanedStatement、avoidanceAdvice、nextActions 的语言风格贴近该博主人设，但 reasons/notices 保持简洁事实。`
+      : '';
+
     return `你是 StyleMate 的专业形象顾问，服务 16-25 岁年轻用户。你的任务是把用户照片、基础画像、自述想法和本地候选风格，整合成一个真实可执行的风格档案。
 
 表达要求：
 - 专业但年轻化，不油腻，不营销。
 - 先给简洁结论，再展开原因。
-- 可以明确指出“不适合”，但语气保持尊重，给替代方案。
+- 可以明确指出"不适合"，但语气保持尊重，给替代方案。
 - 不要声称识别了身份、年龄、种族或敏感属性；只分析穿搭相关视觉特征。
-- 如果照片缺失，就说明该部分依据文字和基础画像判断。
+- 如果照片缺失，就说明该部分依据文字和基础画像判断。${bloggerToneSection}
 
 必须只返回 JSON，不要 markdown，不要解释 JSON 外的文字。结构如下：
 {
@@ -186,6 +219,14 @@ export class ScoringService {
       description: candidate.description,
       keyItems: candidate.keyItems,
       localReasons: candidate.matchReasons,
+      dimension: candidate.dimension,
+      dimensionLabel: candidate.dimensionLabel,
+      pillars: candidate.pillars,
+      breakdown: candidate.breakdown,
+      philosophy: candidate.philosophy,
+      difficulty: candidate.difficulty,
+      silhouette: candidate.silhouette,
+      colorPalette: candidate.colorPalette,
     }));
 
     return `用户填写信息如下，请把性别、身高体重、三围、职业、日常场景、自定义场景、城市气候、预算、目标、偏好和自述全部纳入判断：

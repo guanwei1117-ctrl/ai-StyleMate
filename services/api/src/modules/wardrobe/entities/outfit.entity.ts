@@ -31,4 +31,26 @@ export class Outfit {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  // --- 今天穿什么 新增字段 ---
+
+  /** 穿搭标题，AI 生成的简短描述（如"稳妥通勤·针织衫+阔腿裤"） */
+  @Column({ nullable: true })
+  title: string;
+
+  /** 生成时的天气信息快照 */
+  @Column('simple-json', { nullable: true })
+  weather: Record<string, unknown>;
+
+  /** 风格目标（显瘦/显高/舒服/精致等） */
+  @Column({ name: 'style_goal', nullable: true })
+  styleGoal: string;
+
+  /** AI 评分 1-100 */
+  @Column({ nullable: true })
+  score: number;
+
+  /** AI 推荐理由 */
+  @Column({ name: 'ai_reason', type: 'text', nullable: true })
+  aiReason: string;
 }

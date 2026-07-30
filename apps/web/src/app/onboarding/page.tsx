@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense, type ChangeEvent } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -60,9 +61,13 @@ import {
   createStoredStyleProfile,
   extractStyleIntent,
   saveStyleProfile,
+  loadStyleProfile,
+  clearStyleProfile,
+  type StoredStyleProfile,
 } from '@/lib/style-profile-storage';
 import { ACCEPTED_IMAGE_MIME_TYPES, IMAGE_UPLOAD_SIZE_LABEL, validateImageFile } from '@/lib/image-upload-rules';
 import { ONBOARDING_GUIDE_SECTIONS } from '@/lib/onboarding-guide';
+import BloggerSelector from '@/components/score-outfit/blogger-selector';
 
 const FLOW = [
   { id: 'profile', label: '基础', desc: '身高 / 体重 / 年龄' },
@@ -81,6 +86,14 @@ function getStyleImage(styleId: string): string | undefined {
 }
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f4f1ea]" />}>
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const faceInputRef = useRef<HTMLInputElement>(null);
   const fullBodyInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(0);
@@ -96,7 +109,25 @@ export default function OnboardingPage() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [measurementsOpen, setMeasurementsOpen] = useState(false);
 
+  const searchParams = useSearchParams();
+  const isHistoryView = searchParams?.get('view') === 'history';
+  const [historyProfile, setHistoryProfile] = useState<StoredStyleProfile | null>(null);
+
   const isResultStep = step === FLOW.length;
+
+  // 历史档案查看模式：从 localStorage 读取已保存的档案并展示
+  useEffect(() => {
+    if (isHistoryView) {
+      const stored = loadStyleProfile();
+      setHistoryProfile(stored);
+      if (stored) {
+        setResults(stored.results);
+        setBodyShape(stored.bodyShape);
+        setAiAnalysis(stored.aiAnalysis ?? null);
+        setStep(FLOW.length);
+      }
+    }
+  }, [isHistoryView]);
 
 
   const updateAnswers = useCallback((patch: Partial<OnboardingAnswers>) => {
@@ -143,6 +174,16 @@ export default function OnboardingPage() {
       updateAnswers({ fullBodyPhoto: file, fullBodyPhotoPreview: preview });
     }
     event.target.value = '';
+  };
+
+  const handlePhotoRemove = (kind: 'face' | 'fullBody') => {
+    if (kind === 'face') {
+      if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
+      updateAnswers({ photo: null, photoPreview: null });
+    } else {
+      if (answers.fullBodyPhotoPreview) URL.revokeObjectURL(answers.fullBodyPhotoPreview);
+      updateAnswers({ fullBodyPhoto: null, fullBodyPhotoPreview: null });
+    }
   };
 
   const filteredStyles = useMemo(() => {
@@ -235,6 +276,14 @@ export default function OnboardingPage() {
     setAiAnalysis(null);
     setAnalysisStatus('idle');
     setAnalysisError(null);
+    setHistoryProfile(null);
+    setStep(0);
+  };
+
+  const handleClearHistory = () => {
+    clearStyleProfile();
+    setHistoryProfile(null);
+    setResults([]);
     setStep(0);
   };
 
@@ -260,103 +309,150 @@ export default function OnboardingPage() {
 
       <OnboardingGuideDialog open={guideOpen} onClose={() => setGuideOpen(false)} />
 
-      <section className="mx-auto max-w-7xl px-6 pb-20 pt-28 lg:px-10">
-        <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
-          <aside className="lg:sticky lg:top-24">
-            <p className="mb-5 text-xs tracking-[0.3em] text-ink-400">STYLE TEST</p>
-            <h1 className="font-display text-[clamp(3rem,7vw,6.6rem)] leading-[0.9]">
-              测测
-              <br />
-              适合什么
-            </h1>
-            <p className="mt-6 max-w-xl text-sm leading-7 text-ink-500">
-              填基础，选喜好，生成建议。
-            </p>
-          </aside>
+      <section className="mx-auto max-w-3xl px-6 pb-20 pt-28 lg:px-10">
+        <div className="flex flex-col gap-8">
+          {!isHistoryView && (
+            <header className="text-center">
+              <p className="mb-3 text-xs tracking-[0.3em] text-ink-400">STYLE TEST</p>
+              <h1 className="font-display text-3xl leading-tight text-ink-900 sm:text-4xl">
+                测测适合什么风格
+              </h1>
+              <p className="mt-4 text-sm leading-7 text-ink-500">
+                填基础，选喜好，生成建议。
+              </p>
+            </header>
+          )}
 
-          <AnimatePresence mode="wait">
-            {!isResultStep ? (
-              <motion.section
-                key={step}
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -18 }}
-                transition={{ duration: 0.35 }}
-                className="border border-ink-900/10 bg-[#fbfaf6]"
-              >
-                {step === 0 && (
-                  <ProfileStep
-                    answers={answers}
-                    updateAnswers={updateAnswers}
-                    faceInputRef={faceInputRef}
-                    fullBodyInputRef={fullBodyInputRef}
-                    photoError={photoError}
-                    measurementsOpen={measurementsOpen}
-                    setMeasurementsOpen={setMeasurementsOpen}
-                    onPhotoChange={handlePhotoChange}
-                  />
-                )}
-                {step === 1 && (
-                  <TasteStep
-                    answers={answers}
-                    filteredStyles={filteredStyles}
-                    activeDimension={activeDimension}
-                    setActiveDimension={setActiveDimension}
-                    toggleStyle={toggleStyle}
-                    toggleGoal={toggleGoal}
-                    togglePriority={togglePriority}
-                    updateAnswers={updateAnswers}
-                  />
-                )}
-                {step === 2 && (
-                  <IntentStep
-                    answers={answers}
-                    updateAnswers={updateAnswers}
-                    statementEdited={statementEdited}
-                    setStatementEdited={setStatementEdited}
-                  />
-                )}
+          {isHistoryView && !historyProfile && (
+            <div className="border border-ink-900/10 bg-[#fbfaf6] p-10 text-center">
+              <p className="text-sm text-ink-500">还没有保存的风格档案。</p>
+              <Link href="/onboarding" className="mt-4 inline-flex items-center gap-2 bg-ink-900 px-6 py-3 text-sm text-creme-100 transition hover:bg-ink-800">
+                去测评
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          )}
 
-                <div className="flex items-center justify-between border-t border-ink-900/10 p-5 sm:p-7">
-                  <button
-                    onClick={() => setStep((current) => Math.max(0, current - 1))}
-                    disabled={step === 0}
-                    className="inline-flex items-center gap-2 text-sm text-ink-500 transition hover:text-ink-900 disabled:opacity-30"
-                  >
-                    <ChevronLeft size={16} />
-                    上一步
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (step === FLOW.length - 1) handleSubmit();
-                      else setStep((current) => current + 1);
-                    }}
-                    disabled={!canContinue || analysisStatus === 'ai'}
-                    className="inline-flex items-center gap-2 bg-ink-900 px-6 py-3 text-sm text-creme-100 transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200"
-                  >
-                    {analysisStatus === 'ai' ? 'AI 正在分析...' : step === FLOW.length - 1 ? '生成风格档案' : '继续'}
-                    <ArrowRight size={16} />
-                  </button>
+          {isHistoryView && historyProfile && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border border-ink-900/10 bg-[#e8ece8] p-5">
+                <div>
+                  <p className="text-xs tracking-[0.22em] text-ink-500">已保存档案</p>
+                  <p className="mt-1 text-sm text-ink-700">
+                    生成于 {new Date(historyProfile.createdAt).toLocaleString('zh-CN')}
+                  </p>
                 </div>
-              </motion.section>
-            ) : (
+                <button
+                  type="button"
+                  onClick={handleClearHistory}
+                  className="border border-ink-900/15 bg-white/60 px-4 py-2 text-xs text-ink-500 transition hover:border-red-300 hover:text-red-700"
+                >
+                  清除档案
+                </button>
+              </div>
               <motion.section
-                key="result"
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="border border-ink-900/10 bg-[#fbfaf6] p-5 sm:p-8"
               >
                 <ResultView
-                  results={results}
+                  results={historyProfile.results}
                   answers={answers}
-                  bodyShape={bodyShape}
-                  aiAnalysis={aiAnalysis}
-                  analysisError={analysisError}
+                  bodyShape={historyProfile.bodyShape}
+                  aiAnalysis={historyProfile.aiAnalysis ?? null}
+                  analysisError={null}
                   onRestart={handleRestart}
                 />
               </motion.section>
-            )}
-          </AnimatePresence>
+            </div>
+          )}
+
+          {!isHistoryView && (
+            <AnimatePresence mode="wait">
+              {!isResultStep ? (
+                <motion.section
+                  key={step}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -18 }}
+                  transition={{ duration: 0.35 }}
+                  className="border border-ink-900/10 bg-[#fbfaf6]"
+                >
+                  {step === 0 && (
+                    <ProfileStep
+                      answers={answers}
+                      updateAnswers={updateAnswers}
+                      faceInputRef={faceInputRef}
+                      fullBodyInputRef={fullBodyInputRef}
+                      photoError={photoError}
+                      measurementsOpen={measurementsOpen}
+                      setMeasurementsOpen={setMeasurementsOpen}
+                      onPhotoChange={handlePhotoChange}
+                      onPhotoRemove={handlePhotoRemove}
+                    />
+                  )}
+                  {step === 1 && (
+                    <TasteStep
+                      answers={answers}
+                      filteredStyles={filteredStyles}
+                      activeDimension={activeDimension}
+                      setActiveDimension={setActiveDimension}
+                      toggleStyle={toggleStyle}
+                      toggleGoal={toggleGoal}
+                      togglePriority={togglePriority}
+                      updateAnswers={updateAnswers}
+                    />
+                  )}
+                  {step === 2 && (
+                    <IntentStep
+                      answers={answers}
+                      updateAnswers={updateAnswers}
+                      statementEdited={statementEdited}
+                      setStatementEdited={setStatementEdited}
+                    />
+                  )}
+
+                  <div className="flex items-center justify-between border-t border-ink-900/10 p-5 sm:p-7">
+                    <button
+                      onClick={() => setStep((current) => Math.max(0, current - 1))}
+                      disabled={step === 0}
+                      className="inline-flex items-center gap-2 text-sm text-ink-500 transition hover:text-ink-900 disabled:opacity-30"
+                    >
+                      <ChevronLeft size={16} />
+                      上一步
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (step === FLOW.length - 1) handleSubmit();
+                        else setStep((current) => current + 1);
+                      }}
+                      disabled={!canContinue || analysisStatus === 'ai'}
+                      className="inline-flex items-center gap-2 bg-ink-900 px-6 py-3 text-sm text-creme-100 transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200"
+                    >
+                      {analysisStatus === 'ai' ? 'AI 正在分析...' : step === FLOW.length - 1 ? '生成风格档案' : '继续'}
+                      <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </motion.section>
+              ) : (
+                <motion.section
+                  key="result"
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border border-ink-900/10 bg-[#fbfaf6] p-5 sm:p-8"
+                >
+                  <ResultView
+                    results={results}
+                    answers={answers}
+                    bodyShape={bodyShape}
+                    aiAnalysis={aiAnalysis}
+                    analysisError={analysisError}
+                    onRestart={handleRestart}
+                  />
+                </motion.section>
+              )}
+            </AnimatePresence>
+          )}
         </div>
       </section>
     </main>
@@ -376,7 +472,7 @@ function SectionHeader({ icon: Icon, label, title, copy }: {
       </div>
       <div>
         <p className="mb-2 text-xs tracking-[0.22em] text-ink-400">{label}</p>
-        <h2 className="font-display text-[clamp(1.8rem,3vw,3rem)] leading-none">{title}</h2>
+        <h2 className="font-display text-2xl leading-none sm:text-3xl">{title}</h2>
         <p className="mt-3 max-w-xl text-sm leading-6 text-ink-500">{copy}</p>
       </div>
     </div>
@@ -433,31 +529,46 @@ function PhotoSlot({
   desc,
   preview,
   onClick,
+  onRemove,
 }: {
   label: string;
   desc: string;
   preview: string | null;
   onClick: () => void;
+  onRemove: () => void;
 }) {
+  if (!preview) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="inline-flex items-center gap-2 border border-ink-900/15 bg-white/40 px-4 py-2.5 text-sm text-ink-600 transition hover:border-ink-900/35 hover:text-ink-900"
+      >
+        <Camera size={15} />
+        {label}
+        <span className="text-xs text-ink-300">选填</span>
+      </button>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group relative flex min-h-[260px] flex-col justify-between overflow-hidden border border-dashed border-ink-900/20 bg-[#f4f1ea] p-5 text-left transition hover:border-ink-900/45"
-    >
-      {preview ? (
-        <img src={preview} alt={label} className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_0%,transparent_48%,rgba(10,10,10,0.08)_49%,rgba(10,10,10,0.08)_51%,transparent_52%)] bg-[length:28px_28px]" />
-      )}
-      <span className="relative z-10 flex h-10 w-10 items-center justify-center bg-white/80 backdrop-blur">
-        <Camera size={18} />
-      </span>
-      <div className="relative z-10 bg-[#fbfaf6]/90 p-4 backdrop-blur">
-        <p className="text-sm font-medium">{label}</p>
-        <p className="mt-1 text-xs leading-5 text-ink-500">{desc}</p>
+    <div className="group relative aspect-[4/5] w-full overflow-hidden border border-ink-900/20 bg-[#f4f1ea]">
+      <img src={preview} alt={label} className="h-full w-full object-cover" />
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-[#fbfaf6]/90 px-4 py-2.5 backdrop-blur">
+        <div>
+          <p className="text-sm font-medium">{label}</p>
+          <p className="mt-0.5 text-xs leading-4 text-ink-500">{desc}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="inline-flex items-center gap-1 border border-ink-900/15 bg-white/60 px-2.5 py-1.5 text-xs text-ink-500 transition hover:border-red-300 hover:text-red-700"
+        >
+          <X size={13} />
+          移除
+        </button>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -470,6 +581,7 @@ function ProfileStep({
   measurementsOpen,
   setMeasurementsOpen,
   onPhotoChange,
+  onPhotoRemove,
 }: {
   answers: OnboardingAnswers;
   updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
@@ -479,6 +591,7 @@ function ProfileStep({
   measurementsOpen: boolean;
   setMeasurementsOpen: (open: boolean) => void;
   onPhotoChange: (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => void;
+  onPhotoRemove: (kind: 'face' | 'fullBody') => void;
 }) {
   return (
     <>
@@ -492,21 +605,25 @@ function ProfileStep({
         照片选填，只用于穿搭分析。
       </div>
       <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <PhotoSlot
-            label="正脸照"
-            desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
-            preview={answers.photoPreview}
-            onClick={() => faceInputRef.current?.click()}
-          />
-          <PhotoSlot
-            label="全身照"
-            desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
-            preview={answers.fullBodyPhotoPreview}
-            onClick={() => fullBodyInputRef.current?.click()}
-          />
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <PhotoSlot
+              label="正脸照"
+              desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
+              preview={answers.photoPreview}
+              onClick={() => faceInputRef.current?.click()}
+              onRemove={() => onPhotoRemove('face')}
+            />
+            <PhotoSlot
+              label="全身照"
+              desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
+              preview={answers.fullBodyPhotoPreview}
+              onClick={() => fullBodyInputRef.current?.click()}
+              onRemove={() => onPhotoRemove('fullBody')}
+            />
+          </div>
           {photoError && (
-            <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2 lg:col-span-1">
+            <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {photoError}
             </p>
           )}
@@ -875,6 +992,7 @@ function IntentStep({
   setStatementEdited: (value: boolean) => void;
 }) {
   const extracted = useMemo(() => extractStyleIntent(answers.userStatement), [answers.userStatement]);
+  const [bloggerOpen, setBloggerOpen] = useState(false);
 
   return (
     <>
@@ -922,6 +1040,51 @@ function IntentStep({
           <IntentList title="使用场景" items={extracted.scenes} />
           <IntentList title="现实限制" items={extracted.constraints} />
         </aside>
+      </div>
+
+      {/* 博主语言风格选择（选填） */}
+      <div className="border-t border-ink-900/10">
+        <button
+          type="button"
+          onClick={() => setBloggerOpen(!bloggerOpen)}
+          className="flex w-full items-center justify-between px-6 py-4 text-left sm:px-8"
+        >
+          <div className="flex items-center gap-3">
+            <Sparkles size={16} className="text-ink-400" />
+            <div>
+              <p className="text-sm font-medium text-ink-800">
+                博主语言风格
+                <span className="ml-2 text-xs font-normal text-ink-300">选填，让 AI 报告用你喜欢的博主口吻</span>
+              </p>
+              {answers.bloggerId && (
+                <p className="mt-0.5 text-xs text-ink-500">已选择，生成时将套用该博主说话风格</p>
+              )}
+            </div>
+          </div>
+          <span className="text-xs text-ink-400">{bloggerOpen ? '收起' : answers.bloggerId ? '已选择' : '选择'}</span>
+        </button>
+        {bloggerOpen && (
+          <div className="border-t border-ink-900/10 px-6 pb-6 pt-4 sm:px-8">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-xs leading-5 text-ink-500">
+                选择一位博主，AI 分析报告的语言风格会贴近该博主人设。不影响匹配逻辑，只影响表达方式。
+              </p>
+              {answers.bloggerId && (
+                <button
+                  type="button"
+                  onClick={() => updateAnswers({ bloggerId: null })}
+                  className="shrink-0 border border-ink-900/10 bg-white/50 px-3 py-1.5 text-xs text-ink-500 transition hover:border-ink-900/30 hover:text-ink-900"
+                >
+                  不使用博主风格
+                </button>
+              )}
+            </div>
+            <BloggerSelector
+              onSelect={(id) => updateAnswers({ bloggerId: id })}
+              selectedId={answers.bloggerId}
+            />
+          </div>
+        )}
       </div>
     </>
   );

@@ -1,20 +1,11 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  BODY_SHAPE_LABELS,
-  AGE_GROUP_LABELS,
-  OCCUPATION_LABELS,
-  CLIMATE_LABELS,
-  DRESSING_GOAL_LABELS,
-  PRIORITY_LABELS,
-} from '@/lib/onboarding-types';
 import { CATEGORY_LABELS } from '@/data/styles';
 import type { StyleMatchResult } from '@/lib/onboarding-types';
 import type { OnboardingAnswers } from '@/lib/onboarding-types';
 import type { BodyShape } from '@/lib/onboarding-types';
 import { generateExplanation } from '@/lib/style-explain';
-import { extractStyleIntent } from '@/lib/style-profile-storage';
 import type { AiStyleProfileAnalysis } from '@/lib/style-profile-api';
 import { BodyExplainCard } from './explain-sections';
 import { AvoidanceZone } from './explain-sections';
@@ -32,7 +23,6 @@ interface ResultViewProps {
 export default function ResultView({ results, answers, bodyShape, aiAnalysis, analysisError, onRestart }: ResultViewProps) {
   const top1 = results[0];
   const explanation = generateExplanation(results, answers, bodyShape);
-  const extractedIntent = extractStyleIntent(answers.userStatement);
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-10">
@@ -98,22 +88,13 @@ export default function ResultView({ results, answers, bodyShape, aiAnalysis, an
               <AiMiniBlock title="全身比例" copy={aiAnalysis.visualAnalysis.body} />
             </div>
           </div>
-        ) : answers.userStatement.trim() && (
+        ) : (
           <div className="border border-ink-900/10 bg-[#fbfaf6]/75 p-4">
-            <p className="mb-2 text-xs tracking-[0.18em] text-ink-400">你的自述摘要</p>
-            <p className="line-clamp-5 text-sm leading-7 text-ink-600">{answers.userStatement}</p>
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {[
-                ...extractedIntent.likedKeywords,
-                ...extractedIntent.desiredImpression,
-                ...extractedIntent.scenes,
-                ...extractedIntent.constraints,
-              ].slice(0, 10).map((item) => (
-                <span key={item} className="bg-white/75 px-2.5 py-1 text-xs text-ink-500">
-                  {item}
-                </span>
-              ))}
-            </div>
+            <p className="text-sm leading-7 text-ink-600">
+              {analysisError
+                ? '已使用本地规则生成报告，可稍后配置 AI 后重新测评。'
+                : '已使用本地规则生成报告。'}
+            </p>
           </div>
         )}
       </div>
@@ -148,95 +129,6 @@ export default function ResultView({ results, answers, bodyShape, aiAnalysis, an
           </div>
         </div>
       )}
-
-      {/* ============ 用户画像卡片（三支柱）============ */}
-      <div className="border border-ink-900/10 bg-white/45 p-6">
-        <h3 className="text-xs tracking-[0.24em] text-ink-400 mb-5">PROFILE INPUT</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* 审美适配 */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-ink-500 border-b border-creme-300 pb-1">
-              审美适配
-            </p>
-            {answers.gender && (
-              <ProfileItem
-                label="性别"
-                value={answers.gender === 'female' ? '女性' : answers.gender === 'male' ? '男性' : '其他'}
-              />
-            )}
-            <ProfileItem label="身高/体重" value={`${answers.height ?? '-'}cm / ${answers.weight ?? '-'}kg`} />
-            <ProfileItem label="体型" value={BODY_SHAPE_LABELS[bodyShape]} />
-            {answers.preferredStyleIds.length > 0 && (
-              <ProfileItem label="偏好风格" value={`${answers.preferredStyleIds.length} 种`} />
-            )}
-          </div>
-
-          {/* 现实约束 */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-ink-500 border-b border-creme-300 pb-1">
-              现实约束
-            </p>
-            {answers.ageGroup && (
-              <ProfileItem label="年龄段" value={AGE_GROUP_LABELS[answers.ageGroup]} />
-            )}
-            {answers.occupation && (
-              <ProfileItem label="职业" value={OCCUPATION_LABELS[answers.occupation]} />
-            )}
-            {(answers.city || answers.climate) && (
-              <ProfileItem
-                label="城市/气候"
-                value={[answers.city, answers.climate ? CLIMATE_LABELS[answers.climate] : ''].filter(Boolean).join(' · ') || '-'}
-              />
-            )}
-            {answers.budget && (
-              <ProfileItem
-                label="单件预算"
-                value={
-                  answers.budget === 'budget' ? '平价实惠' :
-                  answers.budget === 'mid' ? '中等价位' : '轻奢品质'
-                }
-              />
-            )}
-            {answers.monthlyBudgetMax && (
-              <ProfileItem
-                label="月度预算"
-                value={`¥${answers.monthlyBudgetMin ?? 0}-${answers.monthlyBudgetMax}`}
-              />
-            )}
-          </div>
-
-          {/* 行为偏好 */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-ink-500 border-b border-creme-300 pb-1">
-              行为偏好
-            </p>
-            {answers.dressingGoals.length > 0 && (
-              <ProfileItem
-                label="穿衣目标"
-                value={answers.dressingGoals.map((g) => DRESSING_GOAL_LABELS[g]).join('、')}
-              />
-            )}
-            {answers.priorities.length > 0 && (
-              <ProfileItem
-                label="优先级"
-                value={answers.priorities.map((p) => PRIORITY_LABELS[p]).join('＞')}
-              />
-            )}
-            {answers.styleOpenness && (
-              <ProfileItem label="风格接受度" value={`${answers.styleOpenness}/5`} />
-            )}
-            {answers.openToNewStyles !== null && answers.openToNewStyles !== undefined && (
-              <ProfileItem
-                label="尝试新风格"
-                value={answers.openToNewStyles ? '愿意' : '暂不考虑'}
-              />
-            )}
-            {answers.interests.length > 0 && (
-              <ProfileItem label="兴趣" value={`${answers.interests.length} 项`} />
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* ============ 体型解读（NEW）============ */}
       <BodyExplainCard explain={explanation.bodyExplain} tone="nice" />
@@ -449,15 +341,6 @@ function MiniBar({ label, value, max }: { label: string; value: number; max: num
           style={{ width: `${pct}%` }}
         />
       </div>
-    </div>
-  );
-}
-
-function ProfileItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-ink-400">{label}</p>
-      <p className="text-ink-800 font-medium text-sm">{value}</p>
     </div>
   );
 }

@@ -5,6 +5,7 @@ node_modules/
 
 # Build outputs
 .next/
+.next-dev/
 .next-preview/
 dist/
 build/
@@ -38,3 +39,22 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# === AI / Agent 工具链（公司内部开发辅助工具，禁止上传）===
+# xFusion Harness（公司 agent 框架：agents/rules/skills/hooks/openspec）
+xFusion-harness-1.0 (1)/
+# CodeBuddy / CodeGraph 等 IDE agent 数据
+.codebuddy/
+.codegraph/
+# Claude Code agent 配置目录
+claude_deepseek/
+.claude/
+# 项目级 agent 规则清单（如存在）
+AGENTS.md
+
+# === 日志与临时文件（非源码，无需上传）===
+*.log
+*.out
+*.err
+tsc-result.txt
+_api.log

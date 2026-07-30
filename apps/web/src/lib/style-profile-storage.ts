@@ -44,6 +44,7 @@ export interface StoredStyleProfile {
     climate: string | null;
     hasFacePhoto: boolean;
     hasFullBodyPhoto: boolean;
+    bloggerId: string | null;
   };
   extractedIntent: ExtractedStyleIntent;
   results: StyleMatchResult[];
@@ -149,6 +150,7 @@ export function createStoredStyleProfile(
       climate: answers.climate ? CLIMATE_LABELS[answers.climate] : null,
       hasFacePhoto: !!answers.photoPreview,
       hasFullBodyPhoto: !!answers.fullBodyPhotoPreview,
+      bloggerId: answers.bloggerId,
     },
     extractedIntent: extractStyleIntent(answers.userStatement),
     results,

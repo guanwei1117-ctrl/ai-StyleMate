@@ -273,6 +273,9 @@ export interface OnboardingAnswers {
 
   // 用户自述：由选项自动生成，用户可以继续编辑补充
   userStatement: string;
+
+  // 博主语言风格 ID（选填，影响 AI 分析报告的语言风格）
+  bloggerId: string | null;
 }
 
 /** AI 照片分析结果（预留接口） */
@@ -428,5 +431,6 @@ export function createDefaultAnswers(): OnboardingAnswers {
     styleOpenness: null,
     openToNewStyles: null,
     userStatement: '',
+    bloggerId: null,
   };
 }

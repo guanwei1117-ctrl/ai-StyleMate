@@ -1,12 +1,23 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { RecommendationController } from './recommendation.controller';
 import { RecommendationService } from './recommendation.service';
+import { WeatherService } from './weather.service';
 import { WardrobeModule } from '../wardrobe/wardrobe.module';
 import { UserModule } from '../user/user.module';
+import { AiSkillsModule } from '../ai-skills/ai-skills.module';
+import { AiRateLimiter } from '../scoring/ai-rate-limiter';
+import { Outfit } from '../wardrobe/entities/outfit.entity';
 
 @Module({
-  imports: [UserModule, WardrobeModule],
+  imports: [
+    UserModule,
+    WardrobeModule,
+    AiSkillsModule,
+    TypeOrmModule.forFeature([Outfit]),
+  ],
   controllers: [RecommendationController],
-  providers: [RecommendationService],
+  providers: [RecommendationService, WeatherService, AiRateLimiter],
+  exports: [RecommendationService, WeatherService],
 })
 export class RecommendationModule {}
