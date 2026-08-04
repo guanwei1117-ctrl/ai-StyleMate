@@ -1,9 +1,93 @@
 import { OutfitRecommendationInput } from './outfit-recommendation.dto';
+import type { AIMemoryContext } from '../../memory/memory.dto';
+
+/**
+ * 构建用户记忆上下文文本
+ *
+ * 将用户长期画像、衣柜关键数据、最近反馈、当前意图、AI 总结注入 prompt
+ */
+function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string {
+  if (!ctx) return '## 用户长期记忆\n（暂无记忆数据，请按通用审美推荐）\n';
+
+  const lines: string[] = ['## 用户长期记忆'];
+
+  // AI 总结记忆
+  if (ctx.memorySummary) {
+    lines.push(`### AI 总结\n${ctx.memorySummary}`);
+  }
+
+  // 用户长期画像
+  const p = ctx.styleProfile as any;
+  if (p) {
+    const profileLines: string[] = [];
+    if (p.suitableStyles?.length) profileLines.push(`适合风格：${p.suitableStyles.join('、')}`);
+    if (p.likedStyles?.length) profileLines.push(`喜欢风格：${p.likedStyles.join('、')}`);
+    if (p.dislikedStyles?.length) profileLines.push(`不喜欢风格：${p.dislikedStyles.join('、')}`);
+    if (p.preferredColors?.length) profileLines.push(`偏好颜色：${p.preferredColors.join('、')}`);
+    if (p.dislikedColors?.length) profileLines.push(`不喜欢颜色：${p.dislikedColors.join('、')}`);
+    if (p.bodyType) profileLines.push(`体型：${p.bodyType}`);
+    if (p.bodyConcerns?.length) profileLines.push(`身材顾虑：${p.bodyConcerns.join('、')}`);
+    if (p.dressGoals?.length) profileLines.push(`穿搭目标：${p.dressGoals.join('、')}`);
+    if (p.commonOccasions?.length) profileLines.push(`常见场景：${p.commonOccasions.join('、')}`);
+    if (p.avoidRules?.length) {
+      const avoids = p.avoidRules
+        .filter((r: any) => r.weight > 0)
+        .map((r: any) => r.rule);
+      if (avoids.length) profileLines.push(`避坑规则：\n${avoids.map((a: string) => `  - ${a}`).join('\n')}`);
+    }
+    if (profileLines.length) {
+      lines.push(`### 用户画像\n${profileLines.join('\n')}`);
+    }
+  }
+
+  // 衣柜关键数据
+  if (ctx.wardrobeSummary) {
+    const ws = ctx.wardrobeSummary;
+    const wsLines: string[] = [`衣柜共 ${ws.totalItems} 件`];
+    const catStr = Object.entries(ws.byCategory)
+      .map(([k, v]) => `${k} ${v}件`)
+      .join('、');
+    wsLines.push(`品类分布：${catStr}`);
+    if (ws.idleItems?.length) {
+      wsLines.push(
+        `闲置单品（>60天未穿）：${ws.idleItems.map((i) => i.description).join('、')}`,
+      );
+    }
+    if (ws.topWorn?.length) {
+      wsLines.push(
+        `高频穿着：${ws.topWorn.map((i) => `${i.description}(${i.wearCount}次)`).join('、')}`,
+      );
+    }
+    lines.push(`### 衣柜摘要\n${wsLines.join('\n')}`);
+  }
+
+  // 最近反馈
+  if (ctx.recentFeedbackSummary) {
+    lines.push(`### 最近反馈\n${ctx.recentFeedbackSummary}`);
+  }
+
+  // 当前意图
+  if (ctx.currentIntent) {
+    const ci = ctx.currentIntent as any;
+    const ciLines: string[] = [];
+    if (ci.lookingFor) ciLines.push(`正在寻找：${ci.lookingFor}`);
+    if (ci.targetOccasion) ciLines.push(`目标场景：${ci.targetOccasion}`);
+    if (ciLines.length) {
+      lines.push(`### 当前意图\n${ciLines.join('\n')}`);
+    }
+  }
+
+  lines.push(
+    `\n### 重要提示\n请严格遵守用户记忆中的避坑规则和不喜欢的风格/颜色。如果用户多次反馈"太正式"，降低正式度组合权重；如果反馈"太显胖"，避免宽松上衣+宽松下装。`,
+  );
+
+  return lines.join('\n') + '\n';
+}
 
 /**
  * 构建穿搭推荐 System Prompt
  *
- * 将衣橱单品、天气、场合、风格目标、限制条件注入 prompt
+ * 将用户长期记忆 + 衣橱单品 + 天气 + 场合 + 风格目标 + 限制条件注入 prompt
  */
 export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput): string {
   const itemsJson = JSON.stringify(
@@ -31,8 +115,11 @@ export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput
       ? input.constraints.map((c, i) => `${i + 1}. ${c}`).join('\n')
       : '无';
 
+  const memoryText = buildMemoryContextText(input.memoryContext);
+
   return `你是 StyleMate 的专业穿搭顾问。用户想知道"今天穿什么"。
 
+${memoryText}
 ## 今日天气
 城市：${input.weather.city}
 天气：${input.weather.condition}
@@ -52,7 +139,7 @@ ${constraintsText}
 ${itemsJson}
 
 ## 任务
-基于天气、场合和风格目标，从用户衣橱中搭配 3 套穿搭方案：
+基于天气、场合和风格目标，结合用户长期记忆中的偏好和避坑规则，从用户衣橱中搭配 3 套穿搭方案：
 
 1. safe（稳妥不出错）：用百搭单品，适合大多数场景，不会出错。
 2. flattering（显瘦显高）：优先选择能修饰身材比例的单品，适合想显瘦显高的日子。
@@ -63,6 +150,7 @@ ${itemsJson}
 - 如果用户衣橱缺少某个品类（如没有鞋子），对应字段填 null。
 - 每套方案都必须给出 reason（为什么适合今天）、scene（适合什么场景）、riskWarning（风险提醒）。
 - score 为综合评分 1-100。
+- 必须遵守用户记忆中的避坑规则和不喜欢的风格/颜色。
 
 必须只返回 JSON，不要 markdown，不要任何额外文字。结构如下：
 {

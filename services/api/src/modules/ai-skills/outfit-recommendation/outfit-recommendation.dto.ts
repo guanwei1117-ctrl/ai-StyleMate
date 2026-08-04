@@ -1,7 +1,7 @@
 /**
  * 穿搭推荐 AI Skill
  *
- * 输入：用户衣橱单品摘要 + 天气 + 场合 + 风格目标 + 限制条件
+ * 输入：用户衣橱单品摘要 + 天气 + 场合 + 风格目标 + 限制条件 + 长期记忆上下文
  * 输出：3 套穿搭方案（稳妥/显瘦显高/氛围感）
  */
 
@@ -72,6 +72,8 @@ export interface OutfitRecommendationInput {
   styleGoal: string;
   /** 用户限制条件 */
   constraints: string[];
+  /** 长期记忆上下文（AI 调用前读取） */
+  memoryContext?: import('../../memory/memory.dto').AIMemoryContext | null;
 }
 
 export interface OutfitRecommendationResult {

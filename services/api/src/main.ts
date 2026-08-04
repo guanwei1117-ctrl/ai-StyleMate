@@ -14,16 +14,9 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  // CORS
+  // CORS —— 反射请求方 Origin，兼容前端跑在任意端口（dev server 端口未写死时也能通）
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3005',
-      'http://127.0.0.1:3005',
-      'http://localhost:3006',
-      'http://127.0.0.1:3006',
-    ],
+    origin: true,
     credentials: true,
   });
 

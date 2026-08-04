@@ -16,6 +16,10 @@ if (dbEnabled) {
   const { WardrobeModule } = require('./modules/wardrobe/wardrobe.module');
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { RecommendationModule } = require('./modules/recommendation/recommendation.module');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { FeedbackModule } = require('./modules/feedback/feedback.module');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { MemoryModule } = require('./modules/memory/memory.module');
 
   dbModules.push(
     TypeOrmModule.forRoot({
@@ -31,6 +35,8 @@ if (dbEnabled) {
     UserModule,
     WardrobeModule,
     RecommendationModule,
+    FeedbackModule,
+    MemoryModule,
   );
 }
 

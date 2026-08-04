@@ -6,6 +6,7 @@ import { WeatherService } from './weather.service';
 import { WardrobeModule } from '../wardrobe/wardrobe.module';
 import { UserModule } from '../user/user.module';
 import { AiSkillsModule } from '../ai-skills/ai-skills.module';
+import { MemoryModule } from '../memory/memory.module';
 import { AiRateLimiter } from '../scoring/ai-rate-limiter';
 import { Outfit } from '../wardrobe/entities/outfit.entity';
 
@@ -14,6 +15,7 @@ import { Outfit } from '../wardrobe/entities/outfit.entity';
     UserModule,
     WardrobeModule,
     AiSkillsModule,
+    MemoryModule,
     TypeOrmModule.forFeature([Outfit]),
   ],
   controllers: [RecommendationController],

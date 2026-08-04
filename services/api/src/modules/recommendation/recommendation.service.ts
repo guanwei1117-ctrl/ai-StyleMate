@@ -9,6 +9,8 @@ import { OutfitRecommendationSkill } from '../ai-skills/outfit-recommendation/ou
 import { PurchaseEvaluationSkill } from '../ai-skills/purchase-evaluation/purchase-evaluation.skill';
 import { PurchaseEvaluationResult } from '../ai-skills/purchase-evaluation/purchase-evaluation.dto';
 import { WeatherService, WeatherInfo } from './weather.service';
+import { MemoryService } from '../memory/memory.service';
+import { AIMemoryContext } from '../memory/memory.dto';
 import {
   OutfitRecommendationInput,
   OutfitRecommendationPlan,
@@ -37,12 +39,13 @@ export class RecommendationService {
     private readonly outfitRecommendationSkill: OutfitRecommendationSkill,
     private readonly purchaseEvaluationSkill: PurchaseEvaluationSkill,
     private readonly weatherService: WeatherService,
+    private readonly memoryService: MemoryService,
     @InjectRepository(Outfit)
     private readonly outfitRepo: Repository<Outfit>,
   ) {}
 
   /**
-   * 今天穿什么 — 获取天气 + 调用 AI 生成 3 套穿搭方案
+   * 今天穿什么 — 获取天气 + 读取用户记忆 + 调用 AI 生成 3 套穿搭方案
    */
   async generateTodayOutfit(req: TodayOutfitRequest): Promise<TodayOutfitResponse> {
     // 1. 获取天气
@@ -55,7 +58,18 @@ export class RecommendationService {
       throw new NotFoundException('衣橱里还没有衣服，先去添加几件吧');
     }
 
-    // 3. 调用 AI skill 生成推荐
+    // 3. 读取用户长期记忆（AI 调用前必须先读取记忆）
+    let memoryContext: AIMemoryContext | null = null;
+    try {
+      memoryContext = await this.memoryService.buildAIContext(req.userId, 'today_outfit');
+      this.logger.log(
+        `已加载用户记忆 | userId: ${req.userId} | 记忆摘要: ${memoryContext.memorySummary ? '有' : '无'} | 反馈: ${memoryContext.recentFeedbackSummary ? '有' : '无'}`,
+      );
+    } catch (err) {
+      this.logger.warn(`读取用户记忆失败（不影响主流程）: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // 4. 调用 AI skill 生成推荐（注入记忆上下文）
     const input: OutfitRecommendationInput = {
       wardrobeItems: wardrobeItems.map((i) => ({
         id: i.id,
@@ -84,6 +98,7 @@ export class RecommendationService {
       occasion: req.occasion,
       styleGoal: req.styleGoal,
       constraints: req.constraints ?? [],
+      memoryContext,
     };
 
     const result = await this.outfitRecommendationSkill.recommend(input);
@@ -172,7 +187,7 @@ export class RecommendationService {
   }
 
   /**
-   * 买前判断 — 用户上传商品图片，AI 结合衣橱判断是否值得购买
+   * 买前判断 — 用户上传商品图片，AI 结合衣橱+记忆判断是否值得购买
    */
   async purchaseEvaluate(
     userId: string,
@@ -185,7 +200,18 @@ export class RecommendationService {
       throw new NotFoundException('衣橱里还没有衣服，先去添加几件吧');
     }
 
-    // 2. 获取用户画像
+    // 2. 读取用户长期记忆（AI 调用前必须先读取记忆）
+    let memoryContext: AIMemoryContext | null = null;
+    try {
+      memoryContext = await this.memoryService.buildAIContext(userId, 'purchase_evaluate');
+      this.logger.log(
+        `买前判断已加载用户记忆 | userId: ${userId} | 记忆摘要: ${memoryContext.memorySummary ? '有' : '无'}`,
+      );
+    } catch (err) {
+      this.logger.warn(`读取用户记忆失败（不影响主流程）: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // 3. 从记忆中提取用户画像
     let userProfile: PurchaseEvaluationResult['matchedWardrobeItems'] | undefined;
     try {
       const bodyProfile = await this.userService.getBodyProfile(userId);
@@ -199,11 +225,12 @@ export class RecommendationService {
       // 用户画像非必需，获取失败不影响主流程
     }
 
-    // 3. 调用 AI skill
+    // 4. 调用 AI skill（注入记忆上下文）
     const result = await this.purchaseEvaluationSkill.evaluate({
       imageBase64,
       wardrobeItems,
       userProfile: userProfile as any,
+      memoryContext,
     });
 
     return result;

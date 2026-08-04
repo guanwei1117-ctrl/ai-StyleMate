@@ -1,9 +1,65 @@
 import { PurchaseEvaluationInput } from './purchase-evaluation.dto';
+import type { AIMemoryContext } from '../../memory/memory.dto';
+
+/**
+ * 构建用户记忆上下文文本（买前判断专用）
+ */
+function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string {
+  if (!ctx) return '## 用户长期记忆\n（暂无记忆数据）\n';
+
+  const lines: string[] = ['## 用户长期记忆'];
+
+  if (ctx.memorySummary) {
+    lines.push(`### AI 总结\n${ctx.memorySummary}`);
+  }
+
+  const p = ctx.styleProfile as any;
+  if (p) {
+    const profileLines: string[] = [];
+    if (p.suitableStyles?.length) profileLines.push(`适合风格：${p.suitableStyles.join('、')}`);
+    if (p.likedStyles?.length) profileLines.push(`喜欢风格：${p.likedStyles.join('、')}`);
+    if (p.dislikedStyles?.length) profileLines.push(`不喜欢风格：${p.dislikedStyles.join('、')}`);
+    if (p.preferredColors?.length) profileLines.push(`偏好颜色：${p.preferredColors.join('、')}`);
+    if (p.dislikedColors?.length) profileLines.push(`不喜欢颜色：${p.dislikedColors.join('、')}`);
+    if (p.bodyType) profileLines.push(`体型：${p.bodyType}`);
+    if (p.bodyConcerns?.length) profileLines.push(`身材顾虑：${p.bodyConcerns.join('、')}`);
+    if (p.avoidRules?.length) {
+      const avoids = p.avoidRules
+        .filter((r: any) => r.weight > 0)
+        .map((r: any) => r.rule);
+      if (avoids.length) profileLines.push(`避坑规则：\n${avoids.map((a: string) => `  - ${a}`).join('\n')}`);
+    }
+    if (profileLines.length) {
+      lines.push(`### 用户画像\n${profileLines.join('\n')}`);
+    }
+  }
+
+  if (ctx.recentFeedbackSummary) {
+    lines.push(`### 最近反馈\n${ctx.recentFeedbackSummary}`);
+  }
+
+  if (ctx.currentIntent) {
+    const ci = ctx.currentIntent as any;
+    const ciLines: string[] = [];
+    if (ci.lookingFor) ciLines.push(`正在寻找：${ci.lookingFor}`);
+    if (ci.targetOccasion) ciLines.push(`目标场景：${ci.targetOccasion}`);
+    if (ci.budgetRange?.max) ciLines.push(`预算上限：${ci.budgetRange.max}元`);
+    if (ciLines.length) {
+      lines.push(`### 当前意图\n${ciLines.join('\n')}`);
+    }
+  }
+
+  lines.push(
+    `\n### 重要提示\n请根据用户记忆判断：如果商品属于用户不喜欢的颜色/风格，或违反避坑规则，应降低评分。如果商品正好匹配用户当前意图（正在寻找的品类），应提高评分。`,
+  );
+
+  return lines.join('\n') + '\n';
+}
 
 /**
  * 构建买前判断 System Prompt
  *
- * 将商品图片信息 + 用户衣橱数据 + 用户画像注入 prompt
+ * 将商品图片信息 + 用户衣橱数据 + 用户画像 + 长期记忆注入 prompt
  */
 export function buildPurchaseEvaluationPrompt(input: PurchaseEvaluationInput): string {
   const itemsJson = JSON.stringify(
@@ -30,16 +86,19 @@ export function buildPurchaseEvaluationPrompt(input: PurchaseEvaluationInput): s
   );
 
   const profileText = input.userProfile
-    ? `## 用户画像
+    ? `## 用户基础画像
 体型：${input.userProfile.bodyShape ?? '未知'}
 风格偏好：${input.userProfile.stylePreferences?.join('、') ?? '未知'}
 穿衣目标：${input.userProfile.dressingGoals?.join('、') ?? '未知'}`
-    : '## 用户画像\n（无）';
+    : '## 用户基础画像\n（无）';
+
+  const memoryText = buildMemoryContextText(input.memoryContext);
 
   return `你是 StyleMate 的专业买前顾问。用户上传了一件商品的图片，想判断是否值得购买。
 
-你的任务不是简单回答"好看不好看"，而是要结合用户已有衣橱进行深度分析。
+你的任务不是简单回答"好看不好看"，而是要结合用户已有衣橱和长期记忆进行深度分析。
 
+${memoryText}
 ## 用户衣橱单品
 以下是用户衣橱中已有的衣物数据（含穿着次数和最后穿着时间）：
 ${itemsJson}
@@ -64,6 +123,7 @@ ${profileText}
 - 如果用户已有类似单品（同色系、同品类、同风格），标记为重复风险高。
 - 颜色选择上，结合用户肤色和已有衣橱色系推荐。
 - 给出具体的搭配建议：这件可以搭用户衣橱里的哪几件，组成什么风格的穿搭。
+- 必须遵守用户记忆中的避坑规则和不喜欢的颜色/风格。
 
 ## 输出要求
 必须只返回 JSON，不要 markdown，不要任何额外文字。结构如下：

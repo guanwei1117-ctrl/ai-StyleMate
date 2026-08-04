@@ -18,6 +18,8 @@ export interface PurchaseEvaluationInput {
     stylePreferences?: string[];
     dressingGoals?: string[];
   };
+  /** 长期记忆上下文（AI 调用前读取） */
+  memoryContext?: import('../../memory/memory.dto').AIMemoryContext | null;
 }
 
 export interface MatchedWardrobeItem {

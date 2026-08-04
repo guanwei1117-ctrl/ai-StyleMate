@@ -9,7 +9,7 @@ export class UserController {
 
   @Post()
   @ApiOperation({ summary: '创建用户' })
-  create(@Body() body: { nickname: string; phone?: string }) {
+  create(@Body() body: { id?: string; nickname?: string; phone?: string }) {
     return this.userService.create(body);
   }
 

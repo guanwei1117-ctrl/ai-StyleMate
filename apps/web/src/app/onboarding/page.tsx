@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { syncProfileToServer } from '@/lib/profile-sync';
 import { deriveBodyShape } from '@/lib/body-analysis';
 import { matchStyles } from '@/lib/style-matcher';
 import {
@@ -246,6 +247,7 @@ function OnboardingContent() {
       setBodyShape(shape);
       setResults(aiMatched);
       saveStyleProfile(createStoredStyleProfile(answers, shape, aiMatched, ai));
+      await syncProfileToServer(answers, aiMatched);
       setAnalysisStatus('idle');
       setStep(FLOW.length);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -261,6 +263,7 @@ function OnboardingContent() {
     setBodyShape(shape);
     setResults(matched);
     saveStyleProfile(createStoredStyleProfile(answers, shape, matched));
+    await syncProfileToServer(answers, matched);
     setAnalysisStatus('idle');
     setStep(FLOW.length);
     window.scrollTo({ top: 0, behavior: 'smooth' });

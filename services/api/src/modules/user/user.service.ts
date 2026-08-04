@@ -19,8 +19,23 @@ export class UserService {
     private readonly lifestyleProfileRepo: Repository<UserLifestyleProfile>,
   ) {}
 
-  async create(data: Partial<User>): Promise<User> {
-    const user = this.userRepo.create(data);
+  async create(
+    data: { id?: string; nickname?: string; phone?: string },
+  ): Promise<User> {
+    if (data.id) {
+      const existing = await this.userRepo.findOne({ where: { id: data.id } });
+      if (existing) return existing;
+      const user = this.userRepo.create({
+        id: data.id,
+        nickname: data.nickname,
+        phone: data.phone,
+      });
+      return this.userRepo.save(user);
+    }
+    const user = this.userRepo.create({
+      nickname: data.nickname,
+      phone: data.phone,
+    });
     return this.userRepo.save(user);
   }
 
@@ -85,5 +100,17 @@ export class UserService {
       stylePreference,
       lifestyleProfile,
     };
+  }
+
+  async getBodyProfile(userId: string): Promise<UserBodyProfile | null> {
+    return this.bodyProfileRepo.findOne({ where: { userId } });
+  }
+
+  async getStylePreference(userId: string): Promise<UserStylePreference | null> {
+    return this.stylePrefRepo.findOne({ where: { userId } });
+  }
+
+  async getLifestyleProfile(userId: string): Promise<UserLifestyleProfile | null> {
+    return this.lifestyleProfileRepo.findOne({ where: { userId } });
   }
 }
