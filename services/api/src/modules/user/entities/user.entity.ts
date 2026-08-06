@@ -32,6 +32,9 @@ export class User {
   @Column({ type: 'date', nullable: true })
   birthday: string;
 
+  @Column({ name: 'password_hash', nullable: true, select: false })
+  passwordHash: string;
+
   @Column({ type: 'decimal', precision: 5, scale: 1, nullable: true })
   height: number;
 

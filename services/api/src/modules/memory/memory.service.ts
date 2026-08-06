@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
+import { LLMFactory } from '../llm/llm-factory';
 import { UserStyleProfile } from './entities/user-style-profile.entity';
 import { OutfitFeedback } from './entities/outfit-feedback.entity';
 import { UserCurrentIntent } from './entities/user-current-intent.entity';
@@ -29,6 +30,7 @@ export class MemoryService {
     private readonly summaryRepo: Repository<UserMemorySummary>,
     @InjectRepository(WardrobeItem)
     private readonly wardrobeItemRepo: Repository<WardrobeItem>,
+    private readonly llmFactory: LLMFactory,
   ) {}
 
   // ==================== 用户长期画像 ====================
@@ -315,6 +317,88 @@ export class MemoryService {
     }
   }
 
+  // ==================== AI 自动行为合并 ====================
+
+  /**
+   * 基于用户行为自动分析并合并记忆
+   *
+   * 当用户使用推荐/评分/购买评估等功能时调用，
+   * 由 AI 分析行为背后的偏好变化并自动更新记忆。
+   */
+  async autoMergeFromBehavior(
+    userId: string,
+    behavior: {
+      action: string;        // 用户行为描述，如 "采纳了AI推荐的日系通勤穿搭"
+      styles?: string[];     // 涉及的风格
+      colors?: string[];     // 涉及的颜色
+      occasion?: string;     // 场景
+      outfitDescription?: string; // 穿搭描述
+      extraContext?: string; // 额外上下文
+    },
+  ): Promise<void> {
+    const profile = await this.getStyleProfile(userId);
+
+    // 构建当前记忆摘要
+    const profileSummary = profile
+      ? [
+          profile.likedStyles?.length ? `喜欢：${profile.likedStyles.join('、')}` : '',
+          profile.dislikedStyles?.length ? `不喜欢：${profile.dislikedStyles.join('、')}` : '',
+          profile.preferredColors?.length ? `偏好颜色：${profile.preferredColors.join('、')}` : '',
+          profile.dislikedColors?.length ? `避开颜色：${profile.dislikedColors.join('、')}` : '',
+          profile.bodyConcerns?.length ? `身材顾虑：${profile.bodyConcerns.join('、')}` : '',
+          profile.dressGoals?.length ? `目标：${profile.dressGoals.join('、')}` : '',
+        ].filter(Boolean).join('；')
+      : '（新用户，暂无记忆）';
+
+    const prompt = `你是 StyleMate 记忆合并助手。根据用户最新行为，判断需要更新哪些长期穿搭记忆。
+
+## 当前记忆
+${profileSummary || '（暂无）'}
+
+## 最新行为
+- 动作：${behavior.action}
+${behavior.styles?.length ? `- 涉及风格：${behavior.styles.join('、')}` : ''}
+${behavior.colors?.length ? `- 涉及颜色：${behavior.colors.join('、')}` : ''}
+${behavior.occasion ? `- 场景：${behavior.occasion}` : ''}
+${behavior.outfitDescription ? `- 穿搭：${behavior.outfitDescription}` : ''}
+${behavior.extraContext ? `- 补充：${behavior.extraContext}` : ''}
+
+## 规则
+- 只输出需要新增/删除的字段，已有的正确记忆不要重复
+- likedStyles/dislikedStyles 用中文风格标签
+- preferredColors/dislikedColors 用中文色名
+- 如果是正向行为（采纳/喜欢），加到 liked/preferred；负向（跳过/拒绝），加到 disliked
+- avoidRules 只在明确需要避坑时才输出
+
+只返回 JSON：
+{"likedStyles":[],"dislikedStyles":[],"preferredColors":[],"dislikedColors":[],"bodyConcerns":[],"dressGoals":[],"commonOccasions":[],"avoidRules":[{"rule":"","source":"ai:behavior","weight":1}]}`;
+
+    try {
+      const response = await this.llmFactory.chat(
+        [{ role: 'user', content: prompt }],
+        { temperature: 0.3, maxTokens: 400, timeoutMs: 15000 },
+      );
+
+      const jsonStr = response.content.replace(/```(?:json)?\s*\n?/g, '').trim();
+      const merge = JSON.parse(jsonStr);
+
+      // 过滤空数组
+      const hasChanges = Object.values(merge).some(
+        (v) => Array.isArray(v) && v.length > 0,
+      );
+      if (!hasChanges) return;
+
+      await this.updateStyleProfile(userId, merge);
+      this.logger.log(
+        `行为自动合并完成 | userId: ${userId} | 动作: ${behavior.action} | 模型: ${response.model}`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `行为自动合并失败（静默）: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   // ==================== 当前意图 ====================
 
   async getCurrentIntent(userId: string): Promise<UserCurrentIntent | null> {
@@ -343,108 +427,81 @@ export class MemoryService {
   /**
    * 刷新 AI 总结记忆
    *
-   * 基于用户画像 + 衣柜 + 反馈，生成或更新摘要文本。
-   * 这里使用规则拼装而非调用 LLM（避免每次刷新都消耗 AI 配额），
-   * 如果需要更智能的总结，可后续接入 LLM。
+   * 收集用户画像 + 衣柜 + 反馈 + 意图，交由 LLM 生成智能总结。
+   * LLM 失败时回退到规则拼接，保证可用性。
    */
   async refreshMemorySummary(userId: string): Promise<UserMemorySummary> {
-    const profile = await this.getStyleProfile(userId);
-    const intent = await this.getCurrentIntent(userId);
-    const feedbacks = await this.getRecentFeedbacks(userId, 50);
-    const wardrobeItems = await this.wardrobeItemRepo.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+    const [profile, intent, feedbacks, wardrobeItems] = await Promise.all([
+      this.getStyleProfile(userId),
+      this.getCurrentIntent(userId),
+      this.getRecentFeedbacks(userId, 50),
+      this.wardrobeItemRepo.find({ where: { userId }, order: { createdAt: 'DESC' } }),
+    ]);
 
-    const lines: string[] = [];
+    // 构建数据摘要
+    const data: string[] = [];
 
-    // 用户画像
     if (profile) {
-      if (profile.likedStyles?.length) {
-        lines.push(`用户喜欢的风格：${profile.likedStyles.join('、')}。`);
-      }
-      if (profile.dislikedStyles?.length) {
-        lines.push(`不喜欢的风格：${profile.dislikedStyles.join('、')}。`);
-      }
-      if (profile.suitableStyles?.length) {
-        lines.push(`适合的风格：${profile.suitableStyles.join('、')}。`);
-      }
-      if (profile.preferredColors?.length) {
-        lines.push(`偏好的颜色：${profile.preferredColors.join('、')}。`);
-      }
-      if (profile.dislikedColors?.length) {
-        lines.push(`不喜欢的颜色：${profile.dislikedColors.join('、')}。`);
-      }
-      if (profile.bodyConcerns?.length) {
-        lines.push(`身材顾虑：${profile.bodyConcerns.join('、')}。`);
-      }
-      if (profile.dressGoals?.length) {
-        lines.push(`穿搭目标：${profile.dressGoals.join('、')}。`);
-      }
-      if (profile.avoidRules?.length) {
-        const avoidTexts = profile.avoidRules
-          .filter((r) => r.weight > 0)
-          .map((r) => r.rule);
-        if (avoidTexts.length) {
-          lines.push(`避坑规则：${avoidTexts.join('；')}。`);
-        }
-      }
+      const parts: string[] = [];
+      if (profile.likedStyles?.length) parts.push(`喜欢的风格：${profile.likedStyles.join('、')}`);
+      if (profile.dislikedStyles?.length) parts.push(`不喜欢的风格：${profile.dislikedStyles.join('、')}`);
+      if (profile.suitableStyles?.length) parts.push(`适合的风格：${profile.suitableStyles.join('、')}`);
+      if (profile.preferredColors?.length) parts.push(`偏好颜色：${profile.preferredColors.join('、')}`);
+      if (profile.dislikedColors?.length) parts.push(`避开颜色：${profile.dislikedColors.join('、')}`);
+      if (profile.bodyConcerns?.length) parts.push(`身材顾虑：${profile.bodyConcerns.join('、')}`);
+      if (profile.dressGoals?.length) parts.push(`穿搭目标：${profile.dressGoals.join('、')}`);
+      if (profile.commonOccasions?.length) parts.push(`日常场景：${profile.commonOccasions.join('、')}`);
+      if (profile.bodyType) parts.push(`体型：${profile.bodyType}`);
+      if (profile.skinTone) parts.push(`肤色：${profile.skinTone}`);
+      if (parts.length) data.push(`【风格画像】\n${parts.join('\n')}`);
     }
 
-    // 衣柜摘要
     if (wardrobeItems.length > 0) {
-      const categoryCount: Record<string, number> = {};
-      wardrobeItems.forEach((item) => {
-        categoryCount[item.category] = (categoryCount[item.category] || 0) + 1;
-      });
-      const topColors = this.getTopColors(wardrobeItems);
-      lines.push(
-        `衣橱共 ${wardrobeItems.length} 件，品类分布：${Object.entries(categoryCount)
-          .map(([k, v]) => `${k} ${v}件`)
-          .join('、')}。主色调：${topColors.join('、')}。`,
-      );
-
-      // 闲置单品
-      const idle = wardrobeItems.filter(
-        (i) => !i.lastWornAt || this.daysBetween(i.lastWornAt, new Date()) > 60,
-      );
-      if (idle.length > 0) {
-        lines.push(`有 ${idle.length} 件单品超过 60 天未穿，可能需要清理或重新搭配。`);
-      }
+      const cats: Record<string, number> = {};
+      wardrobeItems.forEach((i) => { cats[i.category] = (cats[i.category] || 0) + 1; });
+      const idle = wardrobeItems.filter((i) => !i.lastWornAt || this.daysBetween(i.lastWornAt, new Date()) > 60);
+      data.push(`【衣橱】共 ${wardrobeItems.length} 件，${Object.entries(cats).map(([k, v]) => `${k}${v}件`).join('、')}。${idle.length > 0 ? `${idle.length} 件超 60 天未穿。` : ''}`);
     }
 
-    // 反馈摘要
     if (feedbacks.length > 0) {
-      const typeCount: Record<string, number> = {};
-      feedbacks.forEach((f) => {
-        typeCount[f.feedbackType] = (typeCount[f.feedbackType] || 0) + 1;
-      });
-      const feedbackTexts = Object.entries(typeCount)
-        .filter(([type]) => type !== 'like')
-        .map(([type, count]) => `${this.feedbackTypeLabel(type)} ${count}次`);
-      if (feedbackTexts.length) {
-        lines.push(`近期反馈：${feedbackTexts.join('、')}。`);
-      }
+      const tc: Record<string, number> = {};
+      feedbacks.forEach((f) => { tc[f.feedbackType] = (tc[f.feedbackType] || 0) + 1; });
+      data.push(`【近期反馈】${Object.entries(tc).map(([t, c]) => `${this.feedbackTypeLabel(t)}${c}次`).join('、')}`);
     }
 
-    // 当前意图
-    if (intent?.lookingFor) {
-      lines.push(`近期想购买：${intent.lookingFor}。`);
-    }
-    if (intent?.targetOccasion) {
-      lines.push(`目标场景：${intent.targetOccasion}。`);
+    if (intent?.lookingFor || intent?.targetOccasion) {
+      data.push(`【当前意图】${[intent.lookingFor ? `想买：${intent.lookingFor}` : '', intent.targetOccasion ? `目标场景：${intent.targetOccasion}` : ''].filter(Boolean).join('；')}`);
     }
 
-    // 计算置信度
-    let confidence = 0.1;
-    if (profile) confidence += 0.3;
-    if (wardrobeItems.length > 0) confidence += 0.2;
-    if (feedbacks.length > 0) confidence += 0.2;
-    if (intent) confidence += 0.1;
-    if (lines.length > 5) confidence += 0.1;
-    confidence = Math.min(confidence, 0.99);
+    // 尝试 LLM 生成
+    let summary: string;
+    let confidence: number;
+    try {
+      const prompt = `你是 StyleMate 的穿搭记忆总结助手。根据以下用户数据，生成一段 150 字以内的穿搭偏好总结，帮助推荐系统理解用户。
 
-    const summary = lines.length > 0 ? lines.join('\n') : '暂无足够数据生成摘要。';
+${data.join('\n\n') || '（新用户，数据极少）'}
+
+要求：
+- 第一句概括用户的核心穿搭偏好
+- 提及风格倾向、颜色偏好、身材关注点
+- 如果有数据，指出衣橱特征（品类是否均衡、有无闲置）
+- 语气简洁专业，不编造不存在的信息
+- 只返回总结文本，不要 markdown`;
+
+      const response = await this.llmFactory.chat(
+        [{ role: 'user', content: prompt }],
+        { temperature: 0.3, maxTokens: 300, timeoutMs: 15000 },
+      );
+      summary = response.content.trim();
+      confidence = this.computeMemoryConfidence(profile, intent, feedbacks, wardrobeItems);
+      this.logger.log(`LLM 记忆总结生成完成 | userId: ${userId} | 模型: ${response.model}`);
+    } catch (err) {
+      // 回退到规则拼接
+      this.logger.warn(`LLM 记忆总结失败，回退规则拼接: ${err instanceof Error ? err.message : String(err)}`);
+      const lines = this.buildRuleBasedSummary(profile, intent, feedbacks, wardrobeItems);
+      summary = lines.length > 0 ? lines.join('\n') : '暂无足够数据生成摘要。';
+      confidence = Math.min(0.5, this.computeMemoryConfidence(profile, intent, feedbacks, wardrobeItems));
+    }
 
     let record = await this.summaryRepo.findOne({ where: { userId } });
     if (!record) {
@@ -454,6 +511,46 @@ export class MemoryService {
       record.confidence = confidence;
     }
     return this.summaryRepo.save(record);
+  }
+
+  private computeMemoryConfidence(
+    profile: UserStyleProfile | null,
+    intent: UserCurrentIntent | null,
+    feedbacks: OutfitFeedback[],
+    wardrobeItems: WardrobeItem[],
+  ): number {
+    let c = 0.1;
+    if (profile) c += 0.3;
+    if (wardrobeItems.length > 0) c += 0.2;
+    if (feedbacks.length > 0) c += 0.2;
+    if (intent) c += 0.1;
+    return Math.min(c, 0.99);
+  }
+
+  /** 规则拼接回退（LLM 不可用时使用） */
+  private buildRuleBasedSummary(
+    profile: UserStyleProfile | null,
+    intent: UserCurrentIntent | null,
+    feedbacks: OutfitFeedback[],
+    wardrobeItems: WardrobeItem[],
+  ): string[] {
+    const lines: string[] = [];
+    if (profile) {
+      if (profile.likedStyles?.length) lines.push(`用户喜欢的风格：${profile.likedStyles.join('、')}。`);
+      if (profile.dislikedStyles?.length) lines.push(`不喜欢的风格：${profile.dislikedStyles.join('、')}。`);
+      if (profile.suitableStyles?.length) lines.push(`适合的风格：${profile.suitableStyles.join('、')}。`);
+      if (profile.preferredColors?.length) lines.push(`偏好的颜色：${profile.preferredColors.join('、')}。`);
+      if (profile.dislikedColors?.length) lines.push(`不喜欢的颜色：${profile.dislikedColors.join('、')}。`);
+      if (profile.bodyConcerns?.length) lines.push(`身材顾虑：${profile.bodyConcerns.join('、')}。`);
+      if (profile.dressGoals?.length) lines.push(`穿搭目标：${profile.dressGoals.join('、')}。`);
+    }
+    if (wardrobeItems.length > 0) {
+      const cats: Record<string, number> = {};
+      wardrobeItems.forEach((i) => { cats[i.category] = (cats[i.category] || 0) + 1; });
+      lines.push(`衣橱共 ${wardrobeItems.length} 件，${Object.entries(cats).map(([k, v]) => `${k}${v}件`).join('、')}。`);
+    }
+    if (intent?.lookingFor) lines.push(`近期想购买：${intent.lookingFor}。`);
+    return lines;
   }
 
   // ==================== AI 上下文组装 ====================

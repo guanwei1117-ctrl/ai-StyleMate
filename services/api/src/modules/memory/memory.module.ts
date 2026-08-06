@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { LlmModule } from '../llm/llm.module';
 import { MemoryController } from './memory.controller';
 import { MemoryService } from './memory.service';
 import { UserStyleProfile } from './entities/user-style-profile.entity';
@@ -17,6 +18,7 @@ import { WardrobeItem } from '../wardrobe/entities/wardrobe-item.entity';
       UserMemorySummary,
       WardrobeItem,
     ]),
+    LlmModule,
   ],
   controllers: [MemoryController],
   providers: [MemoryService],

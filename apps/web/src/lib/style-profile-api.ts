@@ -4,6 +4,7 @@ import type { StyleCard } from '../data/styles';
 import { DIMENSION_LABELS, STYLES } from '../data/styles';
 import { extractStyleIntent } from './style-profile-storage';
 import { buildApiErrorMessage } from './api-error';
+import { getLocalUserId } from './wardrobe-api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -82,6 +83,7 @@ export function buildStyleProfilePayload(
   });
 
   return {
+    userId: getLocalUserId(),
     profile: {
       gender: answers.gender,
       ageGroup: answers.ageGroup,

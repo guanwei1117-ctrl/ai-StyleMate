@@ -45,6 +45,20 @@ export class UserService {
     return user;
   }
 
+  /** 设置用户密码（仅写入，不可读取） */
+  async setPasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await this.userRepo.update(userId, { passwordHash } as any);
+  }
+
+  /** 读取密码哈希（仅供 auth 验证使用） */
+  async getPasswordHash(userId: string): Promise<string | null> {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      select: ['id', 'passwordHash' as keyof User],
+    });
+    return (user as any)?.passwordHash ?? null;
+  }
+
   async findByPhone(phone: string): Promise<User | null> {
     return this.userRepo.findOne({ where: { phone } });
   }

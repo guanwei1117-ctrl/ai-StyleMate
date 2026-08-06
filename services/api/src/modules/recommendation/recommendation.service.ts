@@ -144,7 +144,20 @@ export class RecommendationService {
       isAiGenerated: true,
     });
 
-    return this.outfitRepo.save(outfit);
+    const saved = await this.outfitRepo.save(outfit);
+
+    // 用户保存穿搭 → 自动更新记忆（best-effort，不影响主流程）
+    try {
+      await this.memoryService.autoMergeFromBehavior(userId, {
+        action: `采纳了AI推荐的「${data.plan.title}」穿搭方案（${data.plan.type === 'safe' ? '稳妥' : data.plan.type === 'flattering' ? '显瘦显高' : '氛围感'}）`,
+        occasion: data.occasion,
+        outfitDescription: data.plan.reason,
+      });
+    } catch {
+      // 静默处理
+    }
+
+    return saved;
   }
 
   /**
@@ -232,6 +245,17 @@ export class RecommendationService {
       userProfile: userProfile as any,
       memoryContext,
     });
+
+    // 用户进行购买评估 → 自动更新记忆（best-effort，不影响主流程）
+    try {
+      await this.memoryService.autoMergeFromBehavior(userId, {
+        action: `进行了购买评估，决策：${result.decision === 'buy' ? '建议购买' : result.decision === 'consider' ? '可考虑' : '建议跳过'}（评分 ${result.score}）`,
+        colors: result.betterColors,
+        extraContext: result.reasons?.join('；'),
+      });
+    } catch {
+      // 静默处理
+    }
 
     return result;
   }

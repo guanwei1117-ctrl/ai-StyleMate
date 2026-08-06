@@ -7,6 +7,7 @@ import { getBloggerById } from './bloggers/blogger-profiles';
 import { buildDimensionsPrompt } from './prompts/scoring-dimensions';
 import { StructuredOutfitSkill } from '../ai-skills/structured-outfit/structured-outfit.skill';
 import { StructuredOutfitResult } from '../ai-skills/structured-outfit/structured-outfit.dto';
+import { MemoryService } from '../memory/memory.service';
 import {
   EvaluateOutfitResponse,
   DimensionScore,
@@ -33,6 +34,7 @@ export class ScoringService {
   constructor(
     private readonly llmFactory: LLMFactory,
     private readonly structuredOutfitSkill: StructuredOutfitSkill,
+    private readonly memoryService: MemoryService,
   ) {}
 
   async analyzeStyleProfile(dto: AnalyzeStyleProfileRequestDto) {
@@ -78,6 +80,16 @@ export class ScoringService {
 
     const parsed = this.parseStyleProfileResponse(response.content);
     this.logger.log(`AI 风格档案分析完成 | 耗时 ${Date.now() - startTime}ms | 模型: ${response.model}`);
+
+    // 自动将 AI 分析结果写入长期记忆（best-effort，不影响主流程）
+    if (dto.userId && parsed.memoryMerge) {
+      try {
+        await this.memoryService.updateStyleProfile(dto.userId, parsed.memoryMerge);
+        this.logger.log(`已自动更新用户 ${dto.userId} 的长期记忆`);
+      } catch (err) {
+        this.logger.warn(`自动写入记忆失败（不影响分析结果）: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
 
     return {
       aiEnabled: true,
@@ -205,7 +217,18 @@ export class ScoringService {
     }
   ],
   "avoidanceAdvice": ["明确不建议的版型/元素/搭法"],
-  "nextActions": ["下一步可执行建议"]
+  "nextActions": ["下一步可执行建议"],
+  "memoryMerge": {
+    "suitableStyles": ["适合的风格 ID，仅限候选中的 styleId"],
+    "likedStyles": ["用户主观喜欢的风格中文标签"],
+    "dislikedStyles": ["用户不喜欢的风格中文标签"],
+    "preferredColors": ["推荐的颜色，中文色名"],
+    "dislikedColors": ["不建议的颜色"],
+    "bodyConcerns": ["身材顾虑，如 显胯宽、腿型修饰"],
+    "dressGoals": ["穿搭目标，如 显高、通勤得体"],
+    "commonOccasions": ["日常场景，如 通勤、周末出街"],
+    "avoidRules": [{"rule": "避免的穿搭规则", "source": "ai:style_analysis", "weight": 1}]
+  }
 }`;
   }
 
@@ -271,6 +294,31 @@ ${JSON.stringify(candidates, null, 2)}`;
       recommendedStyles,
       avoidanceAdvice: Array.isArray(parsed.avoidanceAdvice) ? parsed.avoidanceAdvice.map(String).slice(0, 6) : [],
       nextActions: Array.isArray(parsed.nextActions) ? parsed.nextActions.map(String).slice(0, 6) : [],
+      memoryMerge: this.parseMemoryMerge(parsed.memoryMerge),
+    };
+  }
+
+  /** 解析并清洗 AI 返回的 memoryMerge 字段，确保类型安全 */
+  private parseMemoryMerge(raw: any) {
+    if (!raw || typeof raw !== 'object') return null;
+    const arr = (v: unknown) => Array.isArray(v) ? v.map(String).filter(Boolean) : [];
+    const rules = (v: unknown) => Array.isArray(v)
+      ? v.filter((r: any) => r && typeof r.rule === 'string').map((r: any) => ({
+          rule: String(r.rule),
+          source: String(r.source || 'ai:style_analysis'),
+          weight: Math.max(0, Math.min(10, Number(r.weight ?? 1))),
+        }))
+      : [];
+    return {
+      suitableStyles: arr(raw.suitableStyles),
+      likedStyles: arr(raw.likedStyles),
+      dislikedStyles: arr(raw.dislikedStyles),
+      preferredColors: arr(raw.preferredColors),
+      dislikedColors: arr(raw.dislikedColors),
+      bodyConcerns: arr(raw.bodyConcerns),
+      dressGoals: arr(raw.dressGoals),
+      commonOccasions: arr(raw.commonOccasions),
+      avoidRules: rules(raw.avoidRules),
     };
   }
 

@@ -70,10 +70,10 @@ export class StyleCandidateDto {
   @IsString()
   philosophy?: string;
 
-  @ApiPropertyOptional({ description: '风格难度' })
+  @ApiPropertyOptional({ description: '风格难度 1-5', example: 3 })
   @IsOptional()
-  @IsString()
-  difficulty?: string;
+  @IsNumber()
+  difficulty?: number;
 
   @ApiPropertyOptional({ description: '廓形' })
   @IsOptional()
@@ -236,4 +236,9 @@ export class AnalyzeStyleProfileRequestDto {
   @IsOptional()
   @IsString()
   bloggerId?: string;
+
+  @ApiPropertyOptional({ description: '用户 ID（选填，传入后 AI 分析结果自动写入长期记忆）' })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }

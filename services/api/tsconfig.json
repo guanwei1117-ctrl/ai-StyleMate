@@ -4,14 +4,12 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./dist",
-    "rootDirs": ["./src", "../../packages/shared/src"],
+    "rootDir": "./src",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "target": "ES2021",
     "strictPropertyInitialization": false,
-    "paths": {
-      "@stylemate/shared": ["../../packages/shared/src"]
-    }
+    "paths": {}
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
