@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { LogIn, Menu, User, X } from 'lucide-react';
 import AboutDialog from './about-dialog';
+import { isAuthenticated, logout } from '@/lib/auth';
 
 type NavItem = { label: string; href: string } | { label: string; dialog: true };
 
@@ -11,7 +13,6 @@ const NAV_LINKS: NavItem[] = [
   { label: '风格百科', href: '/styles' },
   { label: '风格测评', href: '/onboarding' },
   { label: '我的档案', href: '/onboarding?view=history' },
-  { label: '灵感墙', href: '#trending' },
   { label: '衣橱', href: '/wardrobe' },
   { label: 'AI 记忆', href: '/memory' },
   { label: '关于', dialog: true },
@@ -25,8 +26,10 @@ export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
+    setAuthed(isAuthenticated());
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -63,7 +66,7 @@ export default function Navigation() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((item) =>
+            {NAV_LINKS.filter(item => !('href' in item && item.href === '/memory')).map((item) =>
               isDialogItem(item) ? (
                 <button
                   key={item.label}
@@ -79,6 +82,16 @@ export default function Navigation() {
                 </a>
               ),
             )}
+            <Link
+              href="/auth"
+              className={`${linkClass} inline-flex items-center gap-1.5`}
+            >
+              {authed ? (
+                <><User size={14} /><span>我的</span></>
+              ) : (
+                <><LogIn size={14} /><span>登录</span></>
+              )}
+            </Link>
           </div>
 
           {/* Mobile toggle */}
@@ -105,7 +118,7 @@ export default function Navigation() {
             className="fixed inset-0 z-40 bg-creme-100/95 backdrop-blur-xl pt-20"
           >
             <div className="flex flex-col items-center justify-center h-full gap-8 -mt-16">
-              {NAV_LINKS.map((item, i) => {
+              {NAV_LINKS.filter(item => !('href' in item && item.href === '/memory')).map((item, i) => {
                 const handle = () => {
                   setMobileOpen(false);
                   if (isDialogItem(item)) setAboutOpen(true);

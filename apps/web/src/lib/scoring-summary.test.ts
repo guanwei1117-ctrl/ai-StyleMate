@@ -4,8 +4,6 @@ import { buildScoringSummaryText } from './scoring-summary';
 import type { EvaluateOutfitResponse } from './scoring-types';
 
 const result: EvaluateOutfitResponse = {
-  bloggerId: 'test-blogger',
-  bloggerName: '测试博主',
   greeting: '整体还不错，但比例可以更利落。',
   overallComment: '这套 Look 色彩干净，鞋包可以再加强呼应。',
   dimensions: [
@@ -20,7 +18,6 @@ test('builds a readable scoring summary with average score and top dimensions', 
   const summary = buildScoringSummaryText(result);
 
   assert.match(summary, /StyleMate 今日 Look 诊断/);
-  assert.match(summary, /诊断视角：测试博主/);
   assert.match(summary, /平均分：82/);
   assert.match(summary, /色彩 88/);
   assert.match(summary, /比例 76/);

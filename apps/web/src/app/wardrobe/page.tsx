@@ -10,7 +10,6 @@ import TodayOutfitDialog from '@/components/wardrobe/today-outfit-dialog';
 import PurchaseEvaluationDialog from '@/components/wardrobe/purchase-evaluation-dialog';
 import {
   fetchWardrobeItems,
-  getLocalUserId,
 } from '@/lib/wardrobe-api';
 import {
   WardrobeItem,
@@ -58,8 +57,6 @@ export default function WardrobePage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const userId = typeof window !== 'undefined' ? getLocalUserId() : '';
 
   const countByCategory = (cat: WardrobeCategory) =>
     items.filter((i) => i.category === cat).length;
@@ -187,10 +184,6 @@ export default function WardrobePage() {
             </div>
           )}
 
-          {/* Debug: userId（开发期可见，正式版可移除） */}
-          <p className="mt-16 text-xs text-gray-300">
-            当前用户 ID：{userId}
-          </p>
         </div>
       </div>
       <Footer />

@@ -18,8 +18,6 @@ export interface DimensionScore {
 }
 
 export interface EvaluateOutfitResponse {
-  bloggerName: string;
-  bloggerId: string;
   greeting: string;
   overallComment: string;
   dimensions: DimensionScore[];
@@ -27,14 +25,5 @@ export interface EvaluateOutfitResponse {
   improvements: string[];
 }
 
-export interface BloggerInfo {
-  id: string;
-  name: string;
-  platform: string;
-  avatarUrl?: string;
-  styleSignature: string;
-  description: string;
-}
-
-/** 页面三种状态 */
-export type ScoringState = 'upload' | 'select-blogger' | 'result';
+/** 页面两种状态 */
+export type ScoringState = 'upload' | 'result';

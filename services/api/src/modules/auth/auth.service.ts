@@ -1,17 +1,26 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import * as crypto from 'crypto';
 
+const LEGACY_ID_PREFIX = 'local-';
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
   ) {}
 
-  /** 注册：phone + password → JWT */
-  async register(phone: string, password: string, nickname?: string) {
+  /** 注册：phone + password → JWT。可选 legacyUserId 迁移旧数据 */
+  async register(
+    phone: string,
+    password: string,
+    nickname?: string,
+    legacyUserId?: string,
+  ) {
     const existing = await this.userService.findByPhone(phone);
     if (existing) throw new ConflictException('该手机号已注册');
 
@@ -22,11 +31,24 @@ export class AuthService {
     });
     await this.userService.setPasswordHash(user.id, passwordHash);
 
+    if (legacyUserId?.startsWith(LEGACY_ID_PREFIX)) {
+      try {
+        await this.userService.migrateData(legacyUserId, user.id);
+        this.logger.log(`已迁移旧数据: ${legacyUserId} → ${user.id}`);
+      } catch (err) {
+        this.logger.warn(`数据迁移失败（不影响注册）: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     return this.issueToken(user.id);
   }
 
-  /** 登录：phone + password → JWT */
-  async login(phone: string, password: string) {
+  /** 登录：phone + password → JWT。可选 legacyUserId 迁移旧数据 */
+  async login(
+    phone: string,
+    password: string,
+    legacyUserId?: string,
+  ) {
     const user = await this.userService.findByPhone(phone);
     if (!user) throw new UnauthorizedException('手机号未注册');
 
@@ -36,6 +58,15 @@ export class AuthService {
     }
     if (!this.verifyPassword(password, storedHash)) {
       throw new UnauthorizedException('密码错误');
+    }
+
+    if (legacyUserId?.startsWith(LEGACY_ID_PREFIX)) {
+      try {
+        await this.userService.migrateData(legacyUserId, user.id);
+        this.logger.log(`已迁移旧数据: ${legacyUserId} → ${user.id}`);
+      } catch (err) {
+        this.logger.warn(`数据迁移失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     return this.issueToken(user.id);

@@ -5,6 +5,9 @@ import {
   PurchaseEvaluationResult,
 } from './wardrobe-types';
 import { buildApiErrorMessage } from './api-error';
+import { getCurrentUserId, getAuthToken } from './auth';
+import { compressImage } from './image-compress';
+import { removeBackground, blobToDataUrl } from './remove-background';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -15,47 +18,65 @@ interface ApiResponse<T> {
   data: T;
 }
 
-/**
- * 本地 userId 管理（沿用现有无登录系统方案）
- *
- * 在 localStorage 持久化一个稳定 userId，所有衣柜请求带上。
- */
-const USER_ID_KEY = 'stylemate:wardrobe-user-id';
+/** @deprecated 使用 getCurrentUserId() 替代 */
+export { getCurrentUserId as getLocalUserId };
 
-export function getLocalUserId(): string {
-  if (typeof window === 'undefined') return 'anonymous';
-  let id = window.localStorage.getItem(USER_ID_KEY);
-  if (!id) {
-    id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    window.localStorage.setItem(USER_ID_KEY, id);
-  }
-  return id;
+function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function fileToDataUrl(file: File): Promise<string> {
+async function fileToDataUrl(file: File): Promise<string> {
+  // 压缩后再转 base64，减少 AI API 传输量
+  const compressed = await compressImage(file);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ''));
     reader.onerror = () => reject(new Error('图片读取失败'));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressed);
   });
 }
 
 /**
- * AI 识别衣物图片并落库
+ * AI 识别衣物图片并落库（含本地抠图）
+ *
+ * 流程：压缩 → 抠图（浏览器本地，免费）→ 原图送 AI 识别 → 抠图存为展示用
  */
 export async function recognizeAndAddItem(
   file: File,
 ): Promise<RecognizeResponse> {
-  const imageBase64 = await fileToDataUrl(file);
-  const userId = getLocalUserId();
+  // 1. 压缩原图
+  const compressed = await compressImage(file);
+  const imageBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('图片读取失败'));
+    reader.readAsDataURL(compressed);
+  });
+
+  // 2. 本地抠图（浏览器 WebAssembly，不调远程 API）
+  // 抠图失败时使用压缩后的原图，确保衣橱始终有图片显示
+  let processedImageBase64: string;
+  try {
+    const removedBgBlob = await removeBackground(compressed);
+    processedImageBase64 = await blobToDataUrl(removedBgBlob);
+  } catch {
+    console.warn('本地抠图失败，使用原图');
+    processedImageBase64 = imageBase64;
+  }
+
+  const userId = getCurrentUserId();
 
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/wardrobe/items/recognize`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, imageBase64 }),
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({
+        userId,
+        imageBase64,
+        imageUrls: [processedImageBase64],
+      }),
     });
   } catch {
     throw new Error('无法连接 AI 服务，请确认后端 API（localhost:4000）已启动。');
@@ -67,13 +88,21 @@ export async function recognizeAndAddItem(
 
   const json = await res.json();
   // wardrobe controller 直接返回 service 结果（未包 ApiResponse），兼容两种
+  let result: RecognizeResponse;
   if (json && json.item && json.recognition) {
-    return json as RecognizeResponse;
+    result = json as RecognizeResponse;
+  } else if (json && json.code !== undefined) {
+    result = json.data as RecognizeResponse;
+  } else {
+    result = json as RecognizeResponse;
   }
-  if (json && json.code !== undefined) {
-    return json.data as RecognizeResponse;
+
+  // 确保抠图后的图片在 imageUrls 中（后端可能没存或存了原图）
+  if (processedImageBase64 && (!result.item.imageUrls || result.item.imageUrls.length === 0)) {
+    result.item.imageUrls = [processedImageBase64];
   }
-  return json as RecognizeResponse;
+
+  return result;
 }
 
 /**
@@ -82,11 +111,13 @@ export async function recognizeAndAddItem(
 export async function fetchWardrobeItems(
   category?: WardrobeCategory,
 ): Promise<WardrobeItem[]> {
-  const userId = getLocalUserId();
+  const userId = getCurrentUserId();
   const params = new URLSearchParams({ userId });
   if (category) params.set('category', category);
 
-  const res = await fetch(`${API_BASE}/wardrobe/items?${params.toString()}`);
+  const res = await fetch(`${API_BASE}/wardrobe/items?${params.toString()}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) {
     throw new Error(`获取衣物列表失败: ${res.status}`);
   }
@@ -97,7 +128,9 @@ export async function fetchWardrobeItems(
  * 获取衣物详情
  */
 export async function fetchWardrobeItem(id: string): Promise<WardrobeItem> {
-  const res = await fetch(`${API_BASE}/wardrobe/items/${id}`);
+  const res = await fetch(`${API_BASE}/wardrobe/items/${id}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) {
     throw new Error(`获取衣物详情失败: ${res.status}`);
   }
@@ -113,7 +146,7 @@ export async function updateWardrobeItem(
 ): Promise<WardrobeItem> {
   const res = await fetch(`${API_BASE}/wardrobe/items/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -128,6 +161,7 @@ export async function updateWardrobeItem(
 export async function deleteWardrobeItem(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/wardrobe/items/${id}`, {
     method: 'DELETE',
+    headers: authHeaders(),
   });
   if (!res.ok) {
     throw new Error(`删除衣物失败: ${res.status}`);
@@ -140,6 +174,7 @@ export async function deleteWardrobeItem(id: string): Promise<void> {
 export async function recordWear(id: string): Promise<WardrobeItem> {
   const res = await fetch(`${API_BASE}/wardrobe/items/${id}/wear`, {
     method: 'POST',
+    headers: authHeaders(),
   });
   if (!res.ok) {
     throw new Error(`记录穿着失败: ${res.status}`);
@@ -154,13 +189,13 @@ export async function evaluatePurchase(
   file: File,
 ): Promise<PurchaseEvaluationResult> {
   const imageBase64 = await fileToDataUrl(file);
-  const userId = getLocalUserId();
+  const userId = getCurrentUserId();
 
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/recommendations/purchase-evaluate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ userId, imageBase64 }),
     });
   } catch {

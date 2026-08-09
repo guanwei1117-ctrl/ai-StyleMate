@@ -20,8 +20,16 @@ export default function WardrobeItemCard({ item }: Props) {
       className="group block rounded-xl border border-gray-100 bg-white p-4 transition-shadow hover:shadow-md"
     >
       <div className="flex items-start justify-between">
-        <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-gray-50 text-4xl">
-          {emoji}
+        <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-gray-50 text-4xl overflow-hidden">
+          {item.imageUrls?.length > 0 ? (
+            <img
+              src={item.imageUrls[0]}
+              alt={label}
+              className="h-full w-full object-contain p-1"
+            />
+          ) : (
+            emoji
+          )}
         </div>
         <div className="flex flex-wrap gap-1 justify-end">
           {item.styleTags.slice(0, 2).map((tag) => (

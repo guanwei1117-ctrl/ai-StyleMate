@@ -18,7 +18,6 @@ export function buildScoringSummaryText(result: EvaluateOutfitResponse): string 
 
   return [
     'StyleMate 今日 Look 诊断',
-    `诊断视角：${result.bloggerName}`,
     `平均分：${averageScore}`,
     topDimensions ? `关键维度：${topDimensions}` : '',
     `整体评价：${result.overallComment}`,

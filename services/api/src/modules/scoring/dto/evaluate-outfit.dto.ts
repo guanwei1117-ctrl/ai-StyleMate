@@ -34,13 +34,14 @@ export class EvaluateOutfitRequestDto {
   @IsString()
   imageBase64: string;
 
-  @ApiProperty({ description: '博主 ID', example: 'yuzai-buhetang' })
-  @IsString()
-  bloggerId: string;
-
   @ApiPropertyOptional({ description: '用户上下文信息' })
   @IsOptional()
   @ValidateNested()
   @Type(() => UserContextDto)
   userContext?: UserContextDto;
+
+  @ApiPropertyOptional({ description: '用户 ID（传入后评分结合长期记忆）' })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }

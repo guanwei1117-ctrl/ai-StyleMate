@@ -100,6 +100,11 @@ export default function TrendingSection() {
           </p>
         </ScrollReveal>
 
+        {/* 提示：当前为虚拟演示数据，图片由 AI 生成，后续将接入真实社区内容 */}
+        <p className="mb-6 text-2xl text-amber-600/80">
+          以下为虚拟演示数据，图片均由 AI 生成，后续将接入真实社区穿搭投稿，敬请期待。
+        </p>
+
         {/* 榜单 Tab 切换 */}
         <div className="flex items-center gap-3 mb-8">
           {TABS.map((tab) => {

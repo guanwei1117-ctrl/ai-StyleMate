@@ -23,6 +23,23 @@ export interface ExtractedStyleIntent {
   rawStatement: string;
 }
 
+/** 从用户自由文字中提取结构化偏好 */
+export interface ExtractedStylePreference {
+  likedKeywords: string[];
+  dislikedKeywords: string[];
+  desiredImpression: string[];
+  scenes: string[];
+  constraints: string[];
+  /** 检测到的风格 ID 列表（匹配 STYLES 名称/分类/关键词） */
+  styleIds: string[];
+  /** 检测到的预算档位 */
+  budget: string | null;
+  /** 检测到的穿搭目标 */
+  dressingGoals: string[];
+  /** 检测到的优先级 */
+  priorities: string[];
+}
+
 export interface StoredStyleProfile {
   createdAt: string;
   aiEnabled: boolean;
@@ -44,7 +61,6 @@ export interface StoredStyleProfile {
     climate: string | null;
     hasFacePhoto: boolean;
     hasFullBodyPhoto: boolean;
-    bloggerId: string | null;
   };
   extractedIntent: ExtractedStyleIntent;
   results: StyleMatchResult[];
@@ -71,6 +87,67 @@ function pickKeywords(text: string, candidates: string[]) {
 
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+// 预算关键词 → BudgetLevel
+const BUDGET_KEYWORDS: Record<string, string> = {
+  '平价': 'budget', '实惠': 'budget', '便宜': 'budget', '省钱': 'budget', '学生党': 'budget',
+  '中等': 'mid', '适中': 'mid', '中等价位': 'mid', '设计师': 'mid',
+  '轻奢': 'premium', '奢侈': 'premium', '高端': 'premium', '贵': 'premium', '大牌': 'premium',
+};
+
+// 穿搭目标关键词 → DressingGoal
+const GOAL_KEYWORDS: Record<string, string> = {
+  '得体': 'look_polished', '精致': 'look_polished', '优雅': 'look_polished',
+  '个性': 'express_personality', '态度': 'express_personality', '独特': 'express_personality',
+  '舒适': 'comfort_first', '舒服': 'comfort_first', '自在': 'comfort_first',
+  '显瘦': 'look_slim', '显高': 'look_slim', '修饰': 'look_slim',
+  '职场': 'professional', '专业': 'professional', '正式': 'professional', '通勤': 'professional',
+  '尝试': 'try_new_style', '突破': 'try_new_style', '新风格': 'try_new_style',
+  '胶囊': 'build_wardrobe', '精简': 'build_wardrobe', '基础款': 'build_wardrobe',
+};
+
+// 优先级关键词 → PriorityDimension
+const PRIORITY_KW: Record<string, string> = {
+  '舒适': 'comfort', '舒服': 'comfort', '不束缚': 'comfort',
+  '显瘦': 'slimming', '显高': 'slimming', '比例': 'slimming',
+  '质感': 'texture', '面料': 'texture', '高级': 'texture', '剪裁': 'texture',
+  '个性': 'personality', '辨识度': 'personality', '独特': 'personality',
+};
+
+export function extractStylePreference(statement: string): ExtractedStylePreference {
+  const base = extractStyleIntent(statement);
+  const text = statement.trim();
+
+  // 匹配风格名称 → styleIds
+  const styleIds: string[] = [];
+  for (const style of STYLES) {
+    if (text.includes(style.name)) {
+      styleIds.push(style.id);
+    }
+  }
+
+  // 检测预算
+  let budget: string | null = null;
+  for (const [kw, level] of Object.entries(BUDGET_KEYWORDS)) {
+    if (text.includes(kw)) { budget = level; break; }
+  }
+
+  // 检测穿搭目标
+  const dressingGoals = unique(
+    Object.entries(GOAL_KEYWORDS)
+      .filter(([kw]) => text.includes(kw))
+      .map(([, goal]) => goal),
+  );
+
+  // 检测优先级（按出现顺序排序，最多4个）
+  const priorities = unique(
+    Object.entries(PRIORITY_KW)
+      .filter(([kw]) => text.includes(kw))
+      .map(([, p]) => p),
+  );
+
+  return { ...base, styleIds, budget, dressingGoals, priorities };
 }
 
 export function extractStyleIntent(statement: string): ExtractedStyleIntent {
@@ -150,7 +227,6 @@ export function createStoredStyleProfile(
       climate: answers.climate ? CLIMATE_LABELS[answers.climate] : null,
       hasFacePhoto: !!answers.photoPreview,
       hasFullBodyPhoto: !!answers.fullBodyPhotoPreview,
-      bloggerId: answers.bloggerId,
     },
     extractedIntent: extractStyleIntent(answers.userStatement),
     results,

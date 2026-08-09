@@ -1,5 +1,6 @@
-import { EvaluateOutfitResponse, BloggerInfo } from './scoring-types';
+import { EvaluateOutfitResponse } from './scoring-types';
 import { buildApiErrorMessage } from './api-error';
+import { getCurrentUserId, getAuthToken } from './auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -10,28 +11,10 @@ export interface ApiResponse<T> {
 }
 
 /**
- * 获取可用的博主列表
- */
-export async function fetchBloggers(): Promise<BloggerInfo[]> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}/scoring/bloggers`);
-  } catch {
-    throw new Error('BLOGGER_API_UNREACHABLE');
-  }
-  if (!res.ok) {
-    throw new Error(`获取博主列表失败: ${res.status}`);
-  }
-  const json: ApiResponse<BloggerInfo[]> = await res.json();
-  return json.data;
-}
-
-/**
  * 提交穿搭照片进行评分
  */
 export async function evaluateOutfit(params: {
   imageBase64: string;
-  bloggerId: string;
   userContext?: {
     bodyShape?: string;
     gender?: string;
@@ -40,10 +23,14 @@ export async function evaluateOutfit(params: {
     occasion?: string;
   };
 }): Promise<EvaluateOutfitResponse> {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}/scoring/evaluate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ ...params, userId: getCurrentUserId() }),
   });
 
   if (!res.ok) {

@@ -1,10 +1,10 @@
-import { Controller, Post, Get, Body, Logger, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, Logger, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { OptionalAuthGuard } from '../../common/guards/optional-auth.guard';
 import { ScoringService } from './scoring.service';
 import { EvaluateOutfitRequestDto } from './dto/evaluate-outfit.dto';
 import { AnalyzeStyleProfileRequestDto } from './dto/analyze-style-profile.dto';
-import { bloggerRegistry } from './bloggers/blogger-profiles';
 import { EvaluateOutfitResponse, ApiResponse as ApiResponseType } from '@stylemate/shared';
 import { validateImageDataUrl } from './image-data-url.validator';
 import { AiRateLimiter } from './ai-rate-limiter';
@@ -20,6 +20,7 @@ export class ScoringController {
   ) {}
 
   @Post('evaluate')
+  @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: '对穿搭照片进行 AI 多维度评分' })
   @ApiResponse({
     status: 200,
@@ -31,12 +32,15 @@ export class ScoringController {
   ): Promise<ApiResponseType<EvaluateOutfitResponse>> {
     this.assertAiRequestAllowed(req);
     validateImageDataUrl(dto.imageBase64, 'imageBase64');
-    this.logger.log(`收到评分请求 | 博主: ${dto.bloggerId}`);
+
+    // 优先使用已认证用户的 sub，其次使用客户端传入的 userId
+    const userId = (req as any).user?.sub ?? dto.userId;
+    this.logger.log(`收到评分请求 | 含图片: 是 | userId: ${userId ?? '匿名'}`);
 
     const result = await this.scoringService.evaluateOutfit(
       dto.imageBase64,
-      dto.bloggerId,
       dto.userContext,
+      userId,
     );
 
     return {
@@ -47,6 +51,7 @@ export class ScoringController {
   }
 
   @Post('style-profile')
+  @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: '对用户风格测评进行 AI 视觉与语言综合分析' })
   @ApiResponse({
     status: 200,
@@ -67,40 +72,6 @@ export class ScoringController {
       code: 200,
       message: 'AI 风格分析完成',
       data: result,
-    };
-  }
-
-  @Get('bloggers')
-  @ApiOperation({ summary: '获取可用的穿搭博主列表' })
-  @ApiResponse({
-    status: 200,
-    description: '返回所有博主人格档案（不含内部评分权重）',
-  })
-  async getBloggers(): Promise<
-    ApiResponseType<
-      Array<{
-        id: string;
-        name: string;
-        platform: string;
-        avatarUrl?: string;
-        styleSignature: string;
-        description: string;
-      }>
-    >
-  > {
-    const bloggers = bloggerRegistry.map((b) => ({
-      id: b.id,
-      name: b.name,
-      platform: b.platform,
-      avatarUrl: b.avatarUrl,
-      styleSignature: b.styleSignature,
-      description: b.description,
-    }));
-
-    return {
-      code: 200,
-      message: 'ok',
-      data: bloggers,
     };
   }
 

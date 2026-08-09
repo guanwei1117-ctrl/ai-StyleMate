@@ -3,12 +3,14 @@
  * 与后端 /feedback 端点通信，记录用户长期记忆。
  */
 
+import { getCurrentUserId, getAuthToken } from './auth';
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
-function getLocalUserId(): string {
-  if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem('stylemate_user_id') || '';
+function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export interface FeedbackInput {
@@ -20,10 +22,10 @@ export interface FeedbackInput {
 }
 
 export async function submitFeedback(input: FeedbackInput) {
-  const userId = getLocalUserId();
+  const userId = getCurrentUserId();
   const res = await fetch(`${API_BASE}/feedback`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ userId, ...input }),
   });
   if (!res.ok) throw new Error('提交反馈失败');
@@ -36,9 +38,10 @@ export async function getFeedbackStats(): Promise<{
   dislikes: number;
   avgRating: number;
 }> {
-  const userId = getLocalUserId();
+  const userId = getCurrentUserId();
   const res = await fetch(
     `${API_BASE}/feedback/stats?userId=${encodeURIComponent(userId)}`,
+    { headers: authHeaders() },
   );
   if (!res.ok) throw new Error('获取反馈统计失败');
   return res.json();

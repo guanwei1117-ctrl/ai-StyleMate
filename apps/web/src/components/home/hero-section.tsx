@@ -64,19 +64,27 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1], delay: 0.9 }}
-            className="mt-10 flex flex-col sm:flex-row gap-4 justify-center"
+            className="mt-10 flex flex-col items-center gap-4"
           >
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="/styles"
+                className="inline-block px-8 py-3.5 bg-creme-100 text-ink-900 text-sm tracking-wider hover:bg-creme-200 transition-all duration-400"
+              >
+                看看风格百科 →
+              </a>
+              <a
+                href="/onboarding"
+                className="inline-block px-8 py-3.5 border border-creme-100/25 text-creme-100 text-sm tracking-wider hover:bg-creme-100/10 transition-all duration-400"
+              >
+                测测你的穿搭人设 👀
+              </a>
+            </div>
             <a
-              href="/styles"
-              className="inline-block px-8 py-3.5 bg-creme-100 text-ink-900 text-sm tracking-wider hover:bg-creme-200 transition-all duration-400"
+              href="/wardrobe"
+              className="inline-block px-8 py-3 border border-creme-100/15 text-creme-100/70 text-sm tracking-wider hover:bg-creme-100/10 hover:text-creme-100 hover:border-creme-100/30 transition-all duration-400"
             >
-              看看风格百科 →
-            </a>
-            <a
-              href="/onboarding"
-              className="inline-block px-8 py-3.5 border border-creme-100/25 text-creme-100 text-sm tracking-wider hover:bg-creme-100/10 transition-all duration-400"
-            >
-              测测你的穿搭人设 👀
+              点击查看衣橱管理
             </a>
           </motion.div>
         </motion.div>

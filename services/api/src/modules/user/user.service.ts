@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -8,6 +8,8 @@ import { UserLifestyleProfile } from './entities/user-lifestyle-profile.entity';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -18,6 +20,35 @@ export class UserService {
     @InjectRepository(UserLifestyleProfile)
     private readonly lifestyleProfileRepo: Repository<UserLifestyleProfile>,
   ) {}
+
+  /** 将旧 userId 的数据迁移到新 userId（登录/注册时调用） */
+  async migrateData(fromUserId: string, toUserId: string): Promise<void> {
+    // 使用原生查询迁移所有关联表
+    const tablesToUpdate = [
+      'user_body_profiles',
+      'user_style_preferences',
+      'user_lifestyle_profiles',
+      'wardrobe_items',
+      'outfits',
+      'outfit_feedbacks',
+      'user_style_profiles',
+      'user_current_intents',
+      'user_memory_summaries',
+      'feedback',
+    ];
+
+    for (const table of tablesToUpdate) {
+      try {
+        await this.userRepo.manager.query(
+          `UPDATE "${table}" SET user_id = $1 WHERE user_id = $2`,
+          [toUserId, fromUserId],
+        );
+      } catch {
+        // 表可能不存在（首次运行），忽略
+      }
+    }
+    this.logger.log(`数据迁移完成: ${fromUserId} → ${toUserId}`);
+  }
 
   async create(
     data: { id?: string; nickname?: string; phone?: string },

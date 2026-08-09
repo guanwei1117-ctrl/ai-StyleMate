@@ -34,14 +34,14 @@
 |---|---|
 | Web 前端 | Next.js 14 + TypeScript + TailwindCSS |
 | 后端 API | NestJS + TypeScript |
-| 数据库能力 | PostgreSQL + TypeORM（通过 `ENABLE_DB=true` 启用） |
+| 数据库能力 | PostgreSQL + TypeORM（默认启用，设 `ENABLE_DB=false` 关闭） |
 | AI 推理 | Claude / OpenAI / DashScope Qwen-VL 兼容接口 |
 | Monorepo | npm workspaces + Turborepo |
 
 ## 项目结构
 
 ```text
-cleanfit/
+stylemate/
 ├── apps/
 │   └── web/                # Next.js Web 前端
 ├── packages/
@@ -49,19 +49,65 @@ cleanfit/
 ├── services/
 │   └── api/                # NestJS 后端 API
 ├── docs/                   # PRD 与下一步任务文档
+├── start.py                # 一键启动脚本（推荐）
 ├── docker-compose.yml      # PostgreSQL 等开发基础设施
 └── turbo.json              # Turborepo 配置
 ```
 
 ## 快速开始
 
-### 1. 安装依赖
+### 前置条件
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)（提供 PostgreSQL + Redis）
+- [Node.js](https://nodejs.org/) ≥ 18
+- Python ≥ 3.8（用于一键启动脚本）
+
+### 一键启动（推荐）
+
+首次使用需先安装依赖：
 
 ```bash
 npm install
 ```
 
-### 2. 配置环境变量
+然后运行一键启动脚本：
+
+```bash
+python start.py
+```
+
+脚本自动完成以下步骤：
+1. 检查环境（Docker、Node.js、npm）
+2. 启动 PostgreSQL + Redis 容器
+3. 等待数据库就绪
+4. 启动前后端开发服务（Next.js + NestJS）
+
+按 `Ctrl+C` 停止服务，可选择是否同时停止数据库容器。
+
+常用参数：
+
+| 参数 | 说明 |
+|------|------|
+| `--no-docker` | 跳过容器启动/停止（数据库已在外部运行时使用） |
+| `--timeout 180` | 调整 PostgreSQL 就绪等待秒数（默认 60） |
+| `--no-db-wait` | 不等待 PostgreSQL 就绪 |
+| `--down-on-exit` | 退出时直接停止容器，不询问 |
+| `--no-down-on-exit` | 退出时不停容器，不询问 |
+
+> **Windows 提示**：按 `Ctrl+C` 时如出现 "Terminate batch job (Y/N)?" 提示，输入 `Y` 即可正常退出。
+
+### 手动启动
+
+<details>
+<summary>如需逐步启动，展开查看手动步骤</summary>
+
+#### 1. 安装依赖
+
+```bash
+npm install
+```
+
+#### 2. 配置环境变量
 
 复制 `.env.example` 为 `.env`，按需填写：
 
@@ -79,27 +125,36 @@ AI_RATE_LIMIT_MAX_REQUESTS=10
 AI_RATE_LIMIT_WINDOW_MS=600000
 ```
 
-### 3. 启动开发服务
+#### 3. 启动开发服务
 
-无数据库模式可直接启动 Web + API 核心功能：
+数据库模块默认启用，需要先启动 PostgreSQL：
+
+```bash
+docker compose up -d postgres redis
+```
+
+然后启动前后端：
 
 ```bash
 npm run dev
 ```
 
-如需启用用户、衣橱和推荐等数据库模块：
+如需无数据库模式（仅风格库/测评功能）：
 
 ```bash
-docker compose up -d
-# .env 中设置 ENABLE_DB=true
+# .env 中设置 ENABLE_DB=false
 npm run dev
 ```
 
-### 4. 访问地址
+</details>
 
-- Web 前端：http://localhost:3000
-- API 文档：http://localhost:4000/api/docs
-- API 健康检查：http://localhost:4000/api/v1/health
+### 访问地址
+
+| 服务 | 地址 |
+|------|------|
+| Web 前端 | http://localhost:3000 |
+| API 文档 (Swagger) | http://localhost:4000/api/docs |
+| API 健康检查 | http://localhost:4000/api/v1/health |
 
 ## 常用命令
 
@@ -108,6 +163,7 @@ npm run build   # 构建 Web 和 API
 npm run lint    # TypeScript 类型检查
 npm test        # 运行当前单元测试
 npm run dev     # 启动开发服务
+python start.py # 一键启动（推荐）
 ```
 
 ## 安全与隐私说明

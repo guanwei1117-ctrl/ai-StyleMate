@@ -4,8 +4,10 @@ import type { StyleCard } from '../data/styles';
 import { DIMENSION_LABELS, STYLES } from '../data/styles';
 import { extractStyleIntent } from './style-profile-storage';
 import { buildApiErrorMessage } from './api-error';
-import { getLocalUserId } from './wardrobe-api';
+import { getCurrentUserId, getAuthToken } from './auth';
+import { compressImage } from './image-compress';
 
+function authHeaders(): Record<string, string> { const t = getAuthToken(); return t ? { Authorization: 'Bearer ' + t } : {}; }
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 export interface AiStyleProfileAnalysis {
@@ -41,12 +43,14 @@ interface ApiResponse<T> {
   data: T;
 }
 
-function fileToDataUrl(file: File): Promise<string> {
+async function fileToDataUrl(file: File): Promise<string> {
+  // 压缩后再转 base64，减少 AI API 传输量
+  const compressed = await compressImage(file);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ''));
     reader.onerror = () => reject(new Error('图片读取失败'));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressed);
   });
 }
 
@@ -83,7 +87,7 @@ export function buildStyleProfilePayload(
   });
 
   return {
-    userId: getLocalUserId(),
+    userId: getCurrentUserId(),
     profile: {
       gender: answers.gender,
       ageGroup: answers.ageGroup,
@@ -112,7 +116,6 @@ export function buildStyleProfilePayload(
     candidates,
     faceImageBase64,
     fullBodyImageBase64,
-    bloggerId: answers.bloggerId ?? undefined,
   };
 }
 
@@ -130,7 +133,7 @@ export async function analyzeStyleProfileWithAi(
   try {
     res = await fetch(`${API_BASE}/scoring/style-profile`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(buildStyleProfilePayload(answers, bodyShape, localResults, faceImageBase64, fullBodyImageBase64)),
     });
   } catch (err) {

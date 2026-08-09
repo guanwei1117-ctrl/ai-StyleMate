@@ -122,6 +122,9 @@ export default function StylesPage() {
               </h1>
             </div>
             <div>
+              <p className="mb-4 text-xl leading-7 text-amber-600">
+                目前风格照片均由 AI 生成，后续会上线网络穿搭图库；你也可以上传自己的穿搭，审核通过后有机会展示在风格首页。
+              </p>
               <p className="max-w-xl text-sm leading-7 text-ink-500">
                 80 种穿搭风格按地域文化、视觉元素、场景圈层和人物原型组织。每个风格都能继续展开为单品、配色、版型和适配建议。
               </p>

@@ -24,8 +24,6 @@ function record(id: string): ScoringHistoryRecord {
   return {
     id,
     createdAt: `2026-07-17T00:00:0${id}.000Z`,
-    bloggerId: `blogger-${id}`,
-    bloggerName: `博主 ${id}`,
     overallComment: `整体评价 ${id}`,
     averageScore: 80 + Number(id),
     dimensions: [{ key: 'color', label: '色彩', score: 88, comment: '不错' }],
@@ -39,7 +37,7 @@ test('loads scoring history from storage', () => {
   const history = loadScoringHistoryFromStorage(storage);
 
   assert.equal(history.length, 1);
-  assert.equal(history[0].bloggerName, '博主 1');
+  assert.equal(history[0].overallComment, '整体评价 1');
 });
 
 test('returns empty history when storage content is invalid', () => {

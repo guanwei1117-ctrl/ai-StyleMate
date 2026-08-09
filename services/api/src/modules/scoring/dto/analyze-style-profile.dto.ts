@@ -232,11 +232,6 @@ export class AnalyzeStyleProfileRequestDto {
   @IsString()
   fullBodyImageBase64?: string;
 
-  @ApiPropertyOptional({ description: '博主语言风格 ID（选填，影响分析报告的语言风格）' })
-  @IsOptional()
-  @IsString()
-  bloggerId?: string;
-
   @ApiPropertyOptional({ description: '用户 ID（选填，传入后 AI 分析结果自动写入长期记忆）' })
   @IsOptional()
   @IsString()

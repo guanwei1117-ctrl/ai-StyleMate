@@ -9,7 +9,9 @@ import {
 } from './today-outfit-types';
 import { buildApiErrorMessage } from './api-error';
 import { getLocalUserId } from './wardrobe-api';
+import { getAuthToken } from './auth';
 
+function authHeaders(): Record<string, string> { const t = getAuthToken(); return t ? { Authorization: 'Bearer ' + t } : {}; }
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -28,7 +30,7 @@ export async function generateTodayOutfit(params: {
   try {
     res = await fetch(`${API_BASE}/recommendations/today-outfit`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ userId, ...params }),
     });
   } catch {
@@ -55,7 +57,7 @@ export async function saveOutfit(params: {
 
   const res = await fetch(`${API_BASE}/recommendations/save-outfit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ userId, ...params }),
   });
 

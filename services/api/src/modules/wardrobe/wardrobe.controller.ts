@@ -9,14 +9,17 @@ import {
   Body,
   Logger,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { DbRequiredGuard } from '../../common/guards/db-required.guard';
 import { WardrobeService } from './wardrobe.service';
 import { validateImageDataUrl } from '../scoring/image-data-url.validator';
 import { AiRateLimiter } from '../scoring/ai-rate-limiter';
 
 @ApiTags('衣橱管理')
+@UseGuards(DbRequiredGuard)
 @Controller('wardrobe')
 export class WardrobeController {
   private readonly logger = new Logger(WardrobeController.name);

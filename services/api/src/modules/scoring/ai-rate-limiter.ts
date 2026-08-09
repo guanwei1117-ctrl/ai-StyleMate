@@ -7,8 +7,8 @@ export class AiRateLimiter {
   private readonly windowMs: number;
 
   constructor() {
-    this.maxRequests = Number(process.env.AI_RATE_LIMIT_MAX_REQUESTS || 10);
-    this.windowMs = Number(process.env.AI_RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000);
+    this.maxRequests = Number(process.env.AI_RATE_LIMIT_MAX_REQUESTS || 5);
+    this.windowMs = Number(process.env.AI_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000);
   }
 
   /** 测试用工厂方法，便于注入自定义限流参数 */

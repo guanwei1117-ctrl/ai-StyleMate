@@ -6,8 +6,6 @@ export const SCORING_HISTORY_LIMIT = 5;
 export interface ScoringHistoryRecord {
   id: string;
   createdAt: string;
-  bloggerId: string;
-  bloggerName: string;
   overallComment: string;
   averageScore: number;
   dimensions: DimensionScore[];
@@ -20,8 +18,6 @@ function isScoringHistoryRecord(value: unknown): value is ScoringHistoryRecord {
   return Boolean(
     typeof record.id === 'string' &&
     typeof record.createdAt === 'string' &&
-    typeof record.bloggerId === 'string' &&
-    typeof record.bloggerName === 'string' &&
     typeof record.overallComment === 'string' &&
     typeof record.averageScore === 'number' &&
     Array.isArray(record.dimensions) &&
@@ -36,10 +32,8 @@ export function createScoringHistoryRecord(result: EvaluateOutfitResponse): Scor
   const createdAt = new Date().toISOString();
 
   return {
-    id: `${createdAt}-${result.bloggerId}`,
+    id: `${createdAt}-${averageScore}`,
     createdAt,
-    bloggerId: result.bloggerId,
-    bloggerName: result.bloggerName,
     overallComment: result.overallComment,
     averageScore,
     dimensions: result.dimensions,

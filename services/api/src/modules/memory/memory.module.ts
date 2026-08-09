@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LlmModule } from '../llm/llm.module';
 import { MemoryController } from './memory.controller';
@@ -9,6 +9,7 @@ import { UserCurrentIntent } from './entities/user-current-intent.entity';
 import { UserMemorySummary } from './entities/user-memory-summary.entity';
 import { WardrobeItem } from '../wardrobe/entities/wardrobe-item.entity';
 
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([

@@ -44,7 +44,14 @@ export class WardrobeItem {
   @Column({ nullable: true })
   size: string;
 
-  @Column('simple-array', { name: 'image_urls', nullable: true })
+  @Column({ name: 'image_urls', type: 'text', nullable: true, transformer: {
+    to: (value: string[]) => value?.length ? JSON.stringify(value) : null,
+    from: (value: string | null) => {
+      if (!value) return [];
+      try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; }
+      catch { return []; }
+    },
+  }})
   imageUrls: string[];
 
   @Column('simple-json', { name: 'ai_tags', nullable: true })

@@ -15,6 +15,7 @@ import {
   generateTodayOutfit,
   saveOutfit,
 } from '@/lib/today-outfit-api';
+import { recordWear } from '@/lib/wardrobe-api';
 import {
   TodayOutfitResponse,
   OutfitPlan,
@@ -82,6 +83,15 @@ export default function TodayOutfitDialog({ open, onClose }: Props) {
         occasion,
         styleGoal,
       });
+
+      // 更新每个单品的穿着次数（best-effort，不影响保存流程）
+      const slots = [plan.top, plan.bottom, plan.outerwear, plan.shoes, plan.accessory];
+      for (const slot of slots) {
+        if (slot?.itemId) {
+          try { await recordWear(slot.itemId); } catch { /* 静默 */ }
+        }
+      }
+
       setSavedPlans((prev) => new Set(prev).add(plan.type));
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败');

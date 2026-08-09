@@ -7,7 +7,9 @@ import {
   Param,
   Body,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { DbRequiredGuard } from '../../common/guards/db-required.guard';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { MemoryService } from './memory.service';
 import {
@@ -17,6 +19,7 @@ import {
 } from './memory.dto';
 
 @ApiTags('长期记忆')
+@UseGuards(DbRequiredGuard)
 @Controller('memory')
 export class MemoryController {
   constructor(private readonly memoryService: MemoryService) {}

@@ -5,14 +5,6 @@ import { generateTodayOutfit } from '@/lib/today-outfit-api';
 import { submitFeedback } from '@/lib/feedback-api';
 import type { TodayOutfitResponse, OutfitPlan } from '@/lib/today-outfit-types';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-
-async function getLocalUserId(): Promise<string> {
-  if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem('stylemate_user_id') || '';
-}
-
 export default function DailyRecommendPage() {
   const [city, setCity] = useState('上海');
   const [occasion, setOccasion] = useState('commute');
@@ -32,7 +24,7 @@ export default function DailyRecommendPage() {
     setError('');
     setResult(null);
     try {
-      const data = await generateTodayOutfit(city, occasion, styleGoal);
+      const data = await generateTodayOutfit({ city, occasion, styleGoal, constraints: [] });
       setResult(data);
     } catch (e: any) {
       setError(e?.message || '生成失败');
@@ -175,11 +167,11 @@ export default function DailyRecommendPage() {
                     ['鞋子', plan.shoes],
                     ['配饰', plan.accessory],
                   ].map(([label, item]) => (
-                    <div key={label} className="rounded-lg bg-ink/5 px-3 py-2">
-                      <p className="text-xs text-ink/50">{label}</p>
+                    <div key={String(label)} className="rounded-lg bg-ink/5 px-3 py-2">
+                      <p className="text-xs text-ink/50">{String(label)}</p>
                       <p className="font-medium">
-                        {item && (item as any).description
-                          ? (item as any).description
+                        {item && typeof item === 'object' && 'description' in item
+                          ? item.description
                           : '—'}
                       </p>
                     </div>

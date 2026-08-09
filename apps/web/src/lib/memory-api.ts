@@ -6,7 +6,9 @@
 
 import { buildApiErrorMessage } from './api-error';
 import { getLocalUserId } from './wardrobe-api';
+import { getAuthToken } from './auth';
 
+function authHeaders(): Record<string, string> { const t = getAuthToken(); return t ? { Authorization: 'Bearer ' + t } : {}; }
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -106,7 +108,7 @@ export async function updateStyleProfile(
     `${API_BASE}/memory/${encodeURIComponent(userId)}/profile`,
     {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(data),
     },
   );
@@ -164,7 +166,7 @@ export async function recordFeedback(input: {
     `${API_BASE}/memory/${encodeURIComponent(userId)}/feedback`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(input),
     },
   );
@@ -185,7 +187,7 @@ export async function updateCurrentIntent(
     `${API_BASE}/memory/${encodeURIComponent(userId)}/intent`,
     {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(data),
     },
   );

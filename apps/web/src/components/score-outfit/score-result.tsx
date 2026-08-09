@@ -73,7 +73,7 @@ export default function ScoreResult({ result, onReset }: ScoreResultProps) {
           </div>
           <div>
             <p className="text-sm font-semibold text-ink-900 mb-1">
-              {result.bloggerName} 的诊断结论
+              StyleMate 穿搭诊断结论
             </p>
             <p className="text-ink-600 leading-relaxed">{result.greeting}</p>
           </div>

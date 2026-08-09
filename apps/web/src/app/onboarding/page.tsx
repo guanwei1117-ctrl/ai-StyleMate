@@ -28,7 +28,7 @@ import {
   DAILY_SCENE_OPTIONS,
   DRESSING_GOAL_OPTIONS,
   OCCUPATION_OPTIONS,
-  PRIORITY_OPTIONS,
+  PRIORITY_OPTIONS, DRESSING_GOAL_LABELS, PRIORITY_LABELS,
   STYLE_OPENNESS_OPTIONS,
   createDefaultAnswers,
   type AgeGroup,
@@ -52,6 +52,16 @@ import {
 } from '@/data/styles';
 import styleImages from '@/data/style-images.json';
 import ResultView from '@/components/onboarding/result-view';
+import { OnboardingGuideDialog } from '@/components/onboarding/onboarding-guide-dialog';
+import { PhotoSlot } from '@/components/onboarding/photo-slot';
+import {
+  SectionHeader,
+  TagGroup,
+  IntentChip,
+  FieldGroup,
+  ChoiceButton,
+  NumberInput,
+} from '@/components/onboarding/shared-fields';
 import {
   analyzeStyleProfileWithAi,
   mergeAiStyleResults,
@@ -60,7 +70,7 @@ import {
 import {
   buildGeneratedStatement,
   createStoredStyleProfile,
-  extractStyleIntent,
+  extractStyleIntent, extractStylePreference,
   saveStyleProfile,
   loadStyleProfile,
   clearStyleProfile,
@@ -68,12 +78,10 @@ import {
 } from '@/lib/style-profile-storage';
 import { ACCEPTED_IMAGE_MIME_TYPES, IMAGE_UPLOAD_SIZE_LABEL, validateImageFile } from '@/lib/image-upload-rules';
 import { ONBOARDING_GUIDE_SECTIONS } from '@/lib/onboarding-guide';
-import BloggerSelector from '@/components/score-outfit/blogger-selector';
 
 const FLOW = [
   { id: 'profile', label: '基础', desc: '身高 / 体重 / 年龄' },
-  { id: 'taste', label: '喜好', desc: '风格 / 预算 / 目标' },
-  { id: 'intent', label: '生成', desc: '确认后出报告' },
+  { id: 'preference', label: '偏好', desc: '风格 / 预算 / 目标' },
 ] as const;
 
 const genderOptions: { label: string; value: Gender }[] = [
@@ -82,9 +90,6 @@ const genderOptions: { label: string; value: Gender }[] = [
   { label: '男性', value: 'male' },
 ];
 
-function getStyleImage(styleId: string): string | undefined {
-  return (styleImages as Record<string, string>)[styleId];
-}
 
 export default function OnboardingPage() {
   return (
@@ -192,32 +197,11 @@ function OnboardingContent() {
     return STYLES.filter((style) => style.dimension === activeDimension);
   }, [activeDimension]);
 
-  const toggleStyle = (styleId: string) => {
-    const selected = answers.preferredStyleIds;
-    updateAnswers({
-      preferredStyleIds: selected.includes(styleId)
-        ? selected.filter((id) => id !== styleId)
-        : [...selected, styleId],
-    });
-  };
 
-  const toggleGoal = (goal: DressingGoal) => {
-    const selected = answers.dressingGoals;
-    updateAnswers({
-      dressingGoals: selected.includes(goal)
-        ? selected.filter((item) => item !== goal)
-        : [...selected, goal],
-    });
-  };
 
-  const togglePriority = (priority: PriorityDimension) => {
-    const selected = answers.priorities;
-    updateAnswers({
-      priorities: selected.includes(priority)
-        ? selected.filter((item) => item !== priority)
-        : [...selected, priority],
-    });
-  };
+
+
+
 
   const canContinue = useMemo(() => {
     if (step === 0) {
@@ -247,7 +231,7 @@ function OnboardingContent() {
       setBodyShape(shape);
       setResults(aiMatched);
       saveStyleProfile(createStoredStyleProfile(answers, shape, aiMatched, ai));
-      await syncProfileToServer(answers, aiMatched);
+      await syncProfileToServer(answers, aiMatched, shape);
       setAnalysisStatus('idle');
       setStep(FLOW.length);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -263,7 +247,7 @@ function OnboardingContent() {
     setBodyShape(shape);
     setResults(matched);
     saveStyleProfile(createStoredStyleProfile(answers, shape, matched));
-    await syncProfileToServer(answers, matched);
+    await syncProfileToServer(answers, matched, shape);
     setAnalysisStatus('idle');
     setStep(FLOW.length);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -321,7 +305,7 @@ function OnboardingContent() {
                 测测适合什么风格
               </h1>
               <p className="mt-4 text-sm leading-7 text-ink-500">
-                填基础，选喜好，生成建议。
+                填基础，写偏好，生成建议。
               </p>
             </header>
           )}
@@ -395,23 +379,9 @@ function OnboardingContent() {
                     />
                   )}
                   {step === 1 && (
-                    <TasteStep
-                      answers={answers}
-                      filteredStyles={filteredStyles}
-                      activeDimension={activeDimension}
-                      setActiveDimension={setActiveDimension}
-                      toggleStyle={toggleStyle}
-                      toggleGoal={toggleGoal}
-                      togglePriority={togglePriority}
-                      updateAnswers={updateAnswers}
-                    />
-                  )}
-                  {step === 2 && (
-                    <IntentStep
+                    <PreferenceStep
                       answers={answers}
                       updateAnswers={updateAnswers}
-                      statementEdited={statementEdited}
-                      setStatementEdited={setStatementEdited}
                     />
                   )}
 
@@ -462,119 +432,6 @@ function OnboardingContent() {
   );
 }
 
-function SectionHeader({ icon: Icon, label, title, copy }: {
-  icon: typeof UserRound;
-  label: string;
-  title: string;
-  copy: string;
-}) {
-  return (
-    <div className="flex items-start gap-4 border-b border-ink-900/10 p-6 sm:p-8">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-ink-900/15 bg-white/50">
-        <Icon size={18} />
-      </div>
-      <div>
-        <p className="mb-2 text-xs tracking-[0.22em] text-ink-400">{label}</p>
-        <h2 className="font-display text-2xl leading-none sm:text-3xl">{title}</h2>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-ink-500">{copy}</p>
-      </div>
-    </div>
-  );
-}
-
-function OnboardingGuideDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/35 px-5 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 18, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="w-full max-w-xl border border-ink-900/10 bg-[#fbfaf6] p-6 shadow-[0_24px_80px_rgba(10,10,10,0.18)]"
-      >
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <p className="mb-2 text-xs tracking-[0.22em] text-ink-400">说明书</p>
-            <h2 className="font-display text-4xl leading-none">怎么测？</h2>
-          </div>
-          <button type="button" onClick={onClose} className="p-2 text-ink-400 transition hover:text-ink-900" aria-label="关闭说明书">
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {ONBOARDING_GUIDE_SECTIONS.map((section, index) => (
-            <section key={section.title} className="grid grid-cols-[36px_1fr] gap-4 border-t border-ink-900/10 pt-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-900 text-xs text-creme-100">0{index + 1}</span>
-              <div>
-                <h3 className="text-sm font-semibold text-ink-900">{section.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-ink-500">{section.copy}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {section.items.map((item) => (
-                    <span key={item} className="bg-white/70 px-3 py-1 text-xs text-ink-500">{item}</span>
-                  ))}
-                </div>
-              </div>
-            </section>
-          ))}
-        </div>
-
-        <button type="button" onClick={onClose} className="mt-7 w-full bg-ink-900 px-5 py-3 text-sm text-creme-100 transition hover:bg-ink-800">
-          知道了
-        </button>
-      </motion.div>
-    </div>
-  );
-}
-
-function PhotoSlot({
-  label,
-  desc,
-  preview,
-  onClick,
-  onRemove,
-}: {
-  label: string;
-  desc: string;
-  preview: string | null;
-  onClick: () => void;
-  onRemove: () => void;
-}) {
-  if (!preview) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="inline-flex items-center gap-2 border border-ink-900/15 bg-white/40 px-4 py-2.5 text-sm text-ink-600 transition hover:border-ink-900/35 hover:text-ink-900"
-      >
-        <Camera size={15} />
-        {label}
-        <span className="text-xs text-ink-300">选填</span>
-      </button>
-    );
-  }
-
-  return (
-    <div className="group relative aspect-[4/5] w-full overflow-hidden border border-ink-900/20 bg-[#f4f1ea]">
-      <img src={preview} alt={label} className="h-full w-full object-cover" />
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-[#fbfaf6]/90 px-4 py-2.5 backdrop-blur">
-        <div>
-          <p className="text-sm font-medium">{label}</p>
-          <p className="mt-0.5 text-xs leading-4 text-ink-500">{desc}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="inline-flex items-center gap-1 border border-ink-900/15 bg-white/60 px-2.5 py-1.5 text-xs text-ink-500 transition hover:border-red-300 hover:text-red-700"
-        >
-          <X size={13} />
-          移除
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function ProfileStep({
   answers,
   updateAnswers,
@@ -604,35 +461,35 @@ function ProfileStep({
         title="基础"
         copy="必填：性别、身高、体重、年龄。"
       />
-      <div className="mx-6 mt-6 border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800 sm:mx-8">
+      {false && (<div className="mx-6 mt-6 border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800 sm:mx-8">
         照片选填，只用于穿搭分析。
-      </div>
-      <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-3">
+      </div>)}
+      <div className="grid gap-8 p-6 sm:p-8">
+        {false && (<div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
-            <PhotoSlot
+            {false && (<PhotoSlot
               label="正脸照"
               desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
               preview={answers.photoPreview}
               onClick={() => faceInputRef.current?.click()}
               onRemove={() => onPhotoRemove('face')}
-            />
-            <PhotoSlot
+            />)}
+            {false && (<PhotoSlot
               label="全身照"
               desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
               preview={answers.fullBodyPhotoPreview}
               onClick={() => fullBodyInputRef.current?.click()}
               onRemove={() => onPhotoRemove('fullBody')}
-            />
+            />)}
           </div>
           {photoError && (
             <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {photoError}
             </p>
           )}
-          <input ref={faceInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('face', event)} className="hidden" />
-          <input ref={fullBodyInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('fullBody', event)} className="hidden" />
-        </div>
+          {false && (<input ref={faceInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('face', event)} className="hidden" />)}
+          {false && (<input ref={fullBodyInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('fullBody', event)} className="hidden" />)}
+        </div>)}
 
         <div className="space-y-7">
           <FieldGroup title="性别表达">
@@ -723,7 +580,7 @@ function ProfileStep({
             />
           </FieldGroup>
 
-          <div className="border border-ink-900/10 bg-white/40">
+          {false && (<div className="border border-ink-900/10 bg-white/40">
             <button
               type="button"
               onClick={() => setMeasurementsOpen(!measurementsOpen)}
@@ -739,445 +596,178 @@ function ProfileStep({
                 <NumberInput label="臀围" unit="cm" value={answers.hip ?? ''} placeholder="92" onChange={(value) => updateAnswers({ hip: value ? Number(value) : null })} />
               </div>
             )}
-          </div>
+          </div>)}
         </div>
       </div>
     </>
   );
 }
 
-function TasteStep({
+function PreferenceStep({
   answers,
-  filteredStyles,
-  activeDimension,
-  setActiveDimension,
-  toggleStyle,
-  toggleGoal,
-  togglePriority,
   updateAnswers,
 }: {
   answers: OnboardingAnswers;
-  filteredStyles: typeof STYLES;
-  activeDimension: StyleDimension | '全部';
-  setActiveDimension: (dimension: StyleDimension | '全部') => void;
-  toggleStyle: (styleId: string) => void;
-  toggleGoal: (goal: DressingGoal) => void;
-  togglePriority: (priority: PriorityDimension) => void;
   updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
 }) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [styleBrowseOpen, setStyleBrowseOpen] = useState(false);
+  const [styleSearch, setStyleSearch] = useState('');
+
+  const extracted = useMemo(
+    () => extractStylePreference(answers.userStatement),
+    [answers.userStatement],
+  );
+
+  const handleTextChange = useCallback((text: string) => {
+    const prefs = extractStylePreference(text);
+    updateAnswers({
+      userStatement: text,
+      preferredStyleIds: prefs.styleIds.length > 0 ? prefs.styleIds : answers.preferredStyleIds,
+      budget: (prefs.budget ?? answers.budget) as BudgetLevel | null,
+      dressingGoals: prefs.dressingGoals.length > 0 ? prefs.dressingGoals as DressingGoal[] : answers.dressingGoals,
+      priorities: prefs.priorities.length > 0 ? prefs.priorities as PriorityDimension[] : answers.priorities,
+    });
+  }, [updateAnswers, answers.preferredStyleIds, answers.budget, answers.dressingGoals, answers.priorities]);
+
+  const appendStyleToText = (styleName: string) => {
+    const newText = answers.userStatement.includes(styleName)
+      ? answers.userStatement
+      : `${answers.userStatement} 我喜欢${styleName}`.trim();
+    handleTextChange(newText);
+  };
 
   const displayStyles = useMemo(() => {
-    if (!searchQuery.trim()) return filteredStyles;
-    const q = searchQuery.trim().toLowerCase();
-    return filteredStyles.filter(
-      (style) =>
-        style.name.toLowerCase().includes(q) ||
-        style.description.toLowerCase().includes(q) ||
-        style.category.toLowerCase().includes(q) ||
-        (CATEGORY_LABELS[style.category] || '').toLowerCase().includes(q) ||
-        style.keyItems.some((item) => item.toLowerCase().includes(q)),
+    if (!styleSearch.trim()) return STYLES;
+    const q = styleSearch.trim().toLowerCase();
+    return STYLES.filter((s) =>
+      s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
     );
-  }, [filteredStyles, searchQuery]);
+  }, [styleSearch]);
+
+  const GUIDE_QUESTIONS = [
+    '你平时喜欢什么风格？韩系、日系、法式、街头、极简……',
+    '你的穿搭预算是多少？平价实惠、中等价位、轻奢品质？',
+    '你的穿搭目标是什么？显高显瘦、职场专业、舒适至上……',
+    '日常在什么场景穿？通勤、约会、上学、出街……',
+    '有什么特别不喜欢或要避开的？太甜、网红、紧身……',
+  ];
 
   return (
     <>
       <SectionHeader
         icon={Sparkles}
         label="02"
-        title="喜好"
-        copy="都选填。不确定就跳过。"
-      />
-      <div className="p-6 sm:p-8">
-        <div className="mb-8 space-y-7 border-b border-ink-900/10 pb-8">
-          <FieldGroup title="预算" optional>
-            <div className="grid gap-3 md:grid-cols-3">
-              {BUDGET_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => updateAnswers({ budget: option.value as BudgetLevel })}
-                  className={cn(
-                    'border p-4 text-left transition',
-                    answers.budget === option.value
-                      ? 'border-ink-900 bg-ink-900 text-creme-100'
-                      : 'border-ink-900/10 bg-white/50 text-ink-700 hover:border-ink-900/30',
-                  )}
-                >
-                  <p className="font-medium">{option.label}</p>
-                  <p className={cn('mt-2 text-xs', answers.budget === option.value ? 'text-creme-200/70' : 'text-ink-400')}>
-                    {option.range}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </FieldGroup>
-
-          <FieldGroup title="穿衣目标" optional>
-            <div className="flex flex-wrap gap-2">
-              {DRESSING_GOAL_OPTIONS.map((option) => (
-                <ChoiceButton
-                  key={option.value}
-                  active={answers.dressingGoals.includes(option.value)}
-                  onClick={() => toggleGoal(option.value as DressingGoal)}
-                  compact
-                >
-                  {option.label}
-                </ChoiceButton>
-              ))}
-            </div>
-          </FieldGroup>
-
-          <FieldGroup title="优先考虑" optional>
-            <div className="grid gap-3 md:grid-cols-2">
-              {PRIORITY_OPTIONS.map((option) => {
-                const index = answers.priorities.indexOf(option.value);
-                return (
-                  <button
-                    key={option.value}
-                    onClick={() => togglePriority(option.value as PriorityDimension)}
-                    className={cn(
-                      'grid grid-cols-[40px_1fr] gap-3 border p-4 text-left transition',
-                      index >= 0
-                        ? 'border-ink-900 bg-[#e8ece8]'
-                        : 'border-ink-900/10 bg-white/50 hover:border-ink-900/30',
-                    )}
-                  >
-                    <span className={cn(
-                      'flex h-10 w-10 items-center justify-center rounded-full border text-sm',
-                      index >= 0 ? 'border-ink-900 bg-ink-900 text-creme-100' : 'border-ink-900/15 text-ink-300',
-                    )}>
-                      {index >= 0 ? index + 1 : '+'}
-                    </span>
-                    <span>
-                      <span className="block text-sm font-medium">{option.label}</span>
-                      <span className="mt-1 block text-xs leading-5 text-ink-500">{option.desc}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </FieldGroup>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <FieldGroup title="风格接受度" optional>
-              <select
-                value={answers.styleOpenness ?? ''}
-                onChange={(event) => updateAnswers({ styleOpenness: event.target.value ? Number(event.target.value) : null })}
-                className="w-full border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
-              >
-                <option value="">保持默认</option>
-                {STYLE_OPENNESS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} - {option.desc}
-                  </option>
-                ))}
-              </select>
-            </FieldGroup>
-            <FieldGroup title="城市与气候" optional>
-              <div className="grid grid-cols-[1fr_1fr] gap-3">
-                <input
-                  value={answers.city}
-                  onChange={(event) => updateAnswers({ city: event.target.value })}
-                  placeholder="城市"
-                  className="border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
-                />
-                <select
-                  value={answers.climate ?? ''}
-                  onChange={(event) => updateAnswers({ climate: event.target.value ? event.target.value as ClimateZone : null })}
-                  className="border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
-                >
-                  <option value="">气候</option>
-                  {CLIMATE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-            </FieldGroup>
-          </div>
-        </div>
-
-        <div className="mb-6 flex flex-wrap gap-2">
-          {(['全部', ...DIMENSIONS] as const).map((dimension) => (
-            <button
-              key={dimension}
-              onClick={() => setActiveDimension(dimension)}
-              className={cn(
-                'border px-4 py-2 text-xs tracking-[0.12em] transition',
-                activeDimension === dimension
-                  ? 'border-ink-900 bg-ink-900 text-creme-100'
-                  : 'border-ink-900/10 bg-white/45 text-ink-500 hover:border-ink-900/30 hover:text-ink-900',
-              )}
-            >
-              {dimension === '全部' ? '全部风格' : DIMENSION_LABELS[dimension]}
-            </button>
-          ))}
-        </div>
-
-        {/* 搜索框 */}
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-300" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="搜索风格"
-            className="w-full border border-ink-900/10 bg-white/50 py-3 pl-11 pr-11 text-sm text-ink-700 outline-none transition placeholder:text-ink-300 focus:border-ink-900/40"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              aria-label="清除搜索"
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-700"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="grid max-h-[640px] gap-4 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
-          {displayStyles.map((style) => {
-            const selected = answers.preferredStyleIds.includes(style.id);
-            const imageUrl = getStyleImage(style.id);
-            return (
-              <button
-                key={style.id}
-                onClick={() => toggleStyle(style.id)}
-                className={cn(
-                  'group overflow-hidden border bg-white/55 text-left transition',
-                  selected ? 'border-ink-900 shadow-[0_18px_50px_rgba(10,10,10,0.12)]' : 'border-ink-900/10 hover:border-ink-900/30',
-                )}
-              >
-                <div className="relative aspect-[4/3] bg-[#ebe7df]">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt={style.name} className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.03]" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-ink-300">IMAGE SLOT</div>
-                  )}
-                  {selected && (
-                    <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center bg-ink-900 text-creme-100">
-                      <Check size={15} />
-                    </span>
-                  )}
-                </div>
-                <div className="p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="font-display text-2xl leading-none">{style.name}</h3>
-                    <span className="shrink-0 text-[10px] tracking-[0.16em] text-ink-400">
-                      {CATEGORY_LABELS[style.category] || style.category}
-                    </span>
-                  </div>
-                  <p className="line-clamp-2 text-xs leading-5 text-ink-500">{style.description}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {displayStyles.length === 0 && (
-          <div className="py-16 text-center text-sm text-ink-400">
-            {searchQuery ? `没有找到与 "${searchQuery}" 相关的风格` : '该分类暂无风格'}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-function IntentStep({
-  answers,
-  updateAnswers,
-  statementEdited,
-  setStatementEdited,
-}: {
-  answers: OnboardingAnswers;
-  updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
-  statementEdited: boolean;
-  setStatementEdited: (value: boolean) => void;
-}) {
-  const extracted = useMemo(() => extractStyleIntent(answers.userStatement), [answers.userStatement]);
-  const [bloggerOpen, setBloggerOpen] = useState(false);
-
-  return (
-    <>
-      <SectionHeader
-        icon={SlidersHorizontal}
-        label="03"
-        title="生成"
-        copy="确认这段话，或简单改几句。"
+        title="偏好"
+        copy="用你自己的话描述风格偏好，我们帮你理解。"
       />
       <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.15fr_0.85fr]">
         <div>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs tracking-[0.22em] text-ink-400">STYLE INTENT INPUT</p>
-            <button
-              type="button"
-              onClick={() => {
-                setStatementEdited(false);
-                updateAnswers({ userStatement: buildGeneratedStatement(answers) });
-              }}
-              className="border border-ink-900/10 bg-white/55 px-4 py-2 text-xs text-ink-500 transition hover:border-ink-900/30 hover:text-ink-900"
-            >
-重新整理
-            </button>
+          <div className="mb-4 space-y-2">
+            <p className="text-xs tracking-[0.18em] text-ink-400">可以聊聊这些</p>
+            {GUIDE_QUESTIONS.map((q, i) => (
+              <p key={i} className="text-xs text-ink-400/70 leading-relaxed">
+                · {q}
+              </p>
+            ))}
           </div>
+
           <textarea
             value={answers.userStatement}
-            onChange={(event) => {
-              setStatementEdited(true);
-              updateAnswers({ userStatement: event.target.value });
-            }}
-            placeholder="例如：我最近喜欢干净、有质感、稍微显高的穿搭，不想太甜，也不想看起来很网红。日常上学和周末出门比较多，希望舒服但有一点态度。"
-            className="min-h-[380px] w-full resize-none border border-ink-900/10 bg-white/55 p-5 text-sm leading-7 text-ink-700 outline-none transition placeholder:text-ink-300 focus:border-ink-900/40"
+            onChange={(e) => handleTextChange(e.target.value)}
+            placeholder="用你自己的话描述，越多越好…\n\n例如：我最近喜欢干净、有质感、稍微显高的穿搭，不想太甜，也不想看起来很网红。日常上学和周末出门比较多，预算中等，希望舒服但有一点态度。"
+            className="min-h-[320px] w-full resize-none border border-ink-900/10 bg-white/55 p-5 text-sm leading-7 text-ink-700 outline-none transition placeholder:text-ink-300 focus:border-ink-900/40"
           />
           <div className="mt-3 flex items-center justify-between text-xs text-ink-400">
-            <span>{statementEdited ? '已手动编辑' : '由前面选项自动生成'}</span>
-            <span>{answers.userStatement.trim().length}/20 字以上可生成</span>
+            <span>文字越详细，分析越准确</span>
+            <span className={answers.userStatement.trim().length >= 20 ? 'text-olive-dark' : ''}>
+              {answers.userStatement.trim().length}/20 字以上可生成
+            </span>
+          </div>
+
+          <div className="mt-4 border-t border-ink-900/10 pt-4">
+            <button
+              type="button"
+              onClick={() => setStyleBrowseOpen(!styleBrowseOpen)}
+              className="flex items-center gap-2 text-xs text-ink-500 hover:text-ink-900"
+            >
+              <BookOpen size={14} />
+              {styleBrowseOpen ? '收起风格库' : '浏览风格库（点击追加到文字）'}
+            </button>
+            {styleBrowseOpen && (
+              <div className="mt-3">
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-300" />
+                  <input
+                    type="text"
+                    value={styleSearch}
+                    onChange={(e) => setStyleSearch(e.target.value)}
+                    placeholder="搜索风格"
+                    className="w-full border border-ink-900/10 bg-white/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-ink-900/40"
+                  />
+                </div>
+                <div className="grid max-h-[520px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                  {displayStyles.map((style) => {
+                    const active = answers.preferredStyleIds.includes(style.id);
+                    return (
+                      <button
+                        key={style.id}
+                        onClick={() => appendStyleToText(style.name)}
+                        className={cn(
+                          'border px-3 py-2 text-left text-xs transition',
+                          active
+                            ? 'border-ink-900 bg-[#e8ece8] text-ink-900'
+                            : 'border-ink-900/10 bg-white/50 text-ink-600 hover:border-ink-900/30',
+                        )}
+                      >
+                        <span className="font-medium">{style.name}</span>
+                        <span className="ml-1.5 text-ink-400">
+                          {CATEGORY_LABELS[style.category] || style.category}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <aside className="border border-ink-900/10 bg-[#e8ece8] p-5">
           <p className="mb-4 text-xs tracking-[0.22em] text-ink-500">已识别</p>
-          <IntentList title="喜欢/倾向" items={extracted.likedKeywords} />
-          <IntentList title="排斥/雷区" items={extracted.dislikedKeywords} />
-          <IntentList title="想呈现的感觉" items={extracted.desiredImpression} />
-          <IntentList title="使用场景" items={extracted.scenes} />
-          <IntentList title="现实限制" items={extracted.constraints} />
+
+          {extracted.styleIds.length > 0 && (
+            <div className="mb-5">
+              <p className="mb-2 text-xs text-ink-400">匹配风格</p>
+              <div className="flex flex-wrap gap-1.5">
+                {extracted.styleIds.map((id) => {
+                  const s = STYLES.find((x) => x.id === id);
+                  return s ? (
+                    <span key={id} className="bg-white/65 px-2.5 py-1 text-xs text-ink-600">{s.name}</span>
+                  ) : null;
+                })}
+              </div>
+            </div>
+          )}
+
+          {extracted.budget && (
+            <IntentChip label="预算" value={BUDGET_OPTIONS.find((o) => o.value === extracted.budget)?.label ?? extracted.budget} />
+          )}
+
+          <TagGroup label="喜欢/倾向" items={extracted.likedKeywords} />
+          <TagGroup label="排斥/雷区" items={extracted.dislikedKeywords} type="negative" />
+          <TagGroup label="想呈现的感觉" items={extracted.desiredImpression} />
+          <TagGroup label="使用场景" items={extracted.scenes} />
+          <TagGroup label="穿搭目标" items={extracted.dressingGoals.map((g) => DRESSING_GOAL_LABELS[g as DressingGoal] ?? g)} />
+
+          {extracted.priorities.length > 0 && (
+            <TagGroup label="优先考虑" items={extracted.priorities.map((p) => PRIORITY_LABELS[p as PriorityDimension] ?? p)} />
+          )}
+
+          <TagGroup label="现实限制" items={extracted.constraints} />
         </aside>
       </div>
 
-      {/* 博主语言风格选择（选填） */}
-      <div className="border-t border-ink-900/10">
-        <button
-          type="button"
-          onClick={() => setBloggerOpen(!bloggerOpen)}
-          className="flex w-full items-center justify-between px-6 py-4 text-left sm:px-8"
-        >
-          <div className="flex items-center gap-3">
-            <Sparkles size={16} className="text-ink-400" />
-            <div>
-              <p className="text-sm font-medium text-ink-800">
-                博主语言风格
-                <span className="ml-2 text-xs font-normal text-ink-300">选填，让 AI 报告用你喜欢的博主口吻</span>
-              </p>
-              {answers.bloggerId && (
-                <p className="mt-0.5 text-xs text-ink-500">已选择，生成时将套用该博主说话风格</p>
-              )}
-            </div>
-          </div>
-          <span className="text-xs text-ink-400">{bloggerOpen ? '收起' : answers.bloggerId ? '已选择' : '选择'}</span>
-        </button>
-        {bloggerOpen && (
-          <div className="border-t border-ink-900/10 px-6 pb-6 pt-4 sm:px-8">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-xs leading-5 text-ink-500">
-                选择一位博主，AI 分析报告的语言风格会贴近该博主人设。不影响匹配逻辑，只影响表达方式。
-              </p>
-              {answers.bloggerId && (
-                <button
-                  type="button"
-                  onClick={() => updateAnswers({ bloggerId: null })}
-                  className="shrink-0 border border-ink-900/10 bg-white/50 px-3 py-1.5 text-xs text-ink-500 transition hover:border-ink-900/30 hover:text-ink-900"
-                >
-                  不使用博主风格
-                </button>
-              )}
-            </div>
-            <BloggerSelector
-              onSelect={(id) => updateAnswers({ bloggerId: id })}
-              selectedId={answers.bloggerId}
-            />
-          </div>
-        )}
-      </div>
     </>
   );
 }
 
-function IntentList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="mb-5 last:mb-0">
-      <p className="mb-2 text-xs text-ink-400">{title}</p>
-      {items.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {items.map((item) => (
-            <span key={item} className="bg-white/65 px-2.5 py-1 text-xs text-ink-600">
-              {item}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-ink-300">暂未提取</p>
-      )}
-    </div>
-  );
-}
-
-function FieldGroup({ title, optional, children }: { title: string; optional?: boolean; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="mb-3 flex items-center gap-2">
-        <h3 className="text-sm font-medium text-ink-800">{title}</h3>
-        {optional && <span className="text-xs text-ink-300">选填</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function ChoiceButton({
-  active,
-  compact,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  compact?: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'border text-sm transition',
-        compact ? 'px-4 py-2' : 'px-4 py-3',
-        active
-          ? 'border-ink-900 bg-ink-900 text-creme-100'
-          : 'border-ink-900/10 bg-white/50 text-ink-600 hover:border-ink-900/35 hover:text-ink-900',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function NumberInput({
-  label,
-  unit,
-  value,
-  placeholder,
-  onChange,
-}: {
-  label: string;
-  unit: string;
-  value: string | number;
-  placeholder: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-ink-800">
-        {label}
-        <span className="ml-1 text-xs text-ink-300">{unit}</span>
-      </span>
-      <input
-        type="number"
-        inputMode="decimal"
-        value={value}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none transition placeholder:text-ink-200 focus:border-ink-900/40"
-      />
-    </label>
-  );
-}

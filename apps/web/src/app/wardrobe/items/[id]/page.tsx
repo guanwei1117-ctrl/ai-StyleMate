@@ -134,8 +134,16 @@ export default function WardrobeItemDetailPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* 图片区 */}
-            <div className="flex h-64 items-center justify-center rounded-2xl bg-white border border-gray-100 text-8xl">
-              {emoji}
+            <div className="flex h-80 items-center justify-center rounded-2xl bg-white border border-gray-100 overflow-hidden">
+              {item.imageUrls?.length > 0 ? (
+                <img
+                  src={item.imageUrls[0]}
+                  alt={label}
+                  className="h-full w-full object-contain p-4"
+                />
+              ) : (
+                <span className="text-8xl">{emoji}</span>
+              )}
             </div>
 
             {/* 信息区 */}

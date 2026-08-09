@@ -113,7 +113,7 @@ export default function MemoryPage() {
     }
   }
 
-  async function handleUpdateIntent(field: string, value: string) {
+  async function handleUpdateIntent(field: string, value: string | Record<string, unknown>) {
     setSaving(true);
     try {
       await updateCurrentIntent({ [field]: value });
