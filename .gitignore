@@ -58,3 +58,6 @@ AGENTS.md
 *.err
 tsc-result.txt
 _api.log
+
+# Local Netlify folder
+.netlify

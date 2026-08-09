@@ -1,20 +1,10 @@
 /**
  * 本地背景移除（抠图）工具
  *
- * 使用 @imgly/background-removal 在浏览器本地运行，
- * 不调任何远程 API，免费、隐私安全。
+ * 生产发布降级版：
+ * 先保留原图，避免 @imgly/background-removal 的 WebGPU/ONNX 包影响 Next.js 构建。
+ * 后续如果要恢复本地抠图，建议把模型能力拆到独立 Web Worker 或后端任务里。
  */
-
-let removeBgFn: ((blob: Blob) => Promise<Blob>) | null = null;
-
-/** 懒加载抠图模块（首次调用时才下载模型，约 5MB） */
-async function getRemoveBg() {
-  if (!removeBgFn) {
-    const mod = await import('@imgly/background-removal');
-    removeBgFn = mod.removeBackground;
-  }
-  return removeBgFn;
-}
 
 export interface RemoveBackgroundOptions {
   /** 输出格式，默认 'image/png'（支持透明通道） */
@@ -32,8 +22,6 @@ export async function removeBackground(
   input: File | Blob | string,
   options?: RemoveBackgroundOptions,
 ): Promise<Blob> {
-  const removeBg = await getRemoveBg();
-
   // 如果是 base64 string，先转 Blob
   let blob: Blob;
   if (typeof input === 'string') {
@@ -48,13 +36,13 @@ export async function removeBackground(
     blob = input;
   }
 
-  // 先压缩大图（>2MB 降采样），加速抠图
+  // 先压缩大图（>2MB 降采样），保持上传体验轻量。
   if (blob.size > 2 * 1024 * 1024) {
     blob = await resizeBlob(blob, 1024);
   }
 
-  const result = await removeBg(blob);
-  return result;
+  void options;
+  return blob;
 }
 
 /**
