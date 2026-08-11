@@ -110,6 +110,7 @@ export async function recognizeAndAddItem(
  */
 export async function fetchWardrobeItems(
   category?: WardrobeCategory,
+  signal?: AbortSignal,
 ): Promise<WardrobeItem[]> {
   const userId = getCurrentUserId();
   const params = new URLSearchParams({ userId });
@@ -117,6 +118,7 @@ export async function fetchWardrobeItems(
 
   const res = await fetch(`${API_BASE}/wardrobe/items?${params.toString()}`, {
     headers: authHeaders(),
+    signal,
   });
   if (!res.ok) {
     throw new Error(`获取衣物列表失败: ${res.status}`);
@@ -127,9 +129,10 @@ export async function fetchWardrobeItems(
 /**
  * 获取衣物详情
  */
-export async function fetchWardrobeItem(id: string): Promise<WardrobeItem> {
+export async function fetchWardrobeItem(id: string, signal?: AbortSignal): Promise<WardrobeItem> {
   const res = await fetch(`${API_BASE}/wardrobe/items/${id}`, {
     headers: authHeaders(),
+    signal,
   });
   if (!res.ok) {
     throw new Error(`获取衣物详情失败: ${res.status}`);
@@ -206,5 +209,24 @@ export async function evaluatePurchase(
     throw new Error(await buildApiErrorMessage(res, '买前判断请求失败'));
   }
 
+  return res.json();
+}
+
+/**
+ * 衣橱缺口分析 — 检查品类是否均衡
+ */
+export async function analyzeWardrobeGaps(
+  userId: string,
+): Promise<{
+  gaps: Array<{ category: string; current: number; recommended: number; missing: number }>;
+  totalItems: number;
+}> {
+  const res = await fetch(
+    `${API_BASE}/recommendations/wardrobe-gaps?userId=${encodeURIComponent(userId)}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '衣橱缺口分析失败'));
+  }
   return res.json();
 }

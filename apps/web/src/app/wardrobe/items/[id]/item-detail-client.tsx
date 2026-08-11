@@ -4,8 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trash2, Check, Loader2 } from 'lucide-react';
-import Navigation from '@/components/home/navigation';
-import Footer from '@/components/home/footer';
 import {
   fetchWardrobeItem,
   updateWardrobeItem,
@@ -32,23 +30,29 @@ export default function WardrobeItemDetailPage() {
   const [editColor, setEditColor] = useState('');
   const [editMaterial, setEditMaterial] = useState('');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchWardrobeItem(id);
+      const data = await fetchWardrobeItem(id, signal);
       setItem(data);
       setEditColor(data.color);
       setEditMaterial(data.material);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败');
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      const msg = err instanceof TypeError && err.message === 'Failed to fetch'
+        ? '无法连接后端服务，请确认 API 已启动'
+        : err instanceof Error ? err.message : '加载失败';
+      setError(msg);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    load();
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
   }, [load]);
 
   const handleSave = async () => {
@@ -91,26 +95,29 @@ export default function WardrobeItemDetailPage() {
 
   if (loading) {
     return (
-      <>
-        <Navigation />
-        <div className="min-h-screen bg-gray-50 pt-16 flex items-center justify-center">
-          <Loader2 className="animate-spin text-gray-400" />
-        </div>
-      </>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-gray-400" />
+      </div>
     );
   }
 
   if (error || !item) {
     return (
-      <>
-        <Navigation />
-        <div className="min-h-screen bg-gray-50 pt-16 flex flex-col items-center justify-center gap-4">
-          <p className="text-red-500">{error ?? '未找到该衣物'}</p>
-          <Link href="/wardrobe" className="text-ink-600 hover:underline">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 pb-24">
+        <p className="text-red-500">{error ?? '未找到该衣物'}</p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => load()}
+            className="rounded-full bg-ink-900 px-5 py-2 text-sm text-creme-100 hover:bg-ink-800 transition-colors"
+          >
+            重试
+          </button>
+          <Link href="/wardrobe" className="text-ink-600 hover:underline text-sm">
             返回衣橱
           </Link>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -121,9 +128,7 @@ export default function WardrobeItemDetailPage() {
     item.category;
 
   return (
-    <>
-      <Navigation />
-      <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="min-h-screen bg-gray-50 pb-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <Link
             href="/wardrobe"
@@ -311,8 +316,6 @@ export default function WardrobeItemDetailPage() {
           </div>
         </div>
       </div>
-      <Footer />
-    </>
   );
 }
 

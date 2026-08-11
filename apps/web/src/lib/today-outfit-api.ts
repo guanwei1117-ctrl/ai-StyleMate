@@ -67,3 +67,30 @@ export async function saveOutfit(params: {
 
   return res.json();
 }
+
+/**
+ * 获取用户保存的穿搭方案列表（计划页用）
+ */
+export async function fetchSavedOutfits(): Promise<Array<{
+  id: string;
+  name: string;
+  title?: string;
+  items: Array<{ itemId: string; position: number }>;
+  occasion?: string[];
+  score?: number;
+  isAiGenerated: boolean;
+  createdAt: string;
+}>> {
+  const userId = getLocalUserId();
+
+  const res = await fetch(
+    `${API_BASE}/recommendations/outfits?userId=${encodeURIComponent(userId)}`,
+    { headers: authHeaders() },
+  );
+
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '获取穿搭方案失败'));
+  }
+
+  return res.json();
+}
