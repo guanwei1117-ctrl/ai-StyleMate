@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 风格匹配引擎 —— 三支柱打分 + AI 照片分析预留接口
  *
  * 三支柱体系（满分 100）：
@@ -158,6 +158,24 @@ const GOAL_CATEGORY_MAP: Record<DressingGoal, string[]> = {
 // ============================================================
 // 主匹配函数
 // ============================================================
+// ============================================================
+// 【阶段三】新版主匹配函数 —— 二层架构 + 分层输出
+// ============================================================
+
+/**
+ * 风格匹配（新版二层架构）
+ *
+ * 流程：
+ *   1. 对 8 个大类评分 → 大类排序
+ *   2. 视觉调性过滤 → 剔除调性相冲的大类
+ *   3. 在保留的大类内对子风格精确评分
+ *   4. 分层输出：核心风格（≥85） + 可尝试风格（65-84）
+ *
+ * 输出格式不变（StyleMatchResult[]），但内部语义变了：
+ *   - 前几个是经过调性过滤的"核心风格"
+ *   - 后续是"可尝试风格"
+ *   调用方通过 score 阈值来区分（≥85 为核心，≥65 为可尝试）
+ */
 export function matchStyles(answers: OnboardingAnswers): StyleMatchResult[] {
   const bodyShape = deriveBodyShape(
     answers.height!,
@@ -167,46 +185,71 @@ export function matchStyles(answers: OnboardingAnswers): StyleMatchResult[] {
     answers.hip,
   );
 
-  const results: StyleMatchResult[] = STYLES.map((style) => {
-    const breakdown = {
-      // 审美适配（50分）
-      bodyShape: scoreBodyShape(style, bodyShape),                       // 0-20
-      preference: scorePreference(style, answers.preferredStyleIds),     // 0-25
-      skinTone: scoreSkinTone(style, answers.photoPreview),              // 0-5
-      // 现实约束（30分）
-      budget: scoreBudget(style, answers),                               // 0-12
-      ageFit: scoreAgeFit(style, answers.ageGroup),                      // 0-8
-      scene: scoreScene(style, answers),                                 // 0-10
-      // 行为偏好（20分）
-      priority: scorePriority(style, answers.priorities),                // 0-10
-      goal: scoreGoal(style, answers.dressingGoals),                     // 0-5
-      openness: scoreOpenness(style, answers),                           // 0-5
-    };
+  // Step 1: 大类评分
+  const catScores = matchCategories(answers);
 
-    const pillars = {
-      aesthetic: breakdown.bodyShape + breakdown.preference + breakdown.skinTone,
-      realistic: breakdown.budget + breakdown.ageFit + breakdown.scene,
-      behavioral: breakdown.priority + breakdown.goal + breakdown.openness,
-    };
+  // Step 2: 调性过滤
+  const tonalCheck = checkTonalConsistency(catScores);
+  const filteredScores = getFilteredCategoryScores(catScores, tonalCheck);
 
-    const totalScore = pillars.aesthetic + pillars.realistic + pillars.behavioral;
-    const reasons = buildReasons(style, breakdown, pillars, bodyShape);
+  // Step 3: 只在保留的大类内对子风格精确评分
+  const allowedStyleIds = new Set<string>();
+  for (const cs of filteredScores) {
+    const ids = getStyleIdsByCategory(cs.categoryId);
+    for (const id of ids) allowedStyleIds.add(id);
+  }
 
-    return {
-      styleId: style.id,
-      styleName: style.name,
-      category: style.category,
-      score: totalScore,
-      matchReasons: reasons,
-      matchBreakdown: breakdown,
-      pillars,
-    };
-  });
+  // Step 4: 对允许的风格逐一使用新权重精确打分
+  const results: StyleMatchResult[] = STYLES
+    .filter((style) => allowedStyleIds.has(style.id))
+    .map((style) => {
+      const breakdown = {
+        // 审美适配（50分）—— 新权重
+        bodyShape: scoreBodyShape(style, bodyShape),                       // 0-20（兼容旧接口）
+        preference: scorePreference(style, answers.preferredStyleIds),     // 0-25
+        skinTone: scoreSkinTone(style, answers.photoPreview),              // 0-5
+        // 现实约束（20分）—— 新权重
+        budget: scoreBudget(style, answers),                               // 0-12
+        ageFit: scoreAgeFit(style, answers.ageGroup),                      // 0-8
+        scene: scoreScene(style, answers),                                 // 0-10
+        // 行为偏好（30分）—— 新权重
+        priority: scorePriority(style, answers.priorities),                // 0-10
+        goal: scoreGoal(style, answers.dressingGoals),                     // 0-5
+        openness: scoreOpenness(style, answers),                           // 0-5
+      };
 
-  // 按分数降序排序，取 Top 8
-  return results
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8);
+      // 按新权重体系重新计算三支柱
+      const pillarsNew = {
+        aesthetic: Math.round((breakdown.bodyShape / 20) * 25) + Math.round((breakdown.preference / 25) * 20) + breakdown.skinTone,
+        behavioral: Math.round((breakdown.priority / 10) * 12) + Math.round((breakdown.goal / 5) * 10) + Math.round((breakdown.openness / 5) * 8),
+        realistic: Math.round((breakdown.budget / 12) * 8) + Math.round((breakdown.ageFit / 8) * 7) + Math.round((breakdown.scene / 10) * 5),
+      };
+
+      const totalScore = pillarsNew.aesthetic + pillarsNew.behavioral + pillarsNew.realistic;
+      const reasons = buildReasons(style, breakdown, {
+        aesthetic: breakdown.bodyShape + breakdown.preference + breakdown.skinTone,
+        realistic: breakdown.budget + breakdown.ageFit + breakdown.scene,
+        behavioral: breakdown.priority + breakdown.goal + breakdown.openness,
+      }, bodyShape);
+
+      return {
+        styleId: style.id,
+        styleName: style.name,
+        category: style.category,
+        score: totalScore,
+        matchReasons: reasons,
+        matchBreakdown: breakdown,
+        pillars: pillarsNew,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  // 按分层返回：核心（≥85）在前，可尝试（≥65）在后
+  const coreStyles = results.filter((r) => r.score >= 85);
+  const secondaryStyles = results.filter((r) => r.score >= 65 && r.score < 85);
+  const remaining = results.filter((r) => r.score < 65);
+
+  return [...coreStyles, ...secondaryStyles, ...remaining];
 }
 
 // ============================================================
@@ -554,3 +597,391 @@ function getStubPhotoAnalysis(): PhotoAnalysisResult {
     confidence: 0.5,
   };
 }
+
+// ============================================================
+// 【阶段二】大类评分引擎 + 视觉调性过滤
+// ============================================================
+
+import type { StyleCategoryId, CategoryScore, TonalConsistencyResult, TonalVector, ScoringSnapshot, SelectedStyleAnalysis } from './scoring-types';
+import { CATEGORY_GROUPS, getStyleIdsByCategory, getCategoryName } from './style-categories';
+import { CATEGORY_TONAL_VECTORS, tonalDistance, getStyleTonalVector } from './tonal-spectrum';
+
+/**
+ * 大类评分 —— 对 8 个大类逐一打分
+ *
+ * 大类评分逻辑：
+ *   取大类下所有子风格，对每个子风格用原有子函数打分，然后取大类内平均分。
+ *   这样大类分数本质上是"这个大类对用户整体而言有多合适"。
+ *
+ * 权重体系（总分调整为新规则）：
+ *   审美适配 50：体型(25) + 偏好(20) + 色彩(5)
+ *   行为偏好 30：优先级(12) + 目标(10) + 接受度(8)
+ *   现实约束 20：预算(8) + 场景(7) + 气候(5)
+ */
+export function matchCategories(answers: OnboardingAnswers): CategoryScore[] {
+  const bodyShape = deriveBodyShape(
+    answers.height!,
+    answers.weight!,
+    answers.bust,
+    answers.waist,
+    answers.hip,
+  );
+
+  const results: CategoryScore[] = CATEGORY_GROUPS.map((group) => {
+    const styleIds = group.styleIds;
+    const styles = styleIds
+      .map((id) => STYLES.find((s) => s.id === id))
+      .filter((s): s is StyleCard => s !== undefined);
+
+    if (styles.length === 0) {
+      return {
+        categoryId: group.id,
+        categoryName: group.name,
+        totalScore: 0,
+        breakdown: { aesthetic: 0, behavioral: 0, realistic: 0 },
+      };
+    }
+
+    // 对大类下所有子风格逐一打分，取平均
+    let totalAesthetic = 0;
+    let totalBehavioral = 0;
+    let totalRealistic = 0;
+
+    for (const style of styles) {
+      // 审美适配（50分）—— 新权重
+      const bodyShapeScore = scoreBodyShape(style, bodyShape); // 0-20
+      const preferenceScore = scorePreference(style, answers.preferredStyleIds); // 0-25
+      const skinToneScore = scoreSkinTone(style, answers.photoPreview); // 0-5
+
+      // 偏好分从 0-25 映射到 0-20
+      const preferenceMapped = Math.round((preferenceScore / 25) * 20);
+      // 体型分从 0-20 映射到 0-25
+      const bodyShapeMapped = Math.round((bodyShapeScore / 20) * 25);
+
+      totalAesthetic += bodyShapeMapped + preferenceMapped + skinToneScore;
+
+      // 行为偏好（30分）
+      const priorityScore = scorePriority(style, answers.priorities); // 0-10
+      const goalScore = scoreGoal(style, answers.dressingGoals); // 0-5
+      const opennessScore = scoreOpenness(style, answers); // 0-5
+
+      const priorityMapped = Math.round((priorityScore / 10) * 12);
+      const goalMapped = Math.round((goalScore / 5) * 10);
+      const opennessMapped = Math.round((opennessScore / 5) * 8);
+
+      totalBehavioral += priorityMapped + goalMapped + opennessMapped;
+
+      // 现实约束（20分）
+      const budgetScore = scoreBudget(style, answers); // 0-12
+      const ageFitScore = scoreAgeFit(style, answers.ageGroup); // 0-8
+      const sceneScore = scoreScene(style, answers); // 0-10
+
+      const budgetMapped = Math.round((budgetScore / 12) * 8);
+      const ageMapped = Math.round((ageFitScore / 8) * 7);
+      const sceneMapped = Math.round((sceneScore / 10) * 5);
+
+      totalRealistic += budgetMapped + ageMapped + sceneMapped;
+    }
+
+    const count = styles.length;
+    return {
+      categoryId: group.id,
+      categoryName: group.name,
+      totalScore: Math.round((totalAesthetic + totalBehavioral + totalRealistic) / count),
+      breakdown: {
+        aesthetic: Math.round(totalAesthetic / count),
+        behavioral: Math.round(totalBehavioral / count),
+        realistic: Math.round(totalRealistic / count),
+      },
+    };
+  });
+
+  return results.sort((a, b) => b.totalScore - a.totalScore);
+}
+
+/**
+ * 视觉调性一致性校验
+ *
+ * 取得分最高的大类作为主导大类，计算与其他大类的调性距离，
+ * 距离 >= 3.0 的判定为调性相冲，从推荐中过滤掉。
+ */
+export function checkTonalConsistency(
+  categoryScores: CategoryScore[],
+): TonalConsistencyResult {
+  const sorted = [...categoryScores].sort((a, b) => b.totalScore - a.totalScore);
+  const dominant = sorted[0];
+  const dominantVec = CATEGORY_TONAL_VECTORS[dominant.categoryId];
+
+  const distancesToOthers: Record<string, number> = {};
+  const filteredOut: StyleCategoryId[] = [];
+  const retained: StyleCategoryId[] = [];
+
+  for (const cs of sorted) {
+    const vec = CATEGORY_TONAL_VECTORS[cs.categoryId];
+    const dist = tonalDistance(dominantVec, vec);
+    distancesToOthers[cs.categoryId] = Math.round(dist * 100) / 100;
+
+    if (cs.categoryId === dominant.categoryId) {
+      retained.push(cs.categoryId);
+    } else if (dist >= 3.0) {
+      filteredOut.push(cs.categoryId);
+    } else {
+      retained.push(cs.categoryId);
+    }
+  }
+
+  return {
+    dominantCategoryId: dominant.categoryId,
+    dominantTonalVector: dominantVec,
+    distancesToOthers,
+    filteredOutCategoryIds: filteredOut,
+    retainedCategoryIds: retained,
+  };
+}
+
+/**
+ * 获取通过调性过滤后保留的大类分数列表
+ */
+export function getFilteredCategoryScores(
+  categoryScores: CategoryScore[],
+  consistency: TonalConsistencyResult,
+): CategoryScore[] {
+  return categoryScores.filter(
+    (cs) => consistency.retainedCategoryIds.includes(cs.categoryId),
+  );
+}
+
+
+
+// ============================================================
+// 【阶段三】辅助函数：风险标记 + 记忆输出
+// ============================================================
+// ============================================================
+// 【阶段四】已选风格分析
+// ============================================================
+
+/**
+ * 分析用户已选的风格
+ *
+ * 当用户主动选择了某个/某些风格时，不走评分推荐流程，
+ * 而是分析这些风格的优缺点，并推荐调性相近的其他风格。
+ *
+ * @param selectedStyleIds 用户选择的风格 ID 列表
+ * @param answers 用户问卷答案
+ * @returns 已选风格分析结果
+ */
+function analyzeSelectedStyles(
+  selectedStyleIds: string[],
+  answers: OnboardingAnswers,
+): SelectedStyleAnalysis | undefined {
+  if (selectedStyleIds.length === 0) return undefined;
+
+  const styleId = selectedStyleIds[0];
+  const style = STYLES.find((s) => s.id === styleId);
+  if (!style) return undefined;
+
+  const bodyShape = deriveBodyShape(
+    answers.height!,
+    answers.weight!,
+    answers.bust,
+    answers.waist,
+    answers.hip,
+  );
+
+  // 优点
+  const advantages: string[] = [];
+  const bodyShapeScore = scoreBodyShape(style, bodyShape);
+  if (bodyShapeScore >= 16) {
+    advantages.push('廓形与你的体型高度适配');
+  } else if (bodyShapeScore >= 10) {
+    advantages.push('廓形基本适配你的体型');
+  }
+
+  const budgetScore = scoreBudget(style, answers);
+  if (budgetScore >= 10) {
+    advantages.push('在预算范围内易于实现');
+  }
+
+  const goalScore = scoreGoal(style, answers.dressingGoals);
+  if (goalScore >= 4) {
+    advantages.push('能帮助你实现穿衣目标');
+  }
+
+  if (style.difficulty <= 2) {
+    advantages.push('难度较低，日常容易搭配');
+  }
+
+  if (advantages.length === 0) {
+    advantages.push('你对该风格有个人偏好');
+  }
+
+  // 缺点/不适配点
+  const disadvantages: string[] = [];
+  if (bodyShapeScore < 10) {
+    disadvantages.push('廓形与你的体型适配度较低，建议注意版型选择');
+  }
+  if (answers.budget === 'budget' && style.difficulty >= 4) {
+    disadvantages.push('该风格单品价格偏高，可能超出你的预算');
+  }
+  if (answers.climate === 'cold' && style.silhouette.every((s) => /吊带|短袖|短裙|凉鞋/.test(s))) {
+    disadvantages.push('该风格部分单品在寒冷地区实用性较低');
+  }
+  if (answers.climate === 'hot' && style.silhouette.some((s) => /大衣|皮草|厚卫衣|毛衣/.test(s))) {
+    disadvantages.push('该风格部分单品在炎热地区穿着较热');
+  }
+  if (style.difficulty >= 4 && answers.styleOpenness !== null && answers.styleOpenness <= 2) {
+    disadvantages.push('该风格难度较高，搭配需要一定功底');
+  }
+
+  if (disadvantages.length === 0) {
+    disadvantages.push('无明显不适配点');
+  }
+
+  // 调性相近的其他风格推荐
+  const similarRecommendations: string[] = [];
+  const styleVec = getStyleTonalVector(styleId);
+  const sameCategory = CATEGORY_GROUPS.find((g) => g.styleIds.includes(styleId));
+  const candidateStyleIds = sameCategory
+    ? sameCategory.styleIds.filter((id) => id !== styleId)
+    : STYLES.filter((s) => s.id !== styleId).map((s) => s.id);
+
+  for (const candidateId of candidateStyleIds) {
+    const candidateVec = getStyleTonalVector(candidateId);
+    const dist = tonalDistance(styleVec, candidateVec);
+    if (dist < 2.0) {
+      similarRecommendations.push(candidateId);
+    }
+  }
+
+  // 跨大类推荐
+  const crossCategoryIds: StyleCategoryId[] = [];
+  if (sameCategory) {
+    const dominantVec = CATEGORY_TONAL_VECTORS[sameCategory.id];
+    for (const [catId, catVec] of Object.entries(CATEGORY_TONAL_VECTORS)) {
+      if (catId === sameCategory.id) continue;
+      const dist = tonalDistance(dominantVec, catVec);
+      if (dist < 3.0) {
+        crossCategoryIds.push(catId as StyleCategoryId);
+      }
+    }
+  }
+
+  return {
+    styleId: style.id,
+    styleName: style.name,
+    advantages,
+    disadvantages,
+    similarRecommendations: similarRecommendations.slice(0, 5),
+    crossCategoryRecommendations: crossCategoryIds.slice(0, 3),
+  };
+}
+
+/**
+ * 构建风险标记列表
+ * 分析风格的潜在不适配点，生成人类可读的风险提示
+ */
+function buildRiskFlags(
+  style: StyleCard,
+  answers: OnboardingAnswers,
+): string[] {
+  const flags: string[] = [];
+
+  // 预算风险
+  if (answers.budget === 'budget' && style.difficulty >= 4) {
+    flags.push('预算偏高：该风格单品价格可能超出你的预算');
+  }
+
+  // 难度风险
+  if (style.difficulty >= 4 && answers.styleOpenness !== null && answers.styleOpenness <= 2) {
+    flags.push('风格难度大：该风格需要较强的搭配功底，可能超出你的舒适区');
+  }
+
+  // 气候风险
+  if (answers.climate === 'cold' && style.silhouette.every((s) => /吊带|短袖|短裙|凉鞋/.test(s))) {
+    flags.push('气候不匹配：该风格部分单品在寒冷地区可能不实用');
+  }
+  if (answers.climate === 'hot' && style.silhouette.some((s) => /大衣|皮草|厚卫衣|毛衣/.test(s))) {
+    flags.push('气候不匹配：该风格部分单品在炎热地区穿着较热');
+  }
+
+  // 年龄风险
+  if (answers.ageGroup && ['under_18', '18_24'].includes(answers.ageGroup) && style.difficulty >= 5) {
+    flags.push('年龄建议：超难风格可能需要较长的搭配经验积累');
+  }
+  if (answers.ageGroup && ['40_49', '50_plus'].includes(answers.ageGroup) && style.difficulty >= 4) {
+    flags.push('年龄建议：高难度前卫风格可能与你的年龄段气质有差异');
+  }
+
+  return flags;
+}
+
+/**
+ * 构建评分快照 —— 记忆接口输出
+ *
+ * 将完整的评分结果包装成 ScoringSnapshot 格式，
+ * 包含时间戳、用户画像快照、大类得分、分层推荐、调性校验结果。
+ */
+export function buildScoringSnapshot(
+  answers: OnboardingAnswers,
+  categoryScores: CategoryScore[],
+  tonalConsistency: TonalConsistencyResult,
+  matchResults: StyleMatchResult[],
+): ScoringSnapshot {
+  const bodyShape = deriveBodyShape(
+    answers.height!,
+    answers.weight!,
+    answers.bust,
+    answers.waist,
+    answers.hip,
+  );
+
+  // 分层
+  const coreStyles = matchResults.filter((r) => r.score >= 85);
+  const secondaryStyles = matchResults.filter((r) => r.score >= 65 && r.score < 85);
+
+  return {
+    timestamp: new Date().toISOString(),
+    version: '2.0.0',
+
+    userProfile: {
+      bodyShape,
+      ageGroup: answers.ageGroup,
+      occupation: answers.occupation,
+      budget: answers.budget,
+      climate: answers.climate,
+      interests: answers.interests,
+      priorities: answers.priorities,
+      dressingGoals: answers.dressingGoals,
+      styleOpenness: answers.styleOpenness,
+    },
+
+    categoryScores,
+
+    userSelectedStyleIds: answers.preferredStyleIds,
+
+    coreStyles: coreStyles.map((r) => ({
+      styleId: r.styleId,
+      styleName: r.styleName,
+      categoryName: r.category,
+      score: r.score,
+      reasons: r.matchReasons,
+      riskFlags: [],
+    })),
+
+    secondaryStyles: secondaryStyles.map((r) => ({
+      styleId: r.styleId,
+      styleName: r.styleName,
+      categoryName: r.category,
+      score: r.score,
+      reasons: r.matchReasons,
+      riskFlags: [],
+    })),
+
+    tonalConsistency,
+
+    selectedStyleAnalysis: answers.preferredStyleIds.length > 0
+      ? analyzeSelectedStyles(answers.preferredStyleIds, answers) : undefined,
+  };
+}
+
+
