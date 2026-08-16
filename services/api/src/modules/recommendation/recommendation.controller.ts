@@ -9,16 +9,19 @@ import {
   Query,
   Logger,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { RecommendationService } from './recommendation.service';
 import { WeatherService } from './weather.service';
-import { AiRateLimiter } from '../scoring/ai-rate-limiter';
+import { OptionalAuthGuard } from '../../common/guards/optional-auth.guard';
+import { resolveUserId } from '../../common/guards/resolve-user-id';
 import { OutfitRecommendationPlan } from '../ai-skills/outfit-recommendation/outfit-recommendation.dto';
 import { WeatherInfo } from './weather.service';
 
 @ApiTags('穿搭推荐')
+@UseGuards(OptionalAuthGuard)
 @Controller('recommendations')
 export class RecommendationController {
   private readonly logger = new Logger(RecommendationController.name);
@@ -26,7 +29,6 @@ export class RecommendationController {
   constructor(
     private readonly recommendationService: RecommendationService,
     private readonly weatherService: WeatherService,
-    private readonly aiRateLimiter: AiRateLimiter,
   ) {}
 
   /**
@@ -42,12 +44,14 @@ export class RecommendationController {
       styleGoal: string;
       constraints?: string[];
     },
+    @Req() req: Request,
   ) {
+    const userId = resolveUserId(req, body.userId);
     this.logger.log(
-      `收到今天穿什么请求 | userId: ${body.userId} | 城市: ${body.city} | 场合: ${body.occasion}`,
+      `收到今天穿什么请求 | userId: ${userId} | 城市: ${body.city} | 场合: ${body.occasion}`,
     );
     return this.recommendationService.generateTodayOutfit({
-      userId: body.userId,
+      userId,
       city: body.city,
       occasion: body.occasion,
       styleGoal: body.styleGoal,
@@ -68,9 +72,11 @@ export class RecommendationController {
       occasion: string;
       styleGoal: string;
     },
+    @Req() req: Request,
   ) {
-    this.logger.log(`保存穿搭方案 | userId: ${body.userId} | 标题: ${body.plan.title}`);
-    return this.recommendationService.saveOutfit(body.userId, {
+    const userId = resolveUserId(req, body.userId);
+    this.logger.log(`保存穿搭方案 | userId: ${userId} | 标题: ${body.plan.title}`);
+    return this.recommendationService.saveOutfit(userId, {
       plan: body.plan,
       weather: body.weather,
       occasion: body.occasion,
@@ -85,11 +91,13 @@ export class RecommendationController {
   @ApiOperation({ summary: '以衣橱中一件单品为核心生成搭配方案' })
   async styleItem(
     @Body() body: { userId: string; itemId: string; occasion?: string },
+    @Req() req: Request,
   ) {
+    const userId = resolveUserId(req, body.userId);
     this.logger.log(
-      `收到单品搭配请求 | userId: ${body.userId} | itemId: ${body.itemId} | 场合: ${body.occasion ?? '不限'}`,
+      `收到单品搭配请求 | userId: ${userId} | itemId: ${body.itemId} | 场合: ${body.occasion ?? '不限'}`,
     );
-    return this.recommendationService.styleItem(body.userId, body.itemId, body.occasion);
+    return this.recommendationService.styleItem(userId, body.itemId, body.occasion);
   }
 
   /**
@@ -106,8 +114,8 @@ export class RecommendationController {
    */
   @Get('outfits')
   @ApiOperation({ summary: '获取用户保存的穿搭列表' })
-  async getUserOutfits(userId: string) {
-    return this.recommendationService.getUserOutfits(userId);
+  async getUserOutfits(@Query('userId') userId: string, @Req() req: Request) {
+    return this.recommendationService.getUserOutfits(resolveUserId(req, userId));
   }
 
   /**
@@ -115,8 +123,8 @@ export class RecommendationController {
    */
   @Get('wardrobe-gaps')
   @ApiOperation({ summary: '分析衣橱缺口（AI 个性化）' })
-  analyzeGaps(userId: string, season?: string) {
-    return this.recommendationService.analyzeWardrobeGaps(userId, season);
+  analyzeGaps(@Query('userId') userId: string, @Query('season') season: string | undefined, @Req() req: Request) {
+    return this.recommendationService.analyzeWardrobeGaps(resolveUserId(req, userId), season);
   }
 
   /**
@@ -124,8 +132,8 @@ export class RecommendationController {
    */
   @Get('shopping-list')
   @ApiOperation({ summary: '获取用户购物清单' })
-  getShoppingList(userId: string) {
-    return this.recommendationService.getShoppingList(userId);
+  getShoppingList(@Query('userId') userId: string, @Req() req: Request) {
+    return this.recommendationService.getShoppingList(resolveUserId(req, userId));
   }
 
   /**
@@ -135,9 +143,11 @@ export class RecommendationController {
   @ApiOperation({ summary: '批量加入购物清单（自动去重）' })
   addShoppingItems(
     @Body() body: { userId: string; items: Array<Record<string, unknown>> },
+    @Req() req: Request,
   ) {
+    const userId = resolveUserId(req, body.userId);
     return this.recommendationService.addShoppingItems(
-      body.userId,
+      userId,
       body.items as Array<{
         category: string;
         subCategory?: string;
@@ -159,8 +169,9 @@ export class RecommendationController {
   updateShoppingItem(
     @Param('id') id: string,
     @Body() body: { userId: string; purchased?: boolean; priority?: number; description?: string },
+    @Req() req: Request,
   ) {
-    return this.recommendationService.updateShoppingItem(body.userId, id, body);
+    return this.recommendationService.updateShoppingItem(resolveUserId(req, body.userId), id, body);
   }
 
   /**
@@ -168,8 +179,12 @@ export class RecommendationController {
    */
   @Delete('shopping-list/:id')
   @ApiOperation({ summary: '删除购物清单单品' })
-  async deleteShoppingItem(@Param('id') id: string, @Query('userId') userId: string) {
-    await this.recommendationService.deleteShoppingItem(userId, id);
+  async deleteShoppingItem(
+    @Param('id') id: string,
+    @Query('userId') userId: string,
+    @Req() req: Request,
+  ) {
+    await this.recommendationService.deleteShoppingItem(resolveUserId(req, userId), id);
     return { code: 0, message: '已删除' };
   }
 
@@ -180,9 +195,11 @@ export class RecommendationController {
   @ApiOperation({ summary: 'AI 结合用户衣橱判断商品是否值得购买' })
   async purchaseEvaluate(
     @Body() body: { userId: string; imageBase64: string },
+    @Req() req: Request,
   ) {
-    this.logger.log(`收到买前判断请求 | userId: ${body.userId}`);
-    return this.recommendationService.purchaseEvaluate(body.userId, body.imageBase64);
+    const userId = resolveUserId(req, body.userId);
+    this.logger.log(`收到买前判断请求 | userId: ${userId}`);
+    return this.recommendationService.purchaseEvaluate(userId, body.imageBase64);
   }
 
 }

@@ -35,6 +35,7 @@ export class UserService {
       'user_current_intents',
       'user_memory_summaries',
       'feedback',
+      'shopping_list_items',
     ];
 
     for (const table of tablesToUpdate) {

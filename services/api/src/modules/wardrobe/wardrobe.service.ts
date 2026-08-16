@@ -77,20 +77,24 @@ export class WardrobeService {
     return this.itemRepo.find({ where, order: { createdAt: 'DESC' } });
   }
 
-  async getItemById(id: string): Promise<WardrobeItem> {
+  async getItemById(id: string, userId?: string): Promise<WardrobeItem> {
     const item = await this.itemRepo.findOne({ where: { id } });
     if (!item) throw new NotFoundException('衣物不存在');
+    // 归属校验：登录用户只能访问自己的衣物
+    if (userId && item.userId !== userId) {
+      throw new NotFoundException('衣物不存在');
+    }
     return item;
   }
 
-  async updateItem(id: string, data: Partial<WardrobeItem>): Promise<WardrobeItem> {
-    const item = await this.getItemById(id);
+  async updateItem(id: string, data: Partial<WardrobeItem>, userId?: string): Promise<WardrobeItem> {
+    const item = await this.getItemById(id, userId);
     Object.assign(item, data);
     return this.itemRepo.save(item);
   }
 
-  async deleteItem(id: string): Promise<void> {
-    const item = await this.getItemById(id);
+  async deleteItem(id: string, userId?: string): Promise<void> {
+    const item = await this.getItemById(id, userId);
     await this.itemRepo.remove(item);
   }
 
@@ -107,14 +111,18 @@ export class WardrobeService {
     });
   }
 
-  async getOutfitById(id: string): Promise<Outfit> {
+  async getOutfitById(id: string, userId?: string): Promise<Outfit> {
     const outfit = await this.outfitRepo.findOne({ where: { id } });
     if (!outfit) throw new NotFoundException('搭配不存在');
+    // 归属校验：登录用户只能访问自己的搭配
+    if (userId && outfit.userId !== userId) {
+      throw new NotFoundException('搭配不存在');
+    }
     return outfit;
   }
 
-  async deleteOutfit(id: string): Promise<void> {
-    const outfit = await this.getOutfitById(id);
+  async deleteOutfit(id: string, userId?: string): Promise<void> {
+    const outfit = await this.getOutfitById(id, userId);
     await this.outfitRepo.remove(outfit);
   }
 }
