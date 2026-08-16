@@ -111,3 +111,43 @@ export const RISK_LABELS: Record<string, string> = {
   medium: '中',
   high: '高',
 };
+
+// ---------- 单品出发搭配 ----------
+
+export interface ItemStylingSlotItem {
+  itemId: string;
+  category: string;
+  description: string;
+  /** 是否为建议购买的单品 */
+  isSuggestion?: boolean;
+  /** 建议预算（如"¥150-300"） */
+  budgetHint?: string;
+}
+
+export interface ItemStylingPlan {
+  type: 'safe' | 'flattering' | 'vibe';
+  title: string;
+  hat: ItemStylingSlotItem | null;
+  top: ItemStylingSlotItem | null;
+  bottom: ItemStylingSlotItem | null;
+  outerwear: ItemStylingSlotItem | null;
+  shoes: ItemStylingSlotItem | null;
+  bag: ItemStylingSlotItem | null;
+  accessory: ItemStylingSlotItem | null;
+  reason: string;
+  scene: string;
+  riskWarning: string;
+  score: number;
+}
+
+export interface ItemStylingResult {
+  focusItemName: string;
+  plans: ItemStylingPlan[];
+  note: string;
+}
+
+export const STYLING_PLAN_LABELS: Record<ItemStylingPlan['type'], string> = {
+  safe: '稳妥不出错',
+  flattering: '显瘦显高',
+  vibe: '更有氛围感',
+};

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { EvaluateOutfitResponse } from "@/lib/scoring-types";
 import DimensionCard from "./dimension-card";
 import { motion } from "framer-motion";
@@ -12,8 +13,11 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
-import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles } from "lucide-react";
+import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle } from "lucide-react";
 import { buildScoringSummaryText } from "@/lib/scoring-summary";
+import { fetchWardrobeItems } from "@/lib/wardrobe-api";
+import { CATEGORY_LABELS, WardrobeItem } from "@/lib/wardrobe-types";
+import type { StructuredOutfitResult } from "@stylemate/shared";
 
 interface ScoreResultProps {
   result: EvaluateOutfitResponse;
@@ -180,6 +184,9 @@ export default function ScoreResult({ result, onReset }: ScoreResultProps) {
         </div>
       )}
 
+      {/* 衣橱替换建议 — 诊断→改进闭环 */}
+      {result.structured && <WardrobeSwaps structured={result.structured} />}
+
       {/* 重新评分 */}
       <motion.button
         initial={{ opacity: 0 }}
@@ -191,6 +198,112 @@ export default function ScoreResult({ result, onReset }: ScoreResultProps) {
         <RotateCcw size={16} />
         重新评分
       </motion.button>
+    </div>
+  );
+}
+
+// ===================================================================
+// 衣橱替换建议：把诊断中的"问题单品"映射到用户衣橱里的同品类单品，
+// 让"哪里不好怎么改"真正落地为"换成衣橱里的哪一件"。
+// ===================================================================
+function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
+  const [items, setItems] = useState<WardrobeItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchWardrobeItems()
+      .then((data) => { if (!cancelled) setItems(data); })
+      .catch(() => { if (!cancelled) setFailed(true); })
+      .finally(() => { if (!cancelled) setLoaded(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!loaded) return null;
+  if (failed) return null;
+
+  // 衣橱为空 → 引导补充
+  if (items.length === 0) {
+    return (
+      <div className="border border-ink-900/10 bg-white/45 p-5">
+        <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-3 flex items-center gap-2">
+          <Shuffle className="w-4 h-4" />
+          WARDROBE SWAPS
+        </h3>
+        <p className="text-sm leading-7 text-ink-600">
+          把衣橱里的衣服拍照录入后，这里会告诉你：这套 Look 里的每一件，可以换成你衣橱里的哪一件。
+        </p>
+        <Link
+          href="/wardrobe"
+          className="mt-3 inline-flex items-center gap-1.5 border border-ink-900 px-4 py-2 text-xs text-ink-900 transition hover:bg-ink-900 hover:text-creme-100"
+        >
+          <Shirt size={14} />
+          去衣橱添加衣物
+        </Link>
+      </div>
+    );
+  }
+
+  // 按品类分组
+  const byCategory = new Map<string, WardrobeItem[]>();
+  for (const it of items) {
+    const list = byCategory.get(it.category) ?? [];
+    list.push(it);
+    byCategory.set(it.category, list);
+  }
+
+  // 为每个结构化单品找同品类候选（按百搭程度降序，取前 3）
+  const rows = structured.items
+    .map((piece) => {
+      const candidates = (byCategory.get(piece.type) ?? [])
+        .slice()
+        .sort((a, b) => (b.matchabilityScore ?? 0) - (a.matchabilityScore ?? 0))
+        .slice(0, 3);
+      return { piece, candidates };
+    })
+    .filter((row) => row.candidates.length > 0);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="border border-ink-900/10 bg-white/45 p-5">
+      <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-4 flex items-center gap-2">
+        <Shuffle className="w-4 h-4" />
+        WARDROBE SWAPS
+      </h3>
+      <p className="mb-4 text-xs text-ink-400">诊断单品 → 你衣橱里可以直接替换的选择（按百搭程度排序）</p>
+      <div className="space-y-5">
+        {rows.map((row, idx) => (
+          <div key={idx}>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded-full bg-ink-900 px-2.5 py-0.5 text-[11px] text-creme-100">
+                {row.piece.name}
+              </span>
+              <span className="text-xs text-ink-400">{CATEGORY_LABELS[row.piece.type as keyof typeof CATEGORY_LABELS] ?? row.piece.type}</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {row.candidates.map((cand) => (
+                <Link
+                  key={cand.id}
+                  href={`/wardrobe/items/${cand.id}`}
+                  className="flex items-center gap-2 rounded-lg border border-ink-900/10 bg-white px-2.5 py-2 transition hover:border-ink-900/40"
+                >
+                  {cand.imageUrls?.[0] ? (
+                    <img src={cand.imageUrls[0]} alt={cand.subCategory || cand.category} className="size-9 rounded-md object-cover" />
+                  ) : (
+                    <span className="flex size-9 items-center justify-center rounded-md bg-ink-50 text-base">👕</span>
+                  )}
+                  <div>
+                    <p className="text-xs font-medium text-ink-800">{cand.color} {cand.subCategory || cand.category}</p>
+                    <p className="text-[10px] text-ink-400">百搭 {cand.matchabilityScore ?? 0}/10</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

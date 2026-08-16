@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Trash2, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Check, Loader2, Sparkles } from 'lucide-react';
 import {
   fetchWardrobeItem,
   updateWardrobeItem,
   deleteWardrobeItem,
 } from '@/lib/wardrobe-api';
+import ItemStylingDialog from '@/components/wardrobe/item-styling-dialog';
 import {
   WardrobeItem,
   CATEGORY_LABELS,
@@ -35,6 +36,7 @@ export default function WardrobeItemDetailPage() {
   const [editStyleTags, setEditStyleTags] = useState<string[]>([]);
   const [editOccasionTags, setEditOccasionTags] = useState<string[]>([]);
   const [editSubCategory, setEditSubCategory] = useState('');
+  const [stylingOpen, setStylingOpen] = useState(false);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -340,16 +342,17 @@ export default function WardrobeItemDetailPage() {
                 )}
                 <button
                   type="button"
-                  disabled
-                  className="cursor-not-allowed rounded-full bg-gray-100 px-5 py-2 text-sm text-gray-400"
-                  title="Phase 2 上线"
+                  onClick={() => setStylingOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-5 py-2 text-sm text-creme-100 transition-colors hover:bg-ink-700"
                 >
-                  帮我搭这件（即将上线）
+                  <Sparkles size={16} />
+                  帮我搭这件
                 </button>
               </div>
             </div>
           </div>
         </div>
+        <ItemStylingDialog open={stylingOpen} item={item} onClose={() => setStylingOpen(false)} />
       </div>
   );
 }

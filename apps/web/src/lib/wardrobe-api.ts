@@ -3,6 +3,7 @@ import {
   WardrobeCategory,
   RecognizeResponse,
   PurchaseEvaluationResult,
+  ItemStylingResult,
 } from './wardrobe-types';
 import { buildApiErrorMessage } from './api-error';
 import { getCurrentUserId, getAuthToken } from './auth';
@@ -218,6 +219,33 @@ export async function evaluatePurchase(
 
   if (!res.ok) {
     throw new Error(await buildApiErrorMessage(res, '买前判断请求失败'));
+  }
+
+  return res.json();
+}
+
+/**
+ * 单品出发搭配 — "这件怎么搭"
+ */
+export async function styleWardrobeItem(
+  itemId: string,
+  occasion?: string,
+): Promise<ItemStylingResult> {
+  const userId = getCurrentUserId();
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/recommendations/style-item`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ userId, itemId, occasion }),
+    });
+  } catch {
+    throw new Error('无法连接 AI 服务，请确认后端 API（localhost:4000）已启动。');
+  }
+
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '单品搭配请求失败'));
   }
 
   return res.json();

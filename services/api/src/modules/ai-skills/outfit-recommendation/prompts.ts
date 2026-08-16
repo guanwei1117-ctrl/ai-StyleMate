@@ -85,10 +85,67 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
 }
 
 /**
- * 构建穿搭推荐 System Prompt
+ * 构建空衣橱起步方案 System Prompt
  *
- * 将用户长期记忆 + 衣橱单品 + 天气 + 场合 + 风格目标 + 限制条件注入 prompt
+ * 用户衣橱为空时使用：所有单品都是"建议购买"，帮助不会穿搭/不会买的新手直接照着买照着穿。
+ * 输出 JSON 结构与常规推荐一致，但每个 item 不带 itemId，而是带 budgetHint。
  */
+export function buildStarterOutfitPrompt(input: OutfitRecommendationInput): string {
+  const memoryText = buildMemoryContextText(input.memoryContext);
+
+  const constraintsText =
+    input.constraints.length > 0
+      ? input.constraints.map((c, i) => `${i + 1}. ${c}`).join('\n')
+      : '无';
+
+  return `你是 StyleMate 的专业穿搭顾问。用户衣橱还是空的，想知道"今天穿什么、以及照着买什么"。
+
+${memoryText}
+## 今日天气
+城市：${input.weather.city}
+天气：${input.weather.condition}
+温度：${input.weather.temperature}°C（体感 ${input.weather.apparentTemperature}°C）
+是否下雨：${input.weather.isRaining ? '是' : '否'}
+
+## 穿搭要求
+场合：${input.occasion}
+风格目标：${input.styleGoal}
+限制条件：
+${constraintsText}
+
+## 任务
+用户衣橱为空，请给出 3 套"照着买就能穿"的起步方案（safe / flattering / vibe 各一套）。
+每套方案用建议购买的单品填满 hat/top/bottom/outerwear/shoes/bag/accessory 槽位（没有需要的槽位填 null）。
+
+## 输出要求
+- 每个单品对象字段：{ "category": "品类", "description": "具体描述（颜色+品类，如 米白色针织开衫）", "budgetHint": "建议预算区间（如 ¥150-300）" }，不要 itemId。
+- 品类取值：top / outerwear / bottom / dress / shoes / bag / hat / accessory（dress 连体装放 top 槽）。
+- 单品建议要具体、可执行、符合中国大众消费价位，预算档位参考用户记忆（若有预算信息务必遵守）。
+- 必须遵守用户记忆中的避坑规则、不喜欢风格/颜色、身材顾虑。
+- 每套方案给出 reason（为什么适合今天）、scene（适合什么场景）、riskWarning（风险提醒，没有则填"无"）、score（1-100）。
+- 只返回 JSON，不要 markdown，不要任何额外文字。结构如下：
+{
+  "plans": [
+    {
+      "type": "safe",
+      "title": "稳妥起步·针织衫+直筒裤",
+      "hat": null,
+      "top": { "category": "top", "description": "米白色圆领针织衫", "budgetHint": "¥150-300" },
+      "bottom": { "category": "bottom", "description": "黑色高腰直筒裤", "budgetHint": "¥200-400" },
+      "outerwear": { "category": "outerwear", "description": "卡其色短款风衣", "budgetHint": "¥300-600" },
+      "shoes": { "category": "shoes", "description": "白色厚底帆布鞋", "budgetHint": "¥150-300" },
+      "bag": { "category": "bag", "description": "棕色单肩托特包", "budgetHint": "¥200-500" },
+      "accessory": null,
+      "reason": "针织衫+直筒裤是零出错的基础组合，适合通勤与日常",
+      "scene": "办公室通勤、周末逛街",
+      "riskWarning": "无",
+      "score": 85
+    },
+    { "type": "flattering", "title": "…", "hat": null, "top": null, "bottom": null, "outerwear": null, "shoes": null, "bag": null, "accessory": null, "reason": "…", "scene": "…", "riskWarning": "…", "score": 80 },
+    { "type": "vibe", "title": "…", "hat": null, "top": null, "bottom": null, "outerwear": null, "shoes": null, "bag": null, "accessory": null, "reason": "…", "scene": "…", "riskWarning": "…", "score": 78 }
+  ]
+}`;
+}
 export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput, rulesSummary?: string): string {
   const itemsJson = JSON.stringify(
     input.wardrobeItems.map((i) => ({

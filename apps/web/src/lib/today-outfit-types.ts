@@ -17,6 +17,10 @@ export interface OutfitPlanItem {
   itemId: string;
   category: string;
   description: string;
+  /** 是否为建议购买的单品（空衣橱起步方案） */
+  isSuggestion?: boolean;
+  /** 建议预算（如"¥150-300"） */
+  budgetHint?: string;
 }
 
 export interface OutfitPlan {
@@ -38,6 +42,10 @@ export interface OutfitPlan {
 export interface TodayOutfitResponse {
   weather: WeatherInfo;
   plans: OutfitPlan[];
+  /** 是否为空衣橱起步方案（单品均为购买建议） */
+  isStarter?: boolean;
+  /** 起步方案提示文案 */
+  starterMessage?: string;
 }
 
 export const OCCASION_OPTIONS = [

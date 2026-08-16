@@ -68,6 +68,20 @@ export class RecommendationController {
   }
 
   /**
+   * 单品出发搭配 — "这件怎么搭"
+   */
+  @Post('style-item')
+  @ApiOperation({ summary: '以衣橱中一件单品为核心生成搭配方案' })
+  async styleItem(
+    @Body() body: { userId: string; itemId: string; occasion?: string },
+  ) {
+    this.logger.log(
+      `收到单品搭配请求 | userId: ${body.userId} | itemId: ${body.itemId} | 场合: ${body.occasion ?? '不限'}`,
+    );
+    return this.recommendationService.styleItem(body.userId, body.itemId, body.occasion);
+  }
+
+  /**
    * 查询天气（供前端预览）
    */
   @Get('weather')

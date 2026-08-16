@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   Loader2, X, Sparkles, Cloud, Check, AlertTriangle,
-  Shirt, Calendar, Star, ThumbsUp, ThumbsDown, MessageSquare, ChevronDown, ChevronUp,
+  Shirt, Calendar, Star, ThumbsUp, ThumbsDown, MessageSquare, ChevronDown, ChevronUp, ShoppingBag,
 } from 'lucide-react';
 import { generateTodayOutfit, saveOutfit } from '@/lib/today-outfit-api';
 import { fetchWardrobeItems } from '@/lib/wardrobe-api';
@@ -135,7 +136,21 @@ export default function TodayOutfitDialog({ open, onClose }: Props) {
           {result && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3"><Cloud size={20} className="text-blue-500"/><div className="flex-1"><span className="text-sm font-medium text-gray-700">{result.weather.city}</span><span className="ml-2 text-sm text-gray-600">{result.weather.condition} {result.weather.temperature}°C（体感{result.weather.apparentTemperature}°C）</span></div>{result.weather.isRaining&&<span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-600">🌧️有雨</span>}</div>
-              {result.plans.map(plan=>(<PlanCard key={plan.type} plan={plan} photoMap={itemPhotoMap} saved={savedPlans.has(plan.type)} feedback={feedbacks[plan.type]??DEF_FB} onSave={()=>startSave(plan)} onUpdateFeedback={p=>updateFeedback(plan.type,p)} onSubmitFeedback={()=>submitFeedback(plan)}/>))}
+              {result.isStarter && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <ShoppingBag size={18} className="mt-0.5 shrink-0 text-amber-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-800">衣橱还是空的 · 起步方案</p>
+                    <p className="mt-0.5 text-xs leading-5 text-amber-700">
+                      {result.starterMessage ?? '以下单品均为购买建议，照着买就能穿。'}
+                    </p>
+                    <Link href="/wardrobe" className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700">
+                      去衣橱拍照添加单品 →
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {result.plans.map(plan=>(<PlanCard key={plan.type} plan={plan} photoMap={itemPhotoMap} saved={savedPlans.has(plan.type)} isStarter={!!result.isStarter} feedback={feedbacks[plan.type]??DEF_FB} onSave={()=>startSave(plan)} onUpdateFeedback={p=>updateFeedback(plan.type,p)} onSubmitFeedback={()=>submitFeedback(plan)}/>))}
               <button type="button" onClick={()=>setResult(null)} className="w-full rounded-full border border-gray-300 py-2.5 text-sm text-gray-600 hover:border-gray-400">重新选择条件</button>
               {error&&<p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
             </div>
@@ -157,8 +172,8 @@ export default function TodayOutfitDialog({ open, onClose }: Props) {
 }
 
 // ===================================================================
-function PlanCard({ plan, photoMap, saved, feedback, onSave, onUpdateFeedback, onSubmitFeedback }: {
-  plan: OutfitPlan; photoMap: Map<string,string>; saved: boolean;
+function PlanCard({ plan, photoMap, saved, isStarter, feedback, onSave, onUpdateFeedback, onSubmitFeedback }: {
+  plan: OutfitPlan; photoMap: Map<string,string>; saved: boolean; isStarter: boolean;
   feedback: FeedbackState; onSave: ()=>void; onUpdateFeedback: (p:Partial<FeedbackState>)=>void; onSubmitFeedback: ()=>void;
 }) {
   const toggleReason = (r:string) => onUpdateFeedback({ reasons: feedback.reasons.includes(r)?feedback.reasons.filter(x=>x!==r):[...feedback.reasons,r] });
@@ -172,22 +187,28 @@ function PlanCard({ plan, photoMap, saved, feedback, onSave, onUpdateFeedback, o
       {/* 7 slot 照片 */}
       <div className="mt-3 grid grid-cols-7 gap-1.5 sm:gap-2">
         {SLOT_ORDER.map(slotKey => {
-          const item = (plan as any)[slotKey] as { itemId: string; description: string } | null;
+          const item = (plan as any)[slotKey] as { itemId: string; description: string; isSuggestion?: boolean; budgetHint?: string } | null;
           const photo = item?.itemId ? photoMap.get(item.itemId) : undefined;
           return (
             <div key={slotKey} className="flex flex-col items-center rounded-lg bg-gray-50 p-1.5">
               {photo ? <img src={photo} alt={SLOT_LABELS[slotKey]} className="size-10 sm:size-12 object-cover rounded-md"/>
+                : item?.isSuggestion ? <div className="flex size-10 sm:size-12 items-center justify-center rounded-md bg-amber-100"><ShoppingBag size={14} className="text-amber-600"/></div>
                 : <Shirt size={14} className="text-gray-300"/>}
               <span className="mt-0.5 text-[9px] text-gray-400">{SLOT_LABELS[slotKey]}</span>
               {item ? <span className="mt-0.5 line-clamp-1 text-center text-[9px] sm:text-[10px] text-gray-700">{item.description}</span>
                 : <span className="mt-0.5 text-[9px] text-gray-300">—</span>}
+              {item?.isSuggestion && item.budgetHint && <span className="mt-0.5 line-clamp-1 text-center text-[9px] text-amber-600">{item.budgetHint}</span>}
             </div>
           );
         })}
       </div>
       <p className="mt-3 text-sm text-gray-600">{plan.reason}</p>
       <div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs text-emerald-600">{plan.scene}</span>{plan.riskWarning&&plan.riskWarning!=='无'&&<span className="flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs text-amber-600"><AlertTriangle size={11}/>{plan.riskWarning}</span>}</div>
-      <button type="button" onClick={onSave} disabled={saved} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-ink-900 py-2 text-xs font-medium text-creme-100 transition-colors hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-60">{saved?<><Check size={14}/>已保存</>:<><Calendar size={14}/>选择日期并保存</>}</button>
+      {isStarter ? (
+        <p className="mt-3 rounded-full bg-gray-50 py-2 text-center text-xs text-gray-400">补充衣橱后即可保存到穿搭计划</p>
+      ) : (
+        <button type="button" onClick={onSave} disabled={saved} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-ink-900 py-2 text-xs font-medium text-creme-100 transition-colors hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-60">{saved?<><Check size={14}/>已保存</>:<><Calendar size={14}/>选择日期并保存</>}</button>
+      )}
       {/* 评分建议 */}
       <div className="mt-2 border-t border-gray-100 pt-2">
         <button type="button" onClick={()=>onUpdateFeedback({expanded:!feedback.expanded})} className="flex w-full items-center justify-between text-xs text-ink-400 hover:text-ink-600 py-1"><span className="flex items-center gap-1.5"><MessageSquare size={14}/>评分建议{feedback.submitted&&<span className="text-green-600">✓已提交</span>}</span>{feedback.expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button>

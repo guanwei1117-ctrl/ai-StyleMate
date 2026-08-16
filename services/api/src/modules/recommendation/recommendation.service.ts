@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserService } from '../user/user.service';
@@ -8,6 +8,8 @@ import { Outfit } from '../wardrobe/entities/outfit.entity';
 import { OutfitRecommendationSkill } from '../ai-skills/outfit-recommendation/outfit-recommendation.skill';
 import { PurchaseEvaluationSkill } from '../ai-skills/purchase-evaluation/purchase-evaluation.skill';
 import { PurchaseEvaluationResult } from '../ai-skills/purchase-evaluation/purchase-evaluation.dto';
+import { ItemStylingSkill } from '../ai-skills/item-styling/item-styling.skill';
+import { ItemStylingResult } from '../ai-skills/item-styling/item-styling.dto';
 import { WeatherService, WeatherInfo } from './weather.service';
 import { MemoryService } from '../memory/memory.service';
 import { AIMemoryContext } from '../memory/memory.dto';
@@ -27,6 +29,10 @@ export interface TodayOutfitRequest {
 export interface TodayOutfitResponse {
   weather: WeatherInfo;
   plans: OutfitRecommendationPlan[];
+  /** 是否为空衣橱起步方案（单品均为购买建议） */
+  isStarter?: boolean;
+  /** 起步方案提示文案 */
+  starterMessage?: string;
 }
 
 @Injectable()
@@ -38,6 +44,7 @@ export class RecommendationService {
     private readonly wardrobeService: WardrobeService,
     private readonly outfitRecommendationSkill: OutfitRecommendationSkill,
     private readonly purchaseEvaluationSkill: PurchaseEvaluationSkill,
+    private readonly itemStylingSkill: ItemStylingSkill,
     private readonly weatherService: WeatherService,
     private readonly memoryService: MemoryService,
     @InjectRepository(Outfit)
@@ -51,12 +58,8 @@ export class RecommendationService {
     // 1. 获取天气
     const weather = await this.weatherService.getWeather(req.city);
 
-    // 2. 获取衣橱单品
+    // 2. 获取衣橱单品（允许为空：空衣橱走"起步方案"，给出建议购买单品而不是报错）
     const wardrobeItems = await this.wardrobeService.getUserItems(req.userId);
-
-    if (wardrobeItems.length === 0) {
-      throw new NotFoundException('衣橱里还没有衣服，先去添加几件吧');
-    }
 
     // 3. 读取用户长期记忆（AI 调用前必须先读取记忆）
     let memoryContext: AIMemoryContext | null = null;
@@ -106,6 +109,81 @@ export class RecommendationService {
     return {
       weather,
       plans: result.plans,
+      isStarter: result.isStarter,
+      starterMessage: result.starterMessage,
+    };
+  }
+
+  /**
+   * 单品出发搭配 — 用户问"这件怎么搭"
+   *
+   * 以衣橱中一件单品为核心，结合用户其余单品与长期记忆，生成 3 套搭配方案。
+   * 衣橱缺少的品类会以"建议购买"的形式给出，帮助不会穿搭的用户直接执行。
+   */
+  async styleItem(
+    userId: string,
+    itemId: string,
+    occasion?: string,
+  ): Promise<ItemStylingResult> {
+    // 1. 焦点单品（校验属于该用户）
+    const focusItem = await this.wardrobeService.getItemById(itemId);
+    if (focusItem.userId !== userId) {
+      throw new NotFoundException('衣物不存在');
+    }
+
+    // 2. 衣橱其余单品
+    const wardrobeItems = await this.wardrobeService.getUserItems(userId);
+
+    // 3. 读取用户长期记忆
+    let memoryContext: AIMemoryContext | null = null;
+    try {
+      memoryContext = await this.memoryService.buildAIContext(userId, 'item_styling');
+      this.logger.log(
+        `单品搭配已加载用户记忆 | userId: ${userId} | 记忆摘要: ${memoryContext.memorySummary ? '有' : '无'}`,
+      );
+    } catch (err) {
+      this.logger.warn(`读取用户记忆失败（不影响主流程）: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // 4. 调用 AI skill
+    const result = await this.itemStylingSkill.style({
+      focusItem: this.toStylingItem(focusItem),
+      wardrobeItems: wardrobeItems
+        .filter((i) => i.id !== itemId)
+        .map((i) => this.toStylingItem(i)),
+      occasion,
+      memoryContext,
+    });
+
+    // 用户进行单品搭配 → 自动更新记忆（best-effort）
+    try {
+      await this.memoryService.autoMergeFromBehavior(userId, {
+        action: `查看了单品「${result.focusItemName || focusItem.subCategory}」的搭配方案`,
+        extraContext: result.note,
+      });
+    } catch {
+      // 静默处理
+    }
+
+    return result;
+  }
+
+  /** WardrobeItem → AI skill 单品摘要 */
+  private toStylingItem(i: WardrobeItem) {
+    return {
+      id: i.id,
+      category: i.category,
+      subCategory: i.subCategory ?? '',
+      color: i.color,
+      material: i.material ?? '',
+      season: i.season ?? [],
+      styleTags: i.styleTags ?? [],
+      occasionTags: i.occasionTags ?? [],
+      formalityScore: i.formalityScore,
+      warmthScore: i.warmthScore,
+      matchabilityScore: i.matchabilityScore,
+      matchColors: i.matchColors ?? [],
+      matchCategories: i.matchCategories ?? [],
     };
   }
 
@@ -125,9 +203,16 @@ export class RecommendationService {
     let position = 0;
     for (const slot of ['hat', 'top', 'bottom', 'outerwear', 'shoes', 'bag', 'accessory'] as const) {
       const item = data.plan[slot];
-      if (item) {
+      // 起步方案的建议单品没有真实 itemId，跳过
+      if (item && item.itemId) {
         items.push({ itemId: item.itemId, position: position++ });
       }
+    }
+
+    if (items.length === 0) {
+      throw new BadRequestException(
+        '这套方案由建议购买的单品组成，请先添加衣物到衣橱后再保存',
+      );
     }
 
     const outfit = this.outfitRepo.create({

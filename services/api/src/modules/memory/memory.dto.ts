@@ -71,4 +71,5 @@ export type TaskType =
   | 'wardrobe_gap'
   | 'item_recognition'
   | 'style_profile_update'
-  | 'outfit_scoring';
+  | 'outfit_scoring'
+  | 'item_styling';

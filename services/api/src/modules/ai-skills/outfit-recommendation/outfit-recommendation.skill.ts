@@ -1,7 +1,10 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { LLMFactory } from '../../llm/llm-factory';
 import { ChatMessage } from '../../llm/llm-provider.interface';
-import { buildOutfitRecommendationPrompt } from './prompts';
+import {
+  buildOutfitRecommendationPrompt,
+  buildStarterOutfitPrompt,
+} from './prompts';
 import { StylingRulesEngine } from './styling-rules.engine';
 import {
   OutfitRecommendationInput,
@@ -19,8 +22,9 @@ export class OutfitRecommendationSkill {
   constructor(private readonly llmFactory: LLMFactory) {}
 
   async recommend(input: OutfitRecommendationInput): Promise<OutfitRecommendationResult> {
+    // 空衣橱 → 起步方案：给出建议购买的单品组合，而不是报错挡人
     if (input.wardrobeItems.length === 0) {
-      throw new BadRequestException('衣橱里还没有衣服，先去添加几件吧');
+      return this.recommendStarter(input);
     }
 
     // ====== 规则引擎预分析 (40% 权重) ======
@@ -81,6 +85,44 @@ export class OutfitRecommendationSkill {
     }
 
     return parsed;
+  }
+
+  /**
+   * 空衣橱起步方案 — 基于用户画像+天气+场合，给出"建议购买"的穿搭方案
+   *
+   * 解决痛点：不会穿搭的新手往往衣橱为空，直接报错会把最需要帮助的人挡在门外。
+   * 这里不引用任何衣橱单品，所有 slot 都是购买建议（isSuggestion: true）。
+   */
+  private async recommendStarter(
+    input: OutfitRecommendationInput,
+  ): Promise<OutfitRecommendationResult> {
+    const systemPrompt = buildStarterOutfitPrompt(input);
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: '我的衣橱还是空的，请给我几套可以直接照着买的起步穿搭方案。' },
+    ];
+
+    this.logger.log(
+      `空衣橱起步方案 AI 调用 | 城市: ${input.weather.city} | 场合: ${input.occasion} | 风格目标: ${input.styleGoal}`,
+    );
+    const startTime = Date.now();
+    const response = await this.llmFactory.chat(messages, {
+      temperature: 0.6,
+      maxTokens: 3000,
+      timeoutMs: 90000,
+    });
+
+    const parsed = this.parseResponse(response.content);
+    this.logger.log(
+      `空衣橱起步方案完成 | 耗时 ${Date.now() - startTime}ms | 模型: ${response.model} | 方案数: ${parsed.plans.length}`,
+    );
+
+    return {
+      ...parsed,
+      isStarter: true,
+      starterMessage:
+        '你的衣橱还是空的，以上方案中的单品都是购买建议。把它们加入衣橱后，推荐会精确到你的每一件衣服。',
+    };
   }
 
   /** 记忆评分：用户偏好加权 */
@@ -147,11 +189,14 @@ export class OutfitRecommendationSkill {
   }
 
   private parseItem(item: any): OutfitRecommendationPlan['top'] {
-    if (!item || item.itemId === undefined || item.itemId === null) return null;
+    if (!item || typeof item !== 'object') return null;
+    const hasRealId = item.itemId !== undefined && item.itemId !== null && String(item.itemId).trim() !== '';
     return {
-      itemId: String(item.itemId),
+      itemId: hasRealId ? String(item.itemId) : '',
       category: String(item.category ?? ''),
       description: String(item.description ?? ''),
+      isSuggestion: !hasRealId,
+      budgetHint: item.budgetHint ? String(item.budgetHint) : undefined,
     };
   }
 

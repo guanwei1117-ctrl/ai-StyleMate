@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 新版评分机制 —— 类型定义
  *
  * 三支柱体系（满分 100）：
@@ -13,6 +13,7 @@
  */
 
 import type { BodyShape } from './onboarding-types';
+import type { StructuredOutfitResult } from '@stylemate/shared';
 
 // ============================================================
 // 8 大风格大类 ID
@@ -188,6 +189,8 @@ export interface EvaluateOutfitResponse {
   dimensions: DimensionScore[];
   itemComments: string[];
   improvements: string[];
+  /** 结构化单品分析（用于衣橱替换建议等能力） */
+  structured?: StructuredOutfitResult;
 }
 
 /** 页面两种状态 */

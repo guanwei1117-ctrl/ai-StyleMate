@@ -6,12 +6,16 @@
  */
 
 export interface OutfitRecommendationItem {
-  /** 引用的衣橱单品 ID */
+  /** 引用的衣橱单品 ID（建议单品时为空字符串） */
   itemId: string;
   /** 品类 */
   category: string;
   /** 简述（如"白色棉质 T 恤"） */
   description: string;
+  /** 是否为建议购买的单品（空衣橱起步方案） */
+  isSuggestion?: boolean;
+  /** 建议预算（如"¥150-300"） */
+  budgetHint?: string;
 }
 
 export interface OutfitRecommendationPlan {
@@ -82,4 +86,8 @@ export interface OutfitRecommendationInput {
 
 export interface OutfitRecommendationResult {
   plans: OutfitRecommendationPlan[];
+  /** 是否为空衣橱起步方案（单品均为购买建议） */
+  isStarter?: boolean;
+  /** 起步方案提示文案 */
+  starterMessage?: string;
 }
