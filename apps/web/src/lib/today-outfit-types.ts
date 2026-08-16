@@ -22,10 +22,12 @@ export interface OutfitPlanItem {
 export interface OutfitPlan {
   type: 'safe' | 'flattering' | 'vibe';
   title: string;
+  hat: OutfitPlanItem | null;
   top: OutfitPlanItem | null;
   bottom: OutfitPlanItem | null;
   outerwear: OutfitPlanItem | null;
   shoes: OutfitPlanItem | null;
+  bag: OutfitPlanItem | null;
   accessory: OutfitPlanItem | null;
   reason: string;
   scene: string;

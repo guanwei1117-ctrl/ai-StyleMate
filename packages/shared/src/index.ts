@@ -2,6 +2,10 @@
 // StyleMate 共享类型定义
 // ============================================================
 
+// ---------- 衣物分类体系 ----------
+export * from './categories';
+import type { ClothingCategory } from './categories';
+
 // ---------- 用户相关 ----------
 export interface User {
   id: string;
@@ -135,12 +139,9 @@ export interface WardrobeItem {
   aiTags?: AITags;
   purchaseUrl?: string;
   status: ItemStatus;
-  wearCount: number;
   createdAt: string;
   updatedAt: string;
 }
-
-export type ClothingCategory = 'top' | 'bottom' | 'outerwear' | 'dress' | 'shoes' | 'accessory';
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
@@ -406,7 +407,7 @@ export interface EvaluateOutfitRequest {
 
 /** 结构化穿搭分析 — 单品项 */
 export interface StructuredOutfitItem {
-  type: 'top' | 'bottom' | 'outerwear' | 'dress' | 'shoes' | 'accessory';
+  type: ClothingCategory;
   name: string;
   color: string;
   style: string[];

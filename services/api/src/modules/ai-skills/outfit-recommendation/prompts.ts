@@ -89,7 +89,7 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
  *
  * 将用户长期记忆 + 衣橱单品 + 天气 + 场合 + 风格目标 + 限制条件注入 prompt
  */
-export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput): string {
+export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput, rulesSummary?: string): string {
   const itemsJson = JSON.stringify(
     input.wardrobeItems.map((i) => ({
       id: i.id,
@@ -119,7 +119,13 @@ export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput
 
   return `你是 StyleMate 的专业穿搭顾问。用户想知道"今天穿什么"。
 
+## 穿搭单品品类说明
+- hat: 帽子（棒球帽、渔夫帽、贝雷帽等，从 hat 品类中选）
+- bag: 包（托特包、斜挎包、双肩包等，从 bag 品类中选）
+- accessory: 配饰（项链、戒指、腰带、围巾等小件，不是包也不是帽子）
+
 ${memoryText}
+${rulesSummary ? rulesSummary + '\n' : ''}
 ## 今日天气
 城市：${input.weather.city}
 天气：${input.weather.condition}
@@ -158,11 +164,13 @@ ${itemsJson}
     {
       "type": "safe",
       "title": "稳妥通勤·针织衫+阔腿裤",
+      "hat": null,
       "top": { "itemId": "uuid", "category": "top", "description": "白色棉质T恤" },
       "bottom": { "itemId": "uuid", "category": "bottom", "description": "黑色阔腿裤" },
       "outerwear": { "itemId": "uuid", "category": "outerwear", "description": "卡其色风衣" },
       "shoes": { "itemId": "uuid", "category": "shoes", "description": "白色帆布鞋" },
-      "accessory": { "itemId": "uuid", "category": "accessory", "description": "黑色托特包" },
+      "bag": { "itemId": "uuid", "category": "bag", "description": "棕色托特包" },
+      "accessory": { "itemId": "uuid", "category": "accessory", "description": "银色项链" },
       "reason": "今天 15°C 体感偏凉，针织衫保暖且通勤正式度适中，阔腿裤舒适好走",
       "scene": "办公室通勤、日常外出",
       "riskWarning": "下午风力较大，建议随身带外套",

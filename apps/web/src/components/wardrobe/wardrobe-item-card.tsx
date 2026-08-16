@@ -56,8 +56,7 @@ export default function WardrobeItemCard({ item }: Props) {
         {item.aiSummary && (
           <p className="mt-2 line-clamp-1 text-xs text-gray-400">{item.aiSummary}</p>
         )}
-        <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
-          <span>穿过 {item.wearCount} 次</span>
+        <div className="mt-3 flex items-center justify-end text-xs text-gray-400">
           <span className="opacity-0 transition-opacity group-hover:opacity-100">
             查看详情 →
           </span>

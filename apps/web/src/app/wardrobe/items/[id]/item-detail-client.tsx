@@ -8,13 +8,13 @@ import {
   fetchWardrobeItem,
   updateWardrobeItem,
   deleteWardrobeItem,
-  recordWear,
 } from '@/lib/wardrobe-api';
 import {
   WardrobeItem,
   CATEGORY_LABELS,
   CATEGORY_EMOJI,
   SEASON_LABELS,
+  SUBCATEGORIES,
 } from '@/lib/wardrobe-types';
 
 export default function WardrobeItemDetailPage() {
@@ -29,6 +29,12 @@ export default function WardrobeItemDetailPage() {
   const [saving, setSaving] = useState(false);
   const [editColor, setEditColor] = useState('');
   const [editMaterial, setEditMaterial] = useState('');
+  const [editPattern, setEditPattern] = useState('');
+  const [editSeason, setEditSeason] = useState<string[]>([]);
+  const [editFormality, setEditFormality] = useState(3);
+  const [editStyleTags, setEditStyleTags] = useState<string[]>([]);
+  const [editOccasionTags, setEditOccasionTags] = useState<string[]>([]);
+  const [editSubCategory, setEditSubCategory] = useState('');
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -38,6 +44,12 @@ export default function WardrobeItemDetailPage() {
       setItem(data);
       setEditColor(data.color);
       setEditMaterial(data.material);
+      setEditPattern(data.pattern || '');
+      setEditSeason(data.season || []);
+      setEditFormality(data.formalityScore ?? 3);
+      setEditStyleTags(data.styleTags || []);
+      setEditOccasionTags(data.occasionTags || []);
+      setEditSubCategory(data.subCategory || '');
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       const msg = err instanceof TypeError && err.message === 'Failed to fetch'
@@ -62,6 +74,12 @@ export default function WardrobeItemDetailPage() {
       const updated = await updateWardrobeItem(item.id, {
         color: editColor,
         material: editMaterial,
+        pattern: editPattern,
+        season: editSeason,
+        formalityScore: editFormality,
+        styleTags: editStyleTags,
+        occasionTags: editOccasionTags,
+        subCategory: editSubCategory,
       });
       setItem(updated);
       setEditing(false);
@@ -80,16 +98,6 @@ export default function WardrobeItemDetailPage() {
       router.push('/wardrobe');
     } catch (err) {
       setError(err instanceof Error ? err.message : '删除失败');
-    }
-  };
-
-  const handleWear = async () => {
-    if (!item) return;
-    try {
-      const updated = await recordWear(item.id);
-      setItem(updated);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '记录失败');
     }
   };
 
@@ -199,6 +207,19 @@ export default function WardrobeItemDetailPage() {
 
               {/* 属性表 */}
               <dl className="mt-6 space-y-3 text-sm">
+                <Row label="子类">
+                  {editing ? (
+                    <select value={editSubCategory} onChange={(e) => setEditSubCategory(e.target.value)}
+                      className="border border-gray-300 rounded px-1 py-0.5 outline-none focus:border-ink-500">
+                      <option value="">— 选择 —</option>
+                      {SUBCATEGORIES[item.category]?.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-gray-700">{item.subCategory || '—'}</span>
+                  )}
+                </Row>
                 <Row label="颜色">
                   {editing ? (
                     <input
@@ -222,17 +243,32 @@ export default function WardrobeItemDetailPage() {
                   )}
                 </Row>
                 <Row label="图案">
-                  <span className="text-gray-700">{item.pattern}</span>
+                  {editing ? (
+                    <input value={editPattern} onChange={(e) => setEditPattern(e.target.value)} placeholder="如：条纹、印花、纯色"
+                      className="border-b border-gray-300 px-1 outline-none focus:border-ink-500 w-40" />
+                  ) : (
+                    <span className="text-gray-700">{item.pattern || '—'}</span>
+                  )}
                 </Row>
                 <Row label="季节">
-                  <span className="text-gray-700">
-                    {item.season
-                      .map((s) => SEASON_LABELS[s] ?? s)
-                      .join(' / ')}
-                  </span>
+                  {editing ? (
+                    <div className="flex flex-wrap gap-1">
+                      {(['spring','summer','autumn','winter'] as const).map(s => (
+                        <button key={s} type="button" onClick={() => setEditSeason(p => p.includes(s)?p.filter(x=>x!==s):[...p,s])}
+                          className={`rounded-full px-2 py-0.5 text-xs ${editSeason.includes(s)?'bg-ink-900 text-creme-100':'bg-gray-100 text-gray-600'}`}>
+                          {SEASON_LABELS[s]}</button>))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-700">{item.season.map(s => SEASON_LABELS[s]??s).join(' / ') || '—'}</span>
+                  )}
                 </Row>
                 <Row label="正式程度">
-                  <ScoreBar value={item.formalityScore} max={5} />
+                  {editing ? (
+                    <div className="flex items-center gap-2">
+                      <input type="range" min={1} max={5} value={editFormality} onChange={e => setEditFormality(Number(e.target.value))} className="w-24" />
+                      <span className="text-xs text-ink-400">{editFormality}/5</span>
+                    </div>
+                  ) : (<ScoreBar value={item.formalityScore} max={5} />)}
                 </Row>
                 <Row label="厚薄程度">
                   <ScoreBar value={item.warmthScore} max={5} />
@@ -259,16 +295,22 @@ export default function WardrobeItemDetailPage() {
                     </span>
                   </Row>
                 )}
-                <Row label="穿着次数">
-                  <span className="text-gray-700">{item.wearCount} 次</span>
+                <Row label="风格标签">
+                  {editing ? (
+                    <input value={editStyleTags.join('、')} onChange={(e) => setEditStyleTags(e.target.value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean))}
+                      placeholder="如：韩系、极简、通勤" className="border-b border-gray-300 px-1 outline-none focus:border-ink-500 w-56" />
+                  ) : (
+                    <span className="text-gray-700">{item.styleTags?.join('、') || '—'}</span>
+                  )}
                 </Row>
-                {item.lastWornAt && (
-                  <Row label="上次穿着">
-                    <span className="text-gray-700">
-                      {new Date(item.lastWornAt).toLocaleDateString('zh-CN')}
-                    </span>
-                  </Row>
-                )}
+                <Row label="场合标签">
+                  {editing ? (
+                    <input value={editOccasionTags.join('、')} onChange={(e) => setEditOccasionTags(e.target.value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean))}
+                      placeholder="如：通勤、约会、运动" className="border-b border-gray-300 px-1 outline-none focus:border-ink-500 w-56" />
+                  ) : (
+                    <span className="text-gray-700">{item.occasionTags?.join('、') || '—'}</span>
+                  )}
+                </Row>
               </dl>
 
               {/* 操作 */}
@@ -296,13 +338,6 @@ export default function WardrobeItemDetailPage() {
                     编辑
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={handleWear}
-                  className="rounded-full border border-gray-300 px-5 py-2 text-sm text-gray-600 hover:border-gray-400"
-                >
-                  记录今天穿了
-                </button>
                 <button
                   type="button"
                   disabled

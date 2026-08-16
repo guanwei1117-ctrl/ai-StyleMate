@@ -35,9 +35,7 @@ export class WardrobeController {
   @ApiOperation({ summary: 'AI 识别衣物图片并落库' })
   async recognizeAndAddItem(
     @Body() body: { userId: string; imageBase64: string; imageUrls?: string[] },
-    @Req() req: Request,
   ) {
-    this.assertAiRequestAllowed(req);
     validateImageDataUrl(body.imageBase64, 'imageBase64');
     this.logger.log(`收到衣物识别请求 | userId: ${body.userId}`);
     return this.wardrobeService.recognizeAndAddItem(
@@ -58,8 +56,9 @@ export class WardrobeController {
   getUserItems(
     @Query('userId') userId: string,
     @Query('category') category?: string,
+    @Query('subCategory') subCategory?: string,
   ) {
-    return this.wardrobeService.getUserItems(userId, category);
+    return this.wardrobeService.getUserItems(userId, category, subCategory);
   }
 
   @Get('items/:id')
@@ -78,12 +77,6 @@ export class WardrobeController {
   @ApiOperation({ summary: '删除衣物' })
   deleteItem(@Param('id') id: string) {
     return this.wardrobeService.deleteItem(id);
-  }
-
-  @Post('items/:id/wear')
-  @ApiOperation({ summary: '记录穿着次数 +1' })
-  wearItem(@Param('id') id: string) {
-    return this.wardrobeService.incrementWearCount(id);
   }
 
   // --- 搭配 ---
@@ -111,13 +104,4 @@ export class WardrobeController {
     return this.wardrobeService.deleteOutfit(id);
   }
 
-  private assertAiRequestAllowed(req: Request): void {
-    const forwardedFor = req.headers['x-forwarded-for'];
-    const forwardedIp = Array.isArray(forwardedFor)
-      ? forwardedFor[0]
-      : forwardedFor?.split(',')[0];
-    const key =
-      forwardedIp?.trim() || req.ip || req.socket.remoteAddress || 'unknown';
-    this.aiRateLimiter.assertAllowed(key);
-  }
 }

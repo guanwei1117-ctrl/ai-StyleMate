@@ -19,6 +19,8 @@ export interface OutfitRecommendationPlan {
   type: 'safe' | 'flattering' | 'vibe';
   /** 方案标题 */
   title: string;
+  /** 帽子 */
+  hat: OutfitRecommendationItem | null;
   /** 上衣 */
   top: OutfitRecommendationItem | null;
   /** 下装 */
@@ -27,7 +29,9 @@ export interface OutfitRecommendationPlan {
   outerwear: OutfitRecommendationItem | null;
   /** 鞋子 */
   shoes: OutfitRecommendationItem | null;
-  /** 包或配饰 */
+  /** 包 */
+  bag: OutfitRecommendationItem | null;
+  /** 配饰（腰带/项链等） */
   accessory: OutfitRecommendationItem | null;
   /** 为什么适合今天 */
   reason: string;

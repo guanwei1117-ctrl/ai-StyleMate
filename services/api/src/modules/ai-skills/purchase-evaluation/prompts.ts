@@ -78,8 +78,6 @@ export function buildPurchaseEvaluationPrompt(input: PurchaseEvaluationInput): s
       matchabilityScore: i.matchabilityScore,
       matchColors: i.matchColors,
       matchCategories: i.matchCategories,
-      wearCount: i.wearCount,
-      lastWornAt: i.lastWornAt,
     })),
     null,
     0,

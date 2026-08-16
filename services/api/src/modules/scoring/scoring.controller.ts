@@ -30,7 +30,6 @@ export class ScoringController {
     @Body() dto: EvaluateOutfitRequestDto,
     @Req() req: Request,
   ): Promise<ApiResponseType<EvaluateOutfitResponse>> {
-    this.assertAiRequestAllowed(req);
     validateImageDataUrl(dto.imageBase64, 'imageBase64');
 
     // 优先使用已认证用户的 sub，其次使用客户端传入的 userId
@@ -61,7 +60,6 @@ export class ScoringController {
     @Body() dto: AnalyzeStyleProfileRequestDto,
     @Req() req: Request,
   ): Promise<ApiResponseType<unknown>> {
-    this.assertAiRequestAllowed(req);
     if (dto.faceImageBase64) validateImageDataUrl(dto.faceImageBase64, 'faceImageBase64');
     if (dto.fullBodyImageBase64) validateImageDataUrl(dto.fullBodyImageBase64, 'fullBodyImageBase64');
     this.logger.log(`收到风格档案 AI 分析请求 | 候选: ${dto.candidates?.length ?? 0}`);
@@ -75,11 +73,5 @@ export class ScoringController {
     };
   }
 
-  private assertAiRequestAllowed(req: Request): void {
-    const forwardedFor = req.headers['x-forwarded-for'];
-    const forwardedIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0];
-    const key = forwardedIp?.trim() || req.ip || req.socket.remoteAddress || 'unknown';
-    this.aiRateLimiter.assertAllowed(key);
-  }
 }
 

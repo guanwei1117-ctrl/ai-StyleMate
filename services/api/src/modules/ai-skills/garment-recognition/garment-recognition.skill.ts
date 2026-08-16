@@ -4,7 +4,7 @@ import { ChatMessage } from '../../llm/llm-provider.interface';
 import { GARMENT_RECOGNITION_SYSTEM_PROMPT } from './prompts';
 import { GarmentRecognitionInput, GarmentRecognitionResult } from './garment-recognition.dto';
 
-const VALID_CATEGORIES = ['top', 'bottom', 'outerwear', 'dress', 'shoes', 'accessory'];
+const VALID_CATEGORIES = ['top', 'outerwear', 'bottom', 'dress', 'shoes', 'bag', 'hat', 'accessory'];
 
 @Injectable()
 export class GarmentRecognitionSkill {

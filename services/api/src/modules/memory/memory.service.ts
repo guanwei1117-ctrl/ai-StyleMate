@@ -223,20 +223,6 @@ export class MemoryService {
         }
         break;
 
-      case 'worn_today':
-        // 更新衣橱单品的 wearCount 和 lastWornAt
-        if (dto.itemIds && dto.itemIds.length > 0) {
-          for (const itemId of dto.itemIds) {
-            try {
-              await this.wardrobeItemRepo.increment({ id: itemId }, 'wearCount', 1);
-              await this.wardrobeItemRepo.update(itemId, { lastWornAt: new Date() });
-            } catch {
-              // 单品可能已删除，忽略
-            }
-          }
-        }
-        break;
-
       case 'too_fat':
         this.addAvoidRule(profile, '避免宽松上衣+宽松下装', 'feedback:too_fat');
         this.addAvoidRule(profile, '优先高腰、直筒、短外套', 'feedback:too_fat', true);
@@ -459,8 +445,7 @@ ${behavior.extraContext ? `- 补充：${behavior.extraContext}` : ''}
     if (wardrobeItems.length > 0) {
       const cats: Record<string, number> = {};
       wardrobeItems.forEach((i) => { cats[i.category] = (cats[i.category] || 0) + 1; });
-      const idle = wardrobeItems.filter((i) => !i.lastWornAt || this.daysBetween(i.lastWornAt, new Date()) > 60);
-      data.push(`【衣橱】共 ${wardrobeItems.length} 件，${Object.entries(cats).map(([k, v]) => `${k}${v}件`).join('、')}。${idle.length > 0 ? `${idle.length} 件超 60 天未穿。` : ''}`);
+      data.push(`【衣橱】共 ${wardrobeItems.length} 件，${Object.entries(cats).map(([k, v]) => `${k}${v}件`).join('、')}。`);
     }
 
     if (feedbacks.length > 0) {
@@ -577,30 +562,11 @@ ${data.join('\n\n') || '（新用户，数据极少）'}
         categoryCount[item.category] = (categoryCount[item.category] || 0) + 1;
       });
 
-      const now = new Date();
-      const idleItems = wardrobeItems
-        .filter((i) => !i.lastWornAt || this.daysBetween(i.lastWornAt, now) > 60)
-        .slice(0, 5)
-        .map((i) => ({
-          id: i.id,
-          description: `${i.color} ${i.subCategory ?? i.category}`,
-          idleDays: i.lastWornAt ? this.daysBetween(i.lastWornAt, now) : 999,
-        }));
-
-      const topWorn = [...wardrobeItems]
-        .sort((a, b) => b.wearCount - a.wearCount)
-        .slice(0, 5)
-        .map((i) => ({
-          id: i.id,
-          description: `${i.color} ${i.subCategory ?? i.category}`,
-          wearCount: i.wearCount,
-        }));
-
       wardrobeSummary = {
         totalItems: wardrobeItems.length,
         byCategory: categoryCount,
-        idleItems,
-        topWorn,
+        idleItems: [],
+        topWorn: [],
       };
     }
 

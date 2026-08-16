@@ -16,7 +16,7 @@ export class WardrobeItem {
 
   @Column({
     type: 'enum',
-    enum: ['top', 'bottom', 'outerwear', 'dress', 'shoes', 'accessory'],
+    enum: ['top', 'outerwear', 'bottom', 'dress', 'shoes', 'bag', 'hat', 'accessory'],
   })
   category: string;
 
@@ -66,9 +66,6 @@ export class WardrobeItem {
     default: 'available',
   })
   status: string;
-
-  @Column({ name: 'wear_count', default: 0 })
-  wearCount: number;
 
   // --- Phase 1 新增字段：AI 结构化标签 ---
   @Column('simple-array', { name: 'style_tags', nullable: true })

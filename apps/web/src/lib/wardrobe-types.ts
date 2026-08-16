@@ -2,13 +2,13 @@
  * 衣柜相关类型定义
  */
 
-export type WardrobeCategory =
-  | 'top'
-  | 'bottom'
-  | 'outerwear'
-  | 'dress'
-  | 'shoes'
-  | 'accessory';
+import type { ClothingCategory } from '@stylemate/shared';
+import { SUBCATEGORY_MAP, CATEGORY_LABELS as SHARED_CATEGORY_LABELS } from '@stylemate/shared';
+
+export type WardrobeCategory = ClothingCategory;
+
+/** 二级子类候选集（一级类目 → 子类列表） */
+export const SUBCATEGORIES: Record<WardrobeCategory, string[]> = SUBCATEGORY_MAP;
 
 export interface WardrobeItem {
   id: string;
@@ -33,8 +33,6 @@ export interface WardrobeItem {
   matchCategories: string[];
   aiSummary: string;
   status: string;
-  wearCount: number;
-  lastWornAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,22 +61,17 @@ export interface RecognizeResponse {
   recognition: GarmentRecognitionResult;
 }
 
-export const CATEGORY_LABELS: Record<WardrobeCategory, string> = {
-  top: '上衣',
-  bottom: '下装',
-  outerwear: '外套',
-  dress: '连衣裙',
-  shoes: '鞋子',
-  accessory: '配饰',
-};
+export const CATEGORY_LABELS: Record<WardrobeCategory, string> = SHARED_CATEGORY_LABELS;
 
 export const CATEGORY_EMOJI: Record<WardrobeCategory, string> = {
   top: '👚',
-  bottom: '👖',
   outerwear: '🧥',
+  bottom: '👖',
   dress: '👗',
   shoes: '👟',
-  accessory: '👜',
+  bag: '👜',
+  hat: '🎩',
+  accessory: '💍',
 };
 
 export const SEASON_LABELS: Record<string, string> = {

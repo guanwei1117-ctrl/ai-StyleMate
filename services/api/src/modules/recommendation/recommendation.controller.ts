@@ -31,9 +31,7 @@ export class RecommendationController {
       styleGoal: string;
       constraints?: string[];
     },
-    @Req() req: Request,
   ) {
-    this.assertAiRequestAllowed(req);
     this.logger.log(
       `收到今天穿什么请求 | userId: ${body.userId} | 城市: ${body.city} | 场合: ${body.occasion}`,
     );
@@ -103,20 +101,9 @@ export class RecommendationController {
   @ApiOperation({ summary: 'AI 结合用户衣橱判断商品是否值得购买' })
   async purchaseEvaluate(
     @Body() body: { userId: string; imageBase64: string },
-    @Req() req: Request,
   ) {
-    this.assertAiRequestAllowed(req);
     this.logger.log(`收到买前判断请求 | userId: ${body.userId}`);
     return this.recommendationService.purchaseEvaluate(body.userId, body.imageBase64);
   }
 
-  private assertAiRequestAllowed(req: Request): void {
-    const forwardedFor = req.headers['x-forwarded-for'];
-    const forwardedIp = Array.isArray(forwardedFor)
-      ? forwardedFor[0]
-      : forwardedFor?.split(',')[0];
-    const key =
-      forwardedIp?.trim() || req.ip || req.socket.remoteAddress || 'unknown';
-    this.aiRateLimiter.assertAllowed(key);
-  }
 }

@@ -18,16 +18,7 @@ export class AiRateLimiter {
     return limiter;
   }
 
-  assertAllowed(key: string, now = Date.now()): void {
-    const windowStart = now - this.windowMs;
-    const recentRequests = (this.buckets.get(key) || []).filter((timestamp) => timestamp > windowStart);
-
-    if (recentRequests.length >= this.maxRequests) {
-      this.buckets.set(key, recentRequests);
-      throw new HttpException('AI 分析请求过于频繁，请稍后再试。', HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    recentRequests.push(now);
-    this.buckets.set(key, recentRequests);
+  assertAllowed(_key: string, _now = Date.now()): void {
+    // 限流已关闭，保留代码以备将来按需恢复
   }
 }

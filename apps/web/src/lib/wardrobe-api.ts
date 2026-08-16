@@ -111,10 +111,12 @@ export async function recognizeAndAddItem(
 export async function fetchWardrobeItems(
   category?: WardrobeCategory,
   signal?: AbortSignal,
+  subCategory?: string,
 ): Promise<WardrobeItem[]> {
   const userId = getCurrentUserId();
   const params = new URLSearchParams({ userId });
   if (category) params.set('category', category);
+  if (subCategory) params.set('subCategory', subCategory);
 
   const res = await fetch(`${API_BASE}/wardrobe/items?${params.toString()}`, {
     headers: authHeaders(),
@@ -122,6 +124,29 @@ export async function fetchWardrobeItems(
   });
   if (!res.ok) {
     throw new Error(`获取衣物列表失败: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * 手动添加衣物（无需 AI 识别）
+ */
+export async function addWardrobeItem(data: {
+  category: WardrobeCategory;
+  subCategory: string;
+  color?: string;
+  material?: string;
+  pattern?: string;
+  season?: string[];
+}): Promise<WardrobeItem> {
+  const userId = getCurrentUserId();
+  const res = await fetch(`${API_BASE}/wardrobe/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ userId, ...data, imageUrls: [], status: 'available' }),
+  });
+  if (!res.ok) {
+    throw new Error(`添加衣物失败: ${res.status}`);
   }
   return res.json();
 }
@@ -169,20 +194,6 @@ export async function deleteWardrobeItem(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(`删除衣物失败: ${res.status}`);
   }
-}
-
-/**
- * 记录穿着次数 +1
- */
-export async function recordWear(id: string): Promise<WardrobeItem> {
-  const res = await fetch(`${API_BASE}/wardrobe/items/${id}/wear`, {
-    method: 'POST',
-    headers: authHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`记录穿着失败: ${res.status}`);
-  }
-  return res.json();
 }
 
 /**

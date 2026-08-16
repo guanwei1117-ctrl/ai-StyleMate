@@ -8,7 +8,7 @@ import {
   StructuredOutfitResult,
 } from './structured-outfit.dto';
 
-const VALID_TYPES = ['top', 'bottom', 'outerwear', 'dress', 'shoes', 'accessory'];
+const VALID_TYPES = ['top', 'outerwear', 'bottom', 'dress', 'shoes', 'bag', 'hat', 'accessory'];
 
 @Injectable()
 export class StructuredOutfitSkill {

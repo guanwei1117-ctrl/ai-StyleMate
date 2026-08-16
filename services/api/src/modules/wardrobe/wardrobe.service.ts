@@ -70,9 +70,10 @@ export class WardrobeService {
     return this.itemRepo.save(item);
   }
 
-  async getUserItems(userId: string, category?: string): Promise<WardrobeItem[]> {
+  async getUserItems(userId: string, category?: string, subCategory?: string): Promise<WardrobeItem[]> {
     const where: Record<string, unknown> = { userId };
     if (category) where.category = category;
+    if (subCategory) where.subCategory = subCategory;
     return this.itemRepo.find({ where, order: { createdAt: 'DESC' } });
   }
 
@@ -91,12 +92,6 @@ export class WardrobeService {
   async deleteItem(id: string): Promise<void> {
     const item = await this.getItemById(id);
     await this.itemRepo.remove(item);
-  }
-
-  async incrementWearCount(id: string): Promise<WardrobeItem> {
-    await this.itemRepo.increment({ id }, 'wearCount', 1);
-    await this.itemRepo.update(id, { lastWornAt: new Date() });
-    return this.getItemById(id);
   }
 
   // ---------- 搭配管理 ----------

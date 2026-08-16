@@ -13,7 +13,7 @@ export interface StructuredOutfitInput {
 }
 
 export interface StructuredOutfitItem {
-  type: 'top' | 'bottom' | 'outerwear' | 'dress' | 'shoes' | 'accessory';
+  type: 'top' | 'outerwear' | 'bottom' | 'dress' | 'shoes' | 'bag' | 'hat' | 'accessory';
   name: string;
   color: string;
   style: string[];

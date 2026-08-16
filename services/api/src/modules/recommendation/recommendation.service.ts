@@ -123,7 +123,7 @@ export class RecommendationService {
   ): Promise<Outfit> {
     const items: Array<{ itemId: string; position: number }> = [];
     let position = 0;
-    for (const slot of ['top', 'bottom', 'outerwear', 'shoes', 'accessory'] as const) {
+    for (const slot of ['hat', 'top', 'bottom', 'outerwear', 'shoes', 'bag', 'accessory'] as const) {
       const item = data.plan[slot];
       if (item) {
         items.push({ itemId: item.itemId, position: position++ });

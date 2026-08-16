@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Plus } from 'lucide-react';
 import WardrobeUploader from '@/components/wardrobe/wardrobe-uploader';
+import ManualAddDialog from '@/components/wardrobe/manual-add-dialog';
 import {
   fetchWardrobeItems,
 } from '@/lib/wardrobe-api';
@@ -11,6 +12,7 @@ import {
   WardrobeItem,
   WardrobeCategory,
   CATEGORY_LABELS,
+  SUBCATEGORIES,
 } from '@/lib/wardrobe-types';
 
 type Filter = 'all' | WardrobeCategory;
@@ -18,15 +20,17 @@ type Filter = 'all' | WardrobeCategory;
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'top', label: CATEGORY_LABELS.top },
-  { key: 'bottom', label: CATEGORY_LABELS.bottom },
   { key: 'outerwear', label: CATEGORY_LABELS.outerwear },
+  { key: 'bottom', label: CATEGORY_LABELS.bottom },
   { key: 'dress', label: CATEGORY_LABELS.dress },
   { key: 'shoes', label: CATEGORY_LABELS.shoes },
+  { key: 'bag', label: CATEGORY_LABELS.bag },
+  { key: 'hat', label: CATEGORY_LABELS.hat },
   { key: 'accessory', label: CATEGORY_LABELS.accessory },
 ];
 
 const ITEM_CATEGORY_EMOJI: Record<string, string> = {
-  top: '👕', bottom: '👖', outerwear: '🧥', dress: '👗', shoes: '👟', accessory: '💍',
+  top: '👕', outerwear: '🧥', bottom: '👖', dress: '👗', shoes: '👟', bag: '👜', hat: '🎩', accessory: '💍',
 };
 
 export default function WardrobePage() {
@@ -34,7 +38,9 @@ export default function WardrobePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [subFilter, setSubFilter] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [manualOpen, setManualOpen] = useState(false);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -63,19 +69,21 @@ export default function WardrobePage() {
     return () => controller.abort();
   }, [load]);
 
-  // 前端搜索过滤
-  const filteredItems = search.trim()
-    ? items.filter((item) => {
-        const q = search.toLowerCase();
-        return (
-          (item.subCategory?.toLowerCase().includes(q)) ||
-          (item.color?.toLowerCase().includes(q)) ||
-          (item.material?.toLowerCase().includes(q)) ||
-          item.styleTags?.some((t) => t.toLowerCase().includes(q)) ||
-          item.occasionTags?.some((t) => t.toLowerCase().includes(q))
-        );
-      })
-    : items;
+  // 前端搜索 + 二级子类过滤
+  const filteredItems = items.filter((item) => {
+    if (subFilter && item.subCategory !== subFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return (
+        (item.subCategory?.toLowerCase().includes(q)) ||
+        (item.color?.toLowerCase().includes(q)) ||
+        (item.material?.toLowerCase().includes(q)) ||
+        item.styleTags?.some((t) => t.toLowerCase().includes(q)) ||
+        item.occasionTags?.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
 
   const countByCategory = (cat: WardrobeCategory) =>
     items.filter((i) => i.category === cat).length;
@@ -105,7 +113,17 @@ export default function WardrobePage() {
               {loading ? '加载中…' : `${items.length} 件`}
             </p>
           </div>
-          <WardrobeUploader onUploaded={load} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setManualOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-ink-900/15 px-4 py-2.5 text-sm text-ink-700 hover:border-ink-900/40 transition-colors"
+            >
+              <Plus size={16} />
+              手动录入
+            </button>
+            <WardrobeUploader onUploaded={load} />
+          </div>
         </div>
 
         {/* 分类筛选 + 搜索 */}
@@ -122,7 +140,7 @@ export default function WardrobePage() {
                 <button
                   key={f.key}
                   type="button"
-                  onClick={() => setFilter(f.key)}
+                  onClick={() => { setFilter(f.key); setSubFilter(null); }}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
                     active
                       ? 'bg-ink-900 text-creme-100'
@@ -138,6 +156,33 @@ export default function WardrobePage() {
               );
             })}
           </div>
+
+          {/* 二级子类筛选 */}
+          {filter !== 'all' && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSubFilter(null)}
+                className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                  subFilter === null ? 'bg-ink-900 text-creme-100' : 'bg-white border border-ink-900/10 text-ink-500 hover:border-ink-900/30'
+                }`}
+              >
+                全部
+              </button>
+              {SUBCATEGORIES[filter].map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => setSubFilter(sub)}
+                  className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                    subFilter === sub ? 'bg-ink-900 text-creme-100' : 'bg-white border border-ink-900/10 text-ink-500 hover:border-ink-900/30'
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* 搜索栏 */}
           <div className="flex gap-2">
@@ -228,11 +273,6 @@ export default function WardrobePage() {
                       {ITEM_CATEGORY_EMOJI[item.category] || '👔'}
                     </div>
                   )}
-                  {item.wearCount > 0 && (
-                    <span className="absolute top-2 left-2 bg-ink-900/70 text-creme-100 text-[10px] px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                      ×{item.wearCount}
-                    </span>
-                  )}
                 </div>
                 {/* 信息 */}
                 <div className="p-2.5">
@@ -253,6 +293,8 @@ export default function WardrobePage() {
           </div>
         )}
       </div>
+
+      <ManualAddDialog open={manualOpen} onClose={() => setManualOpen(false)} onAdded={load} />
     </main>
   );
 }
