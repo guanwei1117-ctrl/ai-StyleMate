@@ -1,19 +1,21 @@
 ﻿# ============================================================
-# 查看当前公网分享状态与网址
+# 查看当前公网分享状态与网址（支持 cpolar / cloudflared）
 # 用法：.\check-public.ps1
 # ============================================================
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $logDir = Join-Path $root '.tools\logs'
-$pidFile = Join-Path $root '.tools\tunnel-pids.txt'
 
 Write-Host ''
 Write-Host '================ StyleMate 分享状态 ================' -ForegroundColor Cyan
 
-# 进程检查
-$cloudflaredProcs = Get-Process cloudflared -ErrorAction SilentlyContinue
-if ($cloudflaredProcs) {
-  Write-Host "[✓] cloudflared 运行中（$($cloudflaredProcs.Count) 个进程）" -ForegroundColor Green
+$tunnelProcs = @()
+foreach ($name in @('cpolar', 'cloudflared')) {
+  $procs = Get-Process $name -ErrorAction SilentlyContinue
+  if ($procs) { $tunnelProcs += $procs }
+}
+if ($tunnelProcs.Count -gt 0) {
+  Write-Host "[✓] 隧道进程运行中（$($tunnelProcs.Count) 个）" -ForegroundColor Green
 } else {
   Write-Host '[x] 隧道未运行 —— 运行 .\start-public.ps1 开始分享' -ForegroundColor Red
 }
@@ -34,11 +36,16 @@ try {
 
 Write-Host ''
 Write-Host '当前分享网址（发给朋友）：' -ForegroundColor Yellow
+$patterns = @('https://[a-z0-9-]+\.cpolar\.top', 'https://[a-z0-9-]+\.cpolar\.cn', 'https://[a-z0-9-]+\.cpolar\.com\.cn', 'https://[a-z0-9-]+\.trycloudflare\.com')
 if (Test-Path $logDir) {
   Get-ChildItem $logDir -Filter 'tunnel-*.log' | ForEach-Object {
-    $m = Select-String -Path $_.FullName -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' | Select-Object -Last 1
+    $m = $null
+    foreach ($p in $patterns) {
+      $hit = Select-String -Path $_.FullName -Pattern $p | Select-Object -Last 1
+      if ($hit) { $m = $hit; break }
+    }
     if ($m) {
-      if ($_.Name -like 'tunnel-web*') {
+      if ($_.Name -match '3001') {
         Write-Host "  页面（发这个）： $($m.Matches[0].Value)" -ForegroundColor Green
       } else {
         Write-Host "  API：$($m.Matches[0].Value)" -ForegroundColor DarkGray

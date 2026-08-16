@@ -1,17 +1,13 @@
 ﻿# ============================================================
-# StyleMate 一键公网分享脚本（cloudflared 快速隧道）
+# StyleMate 一键公网分享脚本（支持 cpolar 国内隧道 / cloudflared）
+#
+# 首次使用：
+#   1. 到 https://www.cpolar.com 注册免费账号，后台复制 authtoken
+#   2. 在项目根目录建 .tools\tunnel-config.json：
+#      { "provider": "cpolar", "authtoken": "你的token" }
+#      （provider 也可写 "cloudflared"，则无需 token）
 #
 # 用法：在项目根目录运行  .\start-public.ps1
-# 前提：项目已能本地运行（python start.py 或手动启动前后端）
-#       若本地有代理（默认探测 127.0.0.1:7897），隧道自动走代理
-#
-# 脚本会：
-#   1. 检查 API (4000) 是否已启动
-#   2. 开一条 cloudflared 隧道映射 API → 得到公网 API 地址
-#   3. 在 3001 端口启动一个独立的前端 dev 实例（注入公网 API 地址，
-#      不影响你原本跑在 3000 的本地开发服务）
-#   4. 开第二条隧道映射 3001 → 得到页面公网地址
-#   5. 打印两个网址，把页面网址发给朋友即可
 # ============================================================
 
 $ErrorActionPreference = 'Stop'
@@ -19,21 +15,53 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $tools = Join-Path $root '.tools'
 $logDir = Join-Path $tools 'logs'
 $pidFile = Join-Path $tools 'tunnel-pids.txt'
+$configFile = Join-Path $tools 'tunnel-config.json'
 $webPort = 3001
 
 Write-Host ''
 Write-Host '================ StyleMate 公网分享 ================' -ForegroundColor Cyan
 
-# ---------- 1. 找 cloudflared ----------
-$cloudflared = $null
-$cmd = Get-Command cloudflared -ErrorAction SilentlyContinue
-if ($cmd) { $cloudflared = $cmd.Source }
-elseif (Test-Path (Join-Path $tools 'cloudflared.exe')) { $cloudflared = Join-Path $tools 'cloudflared.exe' }
-if (-not $cloudflared) {
-  Write-Host '[x] 未找到 cloudflared。请先安装：winget install Cloudflare.cloudflared' -ForegroundColor Red
-  exit 1
+# ---------- 1. 读取配置 / 定位二进制 ----------
+$config = $null
+if (Test-Path $configFile) {
+  try { $config = Get-Content $configFile -Raw | ConvertFrom-Json } catch {}
 }
-Write-Host "[i] cloudflared: $cloudflared"
+$provider = $config.provider
+if ($provider -ne 'cpolar' -and $provider -ne 'cloudflared') {
+  $provider = 'cpolar'
+  Write-Host '[i] 未配置隧道，默认使用 cpolar（可在 .tools\tunnel-config.json 指定 provider）' -ForegroundColor DarkGray
+}
+
+$tunnelExe = $null
+if ($provider -eq 'cpolar') {
+  $candidates = @(
+    (Join-Path $tools 'cpolar-extract\cpolar\cpolar.exe'),
+    (Join-Path $tools 'cpolar\cpolar.exe')
+  )
+  $cmd = Get-Command cpolar -ErrorAction SilentlyContinue
+  if ($cmd) { $candidates = @($cmd.Source) + $candidates }
+  foreach ($c in $candidates) { if (Test-Path $c) { $tunnelExe = $c; break } }
+  if (-not $tunnelExe) {
+    Write-Host '[x] 未找到 cpolar.exe。请重新下载：https://www.cpolar.com/download' -ForegroundColor Red
+    exit 1
+  }
+  if (-not $config.authtoken) {
+    Write-Host '[x] 缺少 authtoken。请：' -ForegroundColor Red
+    Write-Host '   1. 注册 https://www.cpolar.com （免费版即可）'
+    Write-Host '   2. 后台「验证」页复制 authtoken'
+    Write-Host '   3. 在 .tools\tunnel-config.json 写入 {"provider":"cpolar","authtoken":"你的token"}'
+    exit 1
+  }
+} else {
+  $cmd = Get-Command cloudflared -ErrorAction SilentlyContinue
+  if ($cmd) { $tunnelExe = $cmd.Source }
+  elseif (Test-Path (Join-Path $tools 'cloudflared.exe')) { $tunnelExe = Join-Path $tools 'cloudflared.exe' }
+  if (-not $tunnelExe) {
+    Write-Host '[x] 未找到 cloudflared。' -ForegroundColor Red
+    exit 1
+  }
+}
+Write-Host "[i] 隧道类型: $provider | 程序: $tunnelExe"
 
 # ---------- 2. 检查 API ----------
 $apiOk = $false
@@ -47,41 +75,62 @@ if (-not $apiOk) {
 }
 Write-Host '[i] API 已就绪 (localhost:4000)'
 
-# ---------- 3. 本地代理探测 ----------
-$proxy = $null
-try {
-  $tcp = Test-NetConnection -ComputerName 127.0.0.1 -Port 7897 -WarningAction SilentlyContinue
-  if ($tcp.TcpTestSucceeded) {
-    $env:HTTP_PROXY = 'http://127.0.0.1:7897'
-    $env:HTTPS_PROXY = 'http://127.0.0.1:7897'
-    $proxy = $env:HTTPS_PROXY
-    Write-Host '[i] 检测到本地代理 127.0.0.1:7897，隧道将走代理' -ForegroundColor DarkGray
-  }
-} catch {}
+# ---------- 3. 代理（仅 cloudflared 需要，cpolar 走国内直连） ----------
+if ($provider -eq 'cloudflared') {
+  try {
+    $tcp = Test-NetConnection -ComputerName 127.0.0.1 -Port 7897 -WarningAction SilentlyContinue
+    if ($tcp.TcpTestSucceeded) {
+      $env:HTTP_PROXY = 'http://127.0.0.1:7897'
+      $env:HTTPS_PROXY = 'http://127.0.0.1:7897'
+      Write-Host '[i] 检测到本地代理，cloudflared 隧道将走代理' -ForegroundColor DarkGray
+    }
+  } catch {}
+}
 
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
-# ---------- 4. 启动 API 隧道 ----------
-Write-Host '[>] 正在为 API 建立公网隧道…' -ForegroundColor Yellow
-$apiOut = Join-Path $logDir 'tunnel-api.out.log'
-$apiErr = Join-Path $logDir 'tunnel-api.err.log'
-Remove-Item $apiOut, $apiErr -ErrorAction SilentlyContinue
-$apiTunnel = Start-Process -FilePath $cloudflared -ArgumentList @('tunnel','--url','http://localhost:4000','--no-autoupdate') -RedirectStandardOutput $apiOut -RedirectStandardError $apiErr -WindowStyle Hidden -PassThru
+# cpolar：先写入 authtoken（一次性配置）
+if ($provider -eq 'cpolar') {
+  & $tunnelExe authtoken $config.authtoken 2>&1 | Out-Null
+}
 
-$apiUrl = $null
-$deadline = (Get-Date).AddSeconds(90)
-while ((Get-Date) -lt $deadline -and -not $apiUrl) {
-  Start-Sleep -Seconds 2
-  foreach ($f in @($apiOut, $apiErr)) {
-    if (Test-Path $f) {
-      $m = Select-String -Path $f -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' | Select-Object -First 1
-      if ($m) { $apiUrl = $m.Matches[0].Value }
+function Start-TunnelProcess([string]$target) {
+  $out = Join-Path $logDir ("tunnel-{0}-{1}.out.log" -f $provider, ($target -replace '\W', ''))
+  $err = Join-Path $logDir ("tunnel-{0}-{1}.err.log" -f $provider, ($target -replace '\W', ''))
+  Remove-Item $out, $err -ErrorAction SilentlyContinue
+  if ($provider -eq 'cpolar') {
+    $args = @('http', $target)
+  } else {
+    $args = @('tunnel', '--url', "http://localhost:$target", '--no-autoupdate')
+  }
+  return Start-Process -FilePath $tunnelExe -ArgumentList $args -RedirectStandardOutput $out -RedirectStandardError $err -WindowStyle Hidden -PassThru
+}
+
+function Wait-TunnelUrl([string]$target) {
+  $out = Join-Path $logDir ("tunnel-{0}-{1}.out.log" -f $provider, ($target -replace '\W', ''))
+  $err = Join-Path $logDir ("tunnel-{0}-{1}.err.log" -f $provider, ($target -replace '\W', ''))
+  $patterns = @('https://[a-z0-9-]+\.cpolar\.top', 'https://[a-z0-9-]+\.cpolar\.cn', 'https://[a-z0-9-]+\.cpolar\.com\.cn', 'https://[a-z0-9-]+\.trycloudflare\.com')
+  $deadline = (Get-Date).AddSeconds(90)
+  while ((Get-Date) -lt $deadline) {
+    Start-Sleep -Seconds 2
+    foreach ($f in @($out, $err)) {
+      if (Test-Path $f) {
+        foreach ($p in $patterns) {
+          $m = Select-String -Path $f -Pattern $p | Select-Object -First 1
+          if ($m) { return $m.Matches[0].Value }
+        }
+      }
     }
   }
+  return $null
 }
+
+# ---------- 4. API 隧道 ----------
+Write-Host "[>] 正在为 API 建立公网隧道…" -ForegroundColor Yellow
+$apiTunnel = Start-TunnelProcess '4000'
+$apiUrl = Wait-TunnelUrl '4000'
 if (-not $apiUrl) {
-  Write-Host '[x] API 隧道建立失败（网络问题？）。请查看日志：' -ForegroundColor Red
-  Write-Host "    $apiErr"
+  Write-Host '[x] API 隧道建立失败。查看 .tools\logs 下对应日志。' -ForegroundColor Red
   exit 1
 }
 Write-Host "[✓] API 公网地址: $apiUrl" -ForegroundColor Green
@@ -105,33 +154,18 @@ while ((Get-Date) -lt $deadline -and -not $webReady) {
   } catch {}
 }
 if (-not $webReady) {
-  Write-Host '[x] 前端 3001 未在预期时间内就绪，请查看日志：' -ForegroundColor Red
+  Write-Host '[x] 前端 3001 未就绪，请查看日志：' -ForegroundColor Red
   Write-Host "    $webErr"
   exit 1
 }
 Write-Host '[✓] 前端已就绪 (localhost:3001)' -ForegroundColor Green
 
-# ---------- 6. 启动页面隧道 ----------
+# ---------- 6. 页面隧道 ----------
 Write-Host '[>] 正在为页面建立公网隧道…' -ForegroundColor Yellow
-$webOut = Join-Path $logDir 'tunnel-web.out.log'
-$webErr = Join-Path $logDir 'tunnel-web.err.log'
-Remove-Item $webOut, $webErr -ErrorAction SilentlyContinue
-$webTunnel = Start-Process -FilePath $cloudflared -ArgumentList @('tunnel','--url',"http://localhost:$webPort",'--no-autoupdate') -RedirectStandardOutput $webOut -RedirectStandardError $webErr -WindowStyle Hidden -PassThru
-
-$webUrl = $null
-$deadline = (Get-Date).AddSeconds(90)
-while ((Get-Date) -lt $deadline -and -not $webUrl) {
-  Start-Sleep -Seconds 2
-  foreach ($f in @($webOut, $webErr)) {
-    if (Test-Path $f) {
-      $m = Select-String -Path $f -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' | Select-Object -First 1
-      if ($m) { $webUrl = $m.Matches[0].Value }
-    }
-  }
-}
+$webTunnel = Start-TunnelProcess "$webPort"
+$webUrl = Wait-TunnelUrl "$webPort"
 if (-not $webUrl) {
-  Write-Host '[x] 页面隧道建立失败，请查看日志：' -ForegroundColor Red
-  Write-Host "    $webErr"
+  Write-Host '[x] 页面隧道建立失败。查看 .tools\logs 下对应日志。' -ForegroundColor Red
   exit 1
 }
 
@@ -141,12 +175,12 @@ if (-not $webUrl) {
 Write-Host ''
 Write-Host '================ 分享完成 ================' -ForegroundColor Cyan
 Write-Host ''
-Write-Host '把下面这个网址发给朋友（手机/电脑浏览器直接打开）：' -ForegroundColor Yellow
+Write-Host '把下面这个网址发给朋友（微信里点开就能用）：' -ForegroundColor Yellow
 Write-Host ''
 Write-Host "    $webUrl" -ForegroundColor Green
 Write-Host ''
 Write-Host '说明：' -ForegroundColor DarkGray
 Write-Host '  · 你电脑需要保持开机、本项目保持运行（python start.py 别关）'
-Write-Host '  · 停止分享：运行  .\stop-public.ps1'
-Write-Host '  · 隧道日志目录：.tools\logs（网络异常时可查看）'
+Write-Host '  · 查看状态：.\check-public.ps1   停止分享：.\stop-public.ps1'
+Write-Host '  · 隧道日志目录：.tools\logs'
 Write-Host ''

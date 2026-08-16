@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# 停止公网分享：关闭隧道与分享用前端进程
+# 停止公网分享：关闭隧道（cpolar/cloudflared）与分享用前端进程
 # 用法：.\stop-public.ps1
 # ============================================================
 
@@ -19,9 +19,14 @@ if (Test-Path $pidFile) {
   }
   Remove-Item $pidFile -ErrorAction SilentlyContinue
 } else {
-  Write-Host '[i] 未找到运行记录（.tools\tunnel-pids.txt），尝试清理残留 cloudflared 进程…'
-  Get-Process cloudflared -ErrorAction SilentlyContinue | ForEach-Object {
+  Write-Host '[i] 未找到运行记录（.tools\tunnel-pids.txt），尝试清理残留隧道进程…'
+}
+
+# 清理残留的隧道进程
+foreach ($name in @('cpolar', 'cloudflared')) {
+  Get-Process $name -ErrorAction SilentlyContinue | ForEach-Object {
     & taskkill /PID $_.Id /T /F 2>$null | Out-Null
+    Write-Host "[✓] 已停止残留进程 $name ($($_.Id))"
   }
 }
 
