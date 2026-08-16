@@ -99,7 +99,8 @@ function Start-TunnelProcess([string]$target) {
   $err = Join-Path $logDir ("tunnel-{0}-{1}.err.log" -f $provider, ($target -replace '\W', ''))
   Remove-Item $out, $err -ErrorAction SilentlyContinue
   if ($provider -eq 'cpolar') {
-    $args = @('http', $target)
+    # -log=stdout 必须显式开启（cpolar 默认 -log=none，否则抓不到网址）
+    $args = @('http', $target, '-log=stdout')
   } else {
     $args = @('tunnel', '--url', "http://localhost:$target", '--no-autoupdate')
   }
@@ -109,10 +110,11 @@ function Start-TunnelProcess([string]$target) {
 function Wait-TunnelUrl([string]$target) {
   $out = Join-Path $logDir ("tunnel-{0}-{1}.out.log" -f $provider, ($target -replace '\W', ''))
   $err = Join-Path $logDir ("tunnel-{0}-{1}.err.log" -f $provider, ($target -replace '\W', ''))
-  $patterns = @('https://[a-z0-9-]+\.cpolar\.top', 'https://[a-z0-9-]+\.cpolar\.cn', 'https://[a-z0-9-]+\.cpolar\.com\.cn', 'https://[a-z0-9-]+\.trycloudflare\.com')
-  $deadline = (Get-Date).AddSeconds(90)
+  # cpolar 免费域名为 <随机>.<区域>cpolar.top（如 6b6ee773.r10.cpolar.top）
+  $patterns = @('https://[a-z0-9][a-z0-9.-]*\.cpolar\.top', 'https://[a-z0-9][a-z0-9.-]*\.cpolar\.cn', 'https://[a-z0-9][a-z0-9.-]*\.cpolar\.com\.cn', 'https://[a-z0-9-]+\.trycloudflare\.com')
+  $deadline = (Get-Date).AddSeconds(120)
   while ((Get-Date) -lt $deadline) {
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 3
     foreach ($f in @($out, $err)) {
       if (Test-Path $f) {
         foreach ($p in $patterns) {

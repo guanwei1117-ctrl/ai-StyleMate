@@ -36,7 +36,7 @@ try {
 
 Write-Host ''
 Write-Host '当前分享网址（发给朋友）：' -ForegroundColor Yellow
-$patterns = @('https://[a-z0-9-]+\.cpolar\.top', 'https://[a-z0-9-]+\.cpolar\.cn', 'https://[a-z0-9-]+\.cpolar\.com\.cn', 'https://[a-z0-9-]+\.trycloudflare\.com')
+$patterns = @('https://[a-z0-9][a-z0-9.-]*\.cpolar\.top', 'https://[a-z0-9][a-z0-9.-]*\.cpolar\.cn', 'https://[a-z0-9][a-z0-9.-]*\.cpolar\.com\.cn', 'https://[a-z0-9-]+\.trycloudflare\.com')
 if (Test-Path $logDir) {
   Get-ChildItem $logDir -Filter 'tunnel-*.log' | ForEach-Object {
     $m = $null
