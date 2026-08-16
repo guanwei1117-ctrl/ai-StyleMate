@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Plus, X, Shirt, Check, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Shirt, Check, Trash2, Sparkles } from 'lucide-react';
 import { fetchSavedOutfits } from '@/lib/today-outfit-api';
 import { fetchWardrobeItems } from '@/lib/wardrobe-api';
+import TodayOutfitDialog from '@/components/wardrobe/today-outfit-dialog';
 import type { WardrobeItem } from '@/lib/wardrobe-types';
 
 type SavedOutfit = Awaited<ReturnType<typeof fetchSavedOutfits>>[number];
@@ -24,6 +25,11 @@ const CAT_OPTIONS = [
   { key:'shoes', cat:'shoes', label:'鞋' }, { key:'bag', cat:'bag', label:'包' },
   { key:'accessory', cat:'accessory', label:'配饰' },
 ];
+// 衣橱品类 → 方案槽位映射（dress 连体装归入 top 槽）
+const CATEGORY_TO_SLOT: Record<string, (typeof DISPLAY_ORDER)[number]> = {
+  top: 'top', outerwear: 'outerwear', bottom: 'bottom', dress: 'top',
+  shoes: 'shoes', bag: 'bag', hat: 'hat', accessory: 'accessory',
+};
 
 function getWeekStart(date: Date): Date { const d=new Date(date); const day=d.getDay(); d.setDate(d.getDate()+(day===0?-6:1-day)); d.setHours(0,0,0,0); return d; }
 function formatDateStr(d: Date): string { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -41,6 +47,8 @@ export default function PlanPage() {
   const [editDay, setEditDay] = useState<string|null>(null);     // 当前编辑的日期
   const [editSlot, setEditSlot] = useState<string|null>(null);   // 当前编辑的 slot key
   const [pickerItems, setPickerItems] = useState<WardrobeItem[]>([]);
+  // AI 生成穿搭对话框
+  const [aiOpen, setAiOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
     try { setSavedOutfits(await fetchSavedOutfits()); } catch {}
@@ -52,10 +60,15 @@ export default function PlanPage() {
     } catch {}
   }, []);
 
+  // 从 localStorage 读取计划（AI 对话框保存后也会调用）
+  const loadPlansFromStorage = useCallback(() => {
+    try { const s=localStorage.getItem('stylemate.plan'); if(s){ const p=JSON.parse(s); if(p&&typeof p==='object'&&!Array.isArray(p)) setPlans(p as Record<string,DayPlan>); } } catch {}
+  }, []);
+
   useEffect(() => {
     setLoading(true); loadAll().finally(()=>setLoading(false));
-    try { const s=localStorage.getItem('stylemate.plan'); if(s){ const p=JSON.parse(s); if(p&&typeof p==='object'&&!Array.isArray(p)) setPlans(p as Record<string,DayPlan>); } } catch {}
-  }, [loadAll]);
+    loadPlansFromStorage();
+  }, [loadAll, loadPlansFromStorage]);
 
   const savePlans = useCallback((u: Record<string,DayPlan>) => { setPlans(u); localStorage.setItem('stylemate.plan',JSON.stringify(u)); }, []);
 
@@ -67,13 +80,23 @@ export default function PlanPage() {
   const monthLabel = weekStart.getMonth()===weekEnd.getMonth()?`${weekStart.getFullYear()}年${weekStart.getMonth()+1}月`:`${weekStart.getFullYear()}年${weekStart.getMonth()+1}-${weekEnd.getMonth()+1}月`;
 
   const scheduleOutfit = (dateStr: string, outfit: SavedOutfit) => {
-    // 从 outfit items 构建 slot 信息
+    // 从 outfit items 构建 slot 信息：按衣橱单品的品类映射到 7 个槽位
     const slots: Record<string, PlanSlot|null> = {};
     for (const s of DISPLAY_ORDER) slots[s] = null;
-    if (outfit.items) {
+    if (outfit.items && wardrobeItems.length > 0) {
+      const itemById = new Map(wardrobeItems.map((i) => [i.id, i]));
+      const usedSlots = new Set<string>();
       for (const it of outfit.items) {
-        // 通过 position 推断 slot（简化逻辑：根据品类映射）
-        // 实际上需要更完整的 item 信息，这里给基础版
+        const wItem = itemById.get(it.itemId);
+        if (!wItem) continue;
+        const slotKey = CATEGORY_TO_SLOT[wItem.category];
+        if (!slotKey || usedSlots.has(slotKey)) continue;
+        slots[slotKey] = {
+          itemId: it.itemId,
+          imageUrl: wItem.imageUrls?.[0],
+          description: wItem.subCategory || wItem.category,
+        };
+        usedSlots.add(slotKey);
       }
     }
     savePlans({...plans,[dateStr]:{outfitId:outfit.id,outfitName:outfit.title||outfit.name||'未命名',worn:plans[dateStr]?.worn??false,slots}});
@@ -127,6 +150,22 @@ export default function PlanPage() {
           <button type="button" onClick={prevWeek} aria-label="上一周" className="flex items-center justify-center size-10 rounded-full border border-ink-900/10 bg-white hover:border-ink-900/30"><ChevronLeft size={18} className="text-ink-600"/></button>
           <div className="text-center"><h1 className="text-xs tracking-[0.2em] text-ink-400 uppercase mb-1">{monthLabel}</h1><p className="text-sm text-ink-500">{formatDateStr(weekStart)} — {formatDateStr(weekEnd)}</p></div>
           <button type="button" onClick={nextWeek} aria-label="下一周" className="flex items-center justify-center size-10 rounded-full border border-ink-900/10 bg-white hover:border-ink-900/30"><ChevronRight size={18} className="text-ink-600"/></button>
+        </div>
+
+        {/* AI 生成穿搭 */}
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-ink-900/10 bg-white px-5 py-4">
+          <div>
+            <p className="text-sm font-semibold text-ink-900">AI 一键生成今日穿搭</p>
+            <p className="mt-0.5 text-xs text-ink-400">根据天气和你的衣橱生成 3 套方案，选一套安排到任意一天</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAiOpen(true)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink-900 px-4 py-2 text-xs font-medium text-creme-100 transition-colors hover:bg-ink-700"
+          >
+            <Sparkles size={14} />
+            AI 生成穿搭
+          </button>
         </div>
 
         {loading ? (<div className="text-center py-20 text-ink-400">加载中…</div>) : (
@@ -228,6 +267,12 @@ export default function PlanPage() {
             </div>
           </div>
         )}
+
+        {/* AI 生成穿搭对话框 — 保存后刷新本周计划 */}
+        <TodayOutfitDialog
+          open={aiOpen}
+          onClose={() => { setAiOpen(false); loadPlansFromStorage(); }}
+        />
       </section>
     </main>
   );
