@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Trash2, Check, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Trash2, Check, Loader2, Sparkles, ShoppingBag } from 'lucide-react';
 import {
   fetchWardrobeItem,
   updateWardrobeItem,
   deleteWardrobeItem,
 } from '@/lib/wardrobe-api';
+import { fetchShoppingLinks, openShoppingLink } from '@/lib/shopping-api';
 import ItemStylingDialog from '@/components/wardrobe/item-styling-dialog';
 import {
   WardrobeItem,
@@ -37,6 +38,27 @@ export default function WardrobeItemDetailPage() {
   const [editOccasionTags, setEditOccasionTags] = useState<string[]>([]);
   const [editSubCategory, setEditSubCategory] = useState('');
   const [stylingOpen, setStylingOpen] = useState(false);
+  const [searchingTaobao, setSearchingTaobao] = useState(false);
+
+  // 淘宝找同款：用这件单品自身信息 + 个人画像生成搜索
+  const handleSearchTaobao = async () => {
+    if (!item) return;
+    setSearchingTaobao(true);
+    setError(null);
+    try {
+      const result = await fetchShoppingLinks({
+        category: item.category,
+        subCategory: item.subCategory || undefined,
+        color: item.color || undefined,
+        styleTags: item.styleTags?.length ? item.styleTags : undefined,
+      });
+      openShoppingLink(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '生成搜索链接失败');
+    } finally {
+      setSearchingTaobao(false);
+    }
+  };
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -347,6 +369,16 @@ export default function WardrobeItemDetailPage() {
                 >
                   <Sparkles size={16} />
                   帮我搭这件
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSearchTaobao}
+                  disabled={searchingTaobao}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 px-5 py-2 text-sm text-orange-600 transition-colors hover:bg-orange-50 disabled:opacity-60"
+                  title="按这件单品的颜色、品类和你的风格画像去淘宝找同款"
+                >
+                  {searchingTaobao ? <Loader2 size={16} className="animate-spin" /> : <ShoppingBag size={16} />}
+                  淘宝找同款
                 </button>
               </div>
             </div>

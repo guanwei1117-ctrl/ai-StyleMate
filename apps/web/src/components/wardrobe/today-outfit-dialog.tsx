@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { generateTodayOutfit, saveOutfit } from '@/lib/today-outfit-api';
 import { fetchWardrobeItems, addShoppingItems } from '@/lib/wardrobe-api';
+import { fetchShoppingLinks, openShoppingLink } from '@/lib/shopping-api';
 import { recordFeedback } from '@/lib/memory-api';
 import type { WardrobeItem } from '@/lib/wardrobe-types';
 import {
@@ -106,6 +107,20 @@ export default function TodayOutfitDialog({ open, onClose }: Props) {
     }
   };
 
+  // 直接去淘宝找某个建议单品
+  const searchSuggestion = async (slotItem: { category: string; description: string }) => {
+    setError(null);
+    try {
+      const result = await fetchShoppingLinks({
+        category: slotItem.category,
+        subCategory: slotItem.description,
+      });
+      openShoppingLink(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '生成搜索链接失败');
+    }
+  };
+
   const startSave = (plan: OutfitPlan) => { setSavingPlan(plan); setSaveDate(todayStr()); };
 
   const confirmSave = async () => {
@@ -188,7 +203,7 @@ export default function TodayOutfitDialog({ open, onClose }: Props) {
                   </div>
                 </div>
               )}
-              {result.plans.map(plan=>(<PlanCard key={plan.type} plan={plan} photoMap={itemPhotoMap} saved={savedPlans.has(plan.type)} isStarter={!!result.isStarter} addedToList={addedToListPlans.has(plan.type)} addingToList={addingToList===plan.type} onAddToList={()=>addPlanToShoppingList(plan)} feedback={feedbacks[plan.type]??DEF_FB} onSave={()=>startSave(plan)} onUpdateFeedback={p=>updateFeedback(plan.type,p)} onSubmitFeedback={()=>submitFeedback(plan)}/>))}
+              {result.plans.map(plan=>(<PlanCard key={plan.type} plan={plan} photoMap={itemPhotoMap} saved={savedPlans.has(plan.type)} isStarter={!!result.isStarter} addedToList={addedToListPlans.has(plan.type)} addingToList={addingToList===plan.type} onAddToList={()=>addPlanToShoppingList(plan)} onSearchSuggestion={searchSuggestion} feedback={feedbacks[plan.type]??DEF_FB} onSave={()=>startSave(plan)} onUpdateFeedback={p=>updateFeedback(plan.type,p)} onSubmitFeedback={()=>submitFeedback(plan)}/>))}
               <button type="button" onClick={()=>setResult(null)} className="w-full rounded-full border border-gray-300 py-2.5 text-sm text-gray-600 hover:border-gray-400">重新选择条件</button>
               {error&&<p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
             </div>
@@ -210,10 +225,12 @@ export default function TodayOutfitDialog({ open, onClose }: Props) {
 }
 
 // ===================================================================
-function PlanCard({ plan, photoMap, saved, isStarter, addedToList, addingToList, feedback, onSave, onAddToList, onUpdateFeedback, onSubmitFeedback }: {
+function PlanCard({ plan, photoMap, saved, isStarter, addedToList, addingToList, feedback, onSave, onAddToList, onSearchSuggestion, onUpdateFeedback, onSubmitFeedback }: {
   plan: OutfitPlan; photoMap: Map<string,string>; saved: boolean; isStarter: boolean;
   addedToList: boolean; addingToList: boolean;
-  feedback: FeedbackState; onSave: ()=>void; onAddToList: ()=>void; onUpdateFeedback: (p:Partial<FeedbackState>)=>void; onSubmitFeedback: ()=>void;
+  feedback: FeedbackState; onSave: ()=>void; onAddToList: ()=>void;
+  onSearchSuggestion: (slotItem: { category: string; description: string }) => void;
+  onUpdateFeedback: (p:Partial<FeedbackState>)=>void; onSubmitFeedback: ()=>void;
 }) {
   const toggleReason = (r:string) => onUpdateFeedback({ reasons: feedback.reasons.includes(r)?feedback.reasons.filter(x=>x!==r):[...feedback.reasons,r] });
 
@@ -226,12 +243,21 @@ function PlanCard({ plan, photoMap, saved, isStarter, addedToList, addingToList,
       {/* 7 slot 照片 */}
       <div className="mt-3 grid grid-cols-7 gap-1.5 sm:gap-2">
         {SLOT_ORDER.map(slotKey => {
-          const item = (plan as any)[slotKey] as { itemId: string; description: string; isSuggestion?: boolean; budgetHint?: string } | null;
+          const item = (plan as any)[slotKey] as { itemId: string; category: string; description: string; isSuggestion?: boolean; budgetHint?: string } | null;
           const photo = item?.itemId ? photoMap.get(item.itemId) : undefined;
           return (
             <div key={slotKey} className="flex flex-col items-center rounded-lg bg-gray-50 p-1.5">
               {photo ? <img src={photo} alt={SLOT_LABELS[slotKey]} className="size-10 sm:size-12 object-cover rounded-md"/>
-                : item?.isSuggestion ? <div className="flex size-10 sm:size-12 items-center justify-center rounded-md bg-amber-100"><ShoppingBag size={14} className="text-amber-600"/></div>
+                : item?.isSuggestion ? (
+                  <button
+                    type="button"
+                    onClick={() => item && onSearchSuggestion({ category: item.category, description: item.description })}
+                    title="去淘宝找这件（结合你的风格画像搜索）"
+                    className="flex size-10 sm:size-12 items-center justify-center rounded-md bg-amber-100 transition-colors hover:bg-orange-200"
+                  >
+                    <ShoppingBag size={14} className="text-amber-600"/>
+                  </button>
+                )
                 : <Shirt size={14} className="text-gray-300"/>}
               <span className="mt-0.5 text-[9px] text-gray-400">{SLOT_LABELS[slotKey]}</span>
               {item ? <span className="mt-0.5 line-clamp-1 text-center text-[9px] sm:text-[10px] text-gray-700">{item.description}</span>

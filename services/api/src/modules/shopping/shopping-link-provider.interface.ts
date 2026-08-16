@@ -28,6 +28,31 @@ export interface ShoppingLinkQuery {
   budgetRange?: string;
   /** 场景（如"通勤"） */
   occasion?: string;
+  /** 个人画像上下文（可选）：让搜索词贴合"这个人"，而不是只补缺 */
+  profile?: ShoppingProfileContext;
+}
+
+/**
+ * 个人画像上下文 — 由风格测评/记忆系统提供
+ *
+ * 用于把"缺什么买什么"升级为"适合这个人买什么"：
+ * 搜索词会融入适合的风格、身材修饰词、身高词、穿搭目标与预算档位。
+ */
+export interface ShoppingProfileContext {
+  /** 适合/喜欢的风格（中文标签，如"法式""极简"） */
+  suitableStyles?: string[];
+  /** 喜好关键词（如"高级""松弛""清冷"） */
+  likedKeywords?: string[];
+  /** 讨厌/避雷关键词（不进入搜索词） */
+  dislikedKeywords?: string[];
+  /** 穿搭目标（中文标签，如"显瘦显高""职场专业感"） */
+  dressingGoals?: string[];
+  /** 体型 */
+  bodyShape?: 'pear' | 'apple' | 'hourglass' | 'rectangle' | 'inverted_triangle';
+  /** 身高 cm（<158 时附加"小个子"） */
+  heightCm?: number;
+  /** 预算档位（'budget' | 'mid' | 'premium'） */
+  budgetLevel?: 'budget' | 'mid' | 'premium';
 }
 
 /** 联盟模式下的真实商品卡 */

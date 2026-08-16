@@ -5,6 +5,7 @@ import {
   Loader2, X, Sparkles, AlertTriangle, Shirt, ShoppingBag, Check,
 } from 'lucide-react';
 import { styleWardrobeItem, fetchWardrobeItems, addShoppingItems } from '@/lib/wardrobe-api';
+import { fetchShoppingLinks, openShoppingLink } from '@/lib/shopping-api';
 import type {
   WardrobeItem,
   ItemStylingResult,
@@ -59,6 +60,20 @@ export default function ItemStylingDialog({ open, item, onClose }: Props) {
       setError(err instanceof Error ? err.message : '生成失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 直接去淘宝找建议单品
+  const searchSuggestion = async (slotItem: { category: string; description: string }) => {
+    setError(null);
+    try {
+      const result = await fetchShoppingLinks({
+        category: slotItem.category,
+        subCategory: slotItem.description,
+      });
+      openShoppingLink(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '生成搜索链接失败');
     }
   };
 
@@ -193,6 +208,7 @@ export default function ItemStylingDialog({ open, item, onClose }: Props) {
                   addedToList={addedPlans.has(plan.type)}
                   addingToList={addingPlan === plan.type}
                   onAddToList={() => addPlanToShoppingList(plan)}
+                  onSearchSuggestion={searchSuggestion}
                 />
               ))}
               <button
@@ -217,12 +233,14 @@ function StylingPlanCard({
   addedToList,
   addingToList,
   onAddToList,
+  onSearchSuggestion,
 }: {
   plan: ItemStylingPlan;
   photoMap: Map<string, string>;
   addedToList: boolean;
   addingToList: boolean;
   onAddToList: () => void;
+  onSearchSuggestion: (slotItem: { category: string; description: string }) => void;
 }) {
   const hasSuggestion = SLOT_ORDER.some(
     (slotKey) => ((plan as any)[slotKey] as { isSuggestion?: boolean } | null)?.isSuggestion,
@@ -249,6 +267,7 @@ function StylingPlanCard({
         {SLOT_ORDER.map((slotKey) => {
           const slotItem = (plan as any)[slotKey] as {
             itemId: string;
+            category: string;
             description: string;
             isSuggestion?: boolean;
             budgetHint?: string;
@@ -259,9 +278,14 @@ function StylingPlanCard({
               {photo ? (
                 <img src={photo} alt={SLOT_LABELS[slotKey]} className="size-10 sm:size-12 rounded-md object-cover" />
               ) : slotItem?.isSuggestion ? (
-                <div className="flex size-10 sm:size-12 items-center justify-center rounded-md bg-amber-100">
+                <button
+                  type="button"
+                  onClick={() => slotItem && onSearchSuggestion({ category: slotItem.category, description: slotItem.description })}
+                  title="去淘宝找这件（结合你的风格画像搜索）"
+                  className="flex size-10 sm:size-12 items-center justify-center rounded-md bg-amber-100 transition-colors hover:bg-orange-200"
+                >
                   <ShoppingBag size={14} className="text-amber-600" />
-                </div>
+                </button>
               ) : (
                 <Shirt size={14} className="text-gray-300" />
               )}
