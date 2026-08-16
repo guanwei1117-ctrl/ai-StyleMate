@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Logger, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Logger,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { RecommendationService } from './recommendation.service';
@@ -100,12 +111,66 @@ export class RecommendationController {
   }
 
   /**
-   * 分析衣橱缺口
+   * 分析衣橱缺口 — AI 个性化分析（结合风格档案+季节+预算），失败自动回退规则
    */
   @Get('wardrobe-gaps')
-  @ApiOperation({ summary: '分析衣橱缺口' })
-  analyzeGaps(userId: string) {
-    return this.recommendationService.analyzeWardrobeGaps(userId);
+  @ApiOperation({ summary: '分析衣橱缺口（AI 个性化）' })
+  analyzeGaps(userId: string, season?: string) {
+    return this.recommendationService.analyzeWardrobeGaps(userId, season);
+  }
+
+  /**
+   * 获取购物清单
+   */
+  @Get('shopping-list')
+  @ApiOperation({ summary: '获取用户购物清单' })
+  getShoppingList(userId: string) {
+    return this.recommendationService.getShoppingList(userId);
+  }
+
+  /**
+   * 批量加入购物清单
+   */
+  @Post('shopping-list')
+  @ApiOperation({ summary: '批量加入购物清单（自动去重）' })
+  addShoppingItems(
+    @Body() body: { userId: string; items: Array<Record<string, unknown>> },
+  ) {
+    return this.recommendationService.addShoppingItems(
+      body.userId,
+      body.items as Array<{
+        category: string;
+        subCategory?: string;
+        description?: string;
+        color?: string;
+        budgetRange?: string;
+        priority?: number;
+        reason?: string;
+        source?: string;
+      }>,
+    );
+  }
+
+  /**
+   * 更新购物清单单品（标记已买/改优先级）
+   */
+  @Patch('shopping-list/:id')
+  @ApiOperation({ summary: '更新购物清单单品' })
+  updateShoppingItem(
+    @Param('id') id: string,
+    @Body() body: { userId: string; purchased?: boolean; priority?: number; description?: string },
+  ) {
+    return this.recommendationService.updateShoppingItem(body.userId, id, body);
+  }
+
+  /**
+   * 删除购物清单单品
+   */
+  @Delete('shopping-list/:id')
+  @ApiOperation({ summary: '删除购物清单单品' })
+  async deleteShoppingItem(@Param('id') id: string, @Query('userId') userId: string) {
+    await this.recommendationService.deleteShoppingItem(userId, id);
+    return { code: 0, message: '已删除' };
   }
 
   /**

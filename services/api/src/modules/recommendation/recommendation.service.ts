@@ -10,7 +10,10 @@ import { PurchaseEvaluationSkill } from '../ai-skills/purchase-evaluation/purcha
 import { PurchaseEvaluationResult } from '../ai-skills/purchase-evaluation/purchase-evaluation.dto';
 import { ItemStylingSkill } from '../ai-skills/item-styling/item-styling.skill';
 import { ItemStylingResult } from '../ai-skills/item-styling/item-styling.dto';
+import { WardrobeGapSkill } from '../ai-skills/wardrobe-gap/wardrobe-gap.skill';
+import { WardrobeGapResult } from '../ai-skills/wardrobe-gap/wardrobe-gap.dto';
 import { WeatherService, WeatherInfo } from './weather.service';
+import { ShoppingListItem } from './entities/shopping-list-item.entity';
 import { MemoryService } from '../memory/memory.service';
 import { AIMemoryContext } from '../memory/memory.dto';
 import {
@@ -35,6 +38,18 @@ export interface TodayOutfitResponse {
   starterMessage?: string;
 }
 
+/** 购物清单新增单品 */
+export interface ShoppingListInputItem {
+  category: string;
+  subCategory?: string;
+  description?: string;
+  color?: string;
+  budgetRange?: string;
+  priority?: number;
+  reason?: string;
+  source?: string;
+}
+
 @Injectable()
 export class RecommendationService {
   private readonly logger = new Logger(RecommendationService.name);
@@ -45,10 +60,13 @@ export class RecommendationService {
     private readonly outfitRecommendationSkill: OutfitRecommendationSkill,
     private readonly purchaseEvaluationSkill: PurchaseEvaluationSkill,
     private readonly itemStylingSkill: ItemStylingSkill,
+    private readonly wardrobeGapSkill: WardrobeGapSkill,
     private readonly weatherService: WeatherService,
     private readonly memoryService: MemoryService,
     @InjectRepository(Outfit)
     private readonly outfitRepo: Repository<Outfit>,
+    @InjectRepository(ShoppingListItem)
+    private readonly shoppingListRepo: Repository<ShoppingListItem>,
   ) {}
 
   /**
@@ -246,35 +264,97 @@ export class RecommendationService {
   }
 
   /**
-   * 分析衣橱缺口
+   * 分析衣橱缺口 — 优先 AI 个性化分析（结合风格档案+季节+预算），失败回退硬编码规则
    */
-  async analyzeWardrobeGaps(userId: string) {
+  async analyzeWardrobeGaps(userId: string, season?: string): Promise<WardrobeGapResult> {
     const items = await this.wardrobeService.getUserItems(userId);
 
+    // 读取用户长期记忆（AI 分析需要）
+    let memoryContext: AIMemoryContext | null = null;
+    try {
+      memoryContext = await this.memoryService.buildAIContext(userId, 'wardrobe_gap');
+    } catch (err) {
+      this.logger.warn(`读取用户记忆失败（回退规则分析）: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // 预算档位：从记忆中取不到就用 null
+    const budgetLevel = (memoryContext?.styleProfile as any)?.budgetLevel ?? undefined;
+    const currentSeason = season ?? this.currentSeason();
+
+    try {
+      const result = await this.wardrobeGapSkill.analyze({
+        wardrobeItems: items.map((i) => ({
+          id: i.id,
+          category: i.category,
+          subCategory: i.subCategory ?? '',
+          color: i.color,
+          season: i.season ?? [],
+          styleTags: i.styleTags ?? [],
+          occasionTags: i.occasionTags ?? [],
+          formalityScore: i.formalityScore,
+          warmthScore: i.warmthScore,
+          matchabilityScore: i.matchabilityScore,
+        })),
+        season: currentSeason,
+        budgetLevel,
+        memoryContext,
+      });
+      this.logger.log(`衣橱缺口 AI 分析完成 | userId: ${userId} | 缺口数: ${result.gaps.length}`);
+      return { ...result, personalized: true };
+    } catch (err) {
+      this.logger.warn(`衣橱缺口 AI 分析失败，回退规则分析: ${err instanceof Error ? err.message : String(err)}`);
+      return this.ruleBasedGapAnalysis(items);
+    }
+  }
+
+  /** 规则回退：硬编码品类阈值（AI 不可用时兜底） */
+  private ruleBasedGapAnalysis(items: WardrobeItem[]): WardrobeGapResult {
     const categoryCount: Record<string, number> = {};
     items.forEach((item) => {
       categoryCount[item.category] = (categoryCount[item.category] || 0) + 1;
     });
 
-    const essentials = {
-      top: 3,
-      bottom: 3,
-      outerwear: 2,
-      dress: 1,
-      shoes: 3,
-      accessory: 2,
+    const essentials: Record<string, { min: number; label: string }> = {
+      top: { min: 3, label: '上装' },
+      bottom: { min: 3, label: '下装' },
+      outerwear: { min: 2, label: '外套' },
+      dress: { min: 1, label: '连衣裙' },
+      shoes: { min: 3, label: '鞋子' },
+      accessory: { min: 2, label: '配饰' },
     };
 
     const gaps = Object.entries(essentials)
-      .filter(([cat, min]) => (categoryCount[cat] || 0) < min)
-      .map(([cat, min]) => ({
+      .filter(([cat, cfg]) => (categoryCount[cat] || 0) < cfg.min)
+      .map(([cat, cfg]) => ({
         category: cat,
         current: categoryCount[cat] || 0,
-        recommended: min,
-        missing: min - (categoryCount[cat] || 0),
-      }));
+        recommended: cfg.min,
+        missing: Math.max(0, cfg.min - (categoryCount[cat] || 0)),
+        priority: 2 as const,
+        reason: `${cfg.label}数量低于基础搭配所需`,
+        suggestion: {
+          subCategory: '',
+          color: '',
+          styleTags: [] as string[],
+          budgetRange: '',
+        },
+      }))
+      .sort((a, b) => b.missing - a.missing);
 
-    return { gaps, totalItems: items.length };
+    return {
+      summary: gaps.length > 0 ? `衣橱基础品类还不均衡，建议优先补充 ${gaps[0].category}` : '衣橱基础品类已比较均衡',
+      gaps,
+      personalized: false,
+    };
+  }
+
+  /** 当前季节（北半球简化判断） */
+  private currentSeason(): string {
+    const m = new Date().getMonth() + 1;
+    if (m >= 3 && m <= 5) return '春季';
+    if (m >= 6 && m <= 8) return '夏季';
+    if (m >= 9 && m <= 11) return '秋季';
+    return '冬季';
   }
 
   async getUserOutfits(userId: string): Promise<Outfit[]> {
@@ -286,17 +366,16 @@ export class RecommendationService {
 
   /**
    * 买前判断 — 用户上传商品图片，AI 结合衣橱+记忆判断是否值得购买
+   *
+   * 衣橱为空时也可用：仅结合风格档案判断商品本身是否适合，
+   * possibleOutfits 会给出"如果买，建议搭配什么"的购买建议。
    */
   async purchaseEvaluate(
     userId: string,
     imageBase64: string,
   ): Promise<PurchaseEvaluationResult> {
-    // 1. 获取衣橱单品
+    // 1. 获取衣橱单品（允许为空：空衣橱时仅基于风格档案判断）
     const wardrobeItems = await this.wardrobeService.getUserItems(userId);
-
-    if (wardrobeItems.length === 0) {
-      throw new NotFoundException('衣橱里还没有衣服，先去添加几件吧');
-    }
 
     // 2. 读取用户长期记忆（AI 调用前必须先读取记忆）
     let memoryContext: AIMemoryContext | null = null;
@@ -343,5 +422,77 @@ export class RecommendationService {
     }
 
     return result;
+  }
+
+  // ==================== 购物清单 ====================
+
+  async getShoppingList(userId: string): Promise<ShoppingListItem[]> {
+    return this.shoppingListRepo.find({
+      where: { userId },
+      order: { priority: 'ASC', purchased: 'ASC', createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * 批量加入购物清单
+   *
+   * 同一用户同品类同描述（或 subCategory）的未购买项去重，避免重复加入。
+   */
+  async addShoppingItems(
+    userId: string,
+    items: ShoppingListInputItem[],
+  ): Promise<ShoppingListItem[]> {
+    if (!items || items.length === 0) return this.getShoppingList(userId);
+
+    const existing = await this.shoppingListRepo.find({
+      where: { userId, purchased: false },
+    });
+
+    const toCreate: Partial<ShoppingListItem>[] = [];
+    for (const item of items) {
+      const dupKey = item.description || item.subCategory || item.category;
+      const dup = existing.find((e) => {
+        const eKey = e.description || e.subCategory || e.category;
+        return e.category === item.category && eKey === dupKey;
+      });
+      if (dup) continue; // 已存在，跳过
+      toCreate.push({
+        userId,
+        category: item.category,
+        subCategory: item.subCategory,
+        description: item.description,
+        color: item.color,
+        budgetRange: item.budgetRange,
+        priority: item.priority ?? 2,
+        reason: item.reason,
+        source: item.source ?? 'manual',
+      });
+    }
+
+    if (toCreate.length > 0) {
+      await this.shoppingListRepo.save(this.shoppingListRepo.create(toCreate));
+      this.logger.log(`购物清单新增 ${toCreate.length} 件 | userId: ${userId}`);
+    }
+
+    return this.getShoppingList(userId);
+  }
+
+  async updateShoppingItem(
+    userId: string,
+    id: string,
+    patch: { purchased?: boolean; priority?: number; description?: string },
+  ): Promise<ShoppingListItem> {
+    const item = await this.shoppingListRepo.findOne({ where: { id, userId } });
+    if (!item) throw new NotFoundException('购物清单单品不存在');
+    if (patch.purchased !== undefined) item.purchased = patch.purchased;
+    if (patch.priority !== undefined) item.priority = patch.priority;
+    if (patch.description !== undefined) item.description = patch.description;
+    return this.shoppingListRepo.save(item);
+  }
+
+  async deleteShoppingItem(userId: string, id: string): Promise<void> {
+    const item = await this.shoppingListRepo.findOne({ where: { id, userId } });
+    if (!item) throw new NotFoundException('购物清单单品不存在');
+    await this.shoppingListRepo.remove(item);
   }
 }

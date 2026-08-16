@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Loader2, X, Sparkles, AlertTriangle, Shirt, ShoppingBag,
+  Loader2, X, Sparkles, AlertTriangle, Shirt, ShoppingBag, Check,
 } from 'lucide-react';
-import { styleWardrobeItem } from '@/lib/wardrobe-api';
-import { fetchWardrobeItems } from '@/lib/wardrobe-api';
+import { styleWardrobeItem, fetchWardrobeItems, addShoppingItems } from '@/lib/wardrobe-api';
 import type {
   WardrobeItem,
   ItemStylingResult,
@@ -30,6 +29,8 @@ export default function ItemStylingDialog({ open, item, onClose }: Props) {
   const [result, setResult] = useState<ItemStylingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [photoMap, setPhotoMap] = useState<Map<string, string>>(new Map());
+  const [addedPlans, setAddedPlans] = useState<Set<string>>(new Set());
+  const [addingPlan, setAddingPlan] = useState<string | null>(null);
 
   // 加载衣橱照片映射
   useEffect(() => {
@@ -51,12 +52,48 @@ export default function ItemStylingDialog({ open, item, onClose }: Props) {
     setLoading(true);
     setError(null);
     setResult(null);
+    setAddedPlans(new Set());
     try {
       setResult(await styleWardrobeItem(item.id, occasion || undefined));
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 把方案中建议购买的单品加入购物清单
+  const addPlanToShoppingList = async (plan: ItemStylingPlan) => {
+    setAddingPlan(plan.type);
+    try {
+      const items: Array<{
+        category: string;
+        description: string;
+        budgetRange?: string;
+        priority: number;
+        reason?: string;
+        source: string;
+      }> = [];
+      for (const slot of SLOT_ORDER) {
+        const it = (plan as any)[slot] as { isSuggestion?: boolean; category: string; description: string; budgetHint?: string } | null;
+        if (it?.isSuggestion) {
+          items.push({
+            category: it.category,
+            description: it.description,
+            budgetRange: it.budgetHint,
+            priority: 2,
+            reason: `「${plan.title}」方案的补充单品`,
+            source: 'item-styling',
+          });
+        }
+      }
+      if (items.length === 0) return;
+      await addShoppingItems(items);
+      setAddedPlans((prev) => new Set(prev).add(plan.type));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加入购物清单失败');
+    } finally {
+      setAddingPlan(null);
     }
   };
 
@@ -149,7 +186,14 @@ export default function ItemStylingDialog({ open, item, onClose }: Props) {
                 </p>
               )}
               {result.plans.map((plan) => (
-                <StylingPlanCard key={plan.type} plan={plan} photoMap={photoMap} />
+                <StylingPlanCard
+                  key={plan.type}
+                  plan={plan}
+                  photoMap={photoMap}
+                  addedToList={addedPlans.has(plan.type)}
+                  addingToList={addingPlan === plan.type}
+                  onAddToList={() => addPlanToShoppingList(plan)}
+                />
               ))}
               <button
                 type="button"
@@ -167,7 +211,23 @@ export default function ItemStylingDialog({ open, item, onClose }: Props) {
   );
 }
 
-function StylingPlanCard({ plan, photoMap }: { plan: ItemStylingPlan; photoMap: Map<string, string> }) {
+function StylingPlanCard({
+  plan,
+  photoMap,
+  addedToList,
+  addingToList,
+  onAddToList,
+}: {
+  plan: ItemStylingPlan;
+  photoMap: Map<string, string>;
+  addedToList: boolean;
+  addingToList: boolean;
+  onAddToList: () => void;
+}) {
+  const hasSuggestion = SLOT_ORDER.some(
+    (slotKey) => ((plan as any)[slotKey] as { isSuggestion?: boolean } | null)?.isSuggestion,
+  );
+
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -233,6 +293,27 @@ function StylingPlanCard({ plan, photoMap }: { plan: ItemStylingPlan; photoMap: 
           </span>
         )}
       </div>
+      {hasSuggestion && (
+        <button
+          type="button"
+          onClick={onAddToList}
+          disabled={addedToList || addingToList}
+          className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-xs font-medium transition-colors ${
+            addedToList
+              ? 'bg-green-100 text-green-700'
+              : 'bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60'
+          }`}
+        >
+          {addingToList ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : addedToList ? (
+            <Check size={14} />
+          ) : (
+            <ShoppingBag size={14} />
+          )}
+          {addedToList ? '已加入购物清单' : '把建议单品加入购物清单'}
+        </button>
+      )}
     </div>
   );
 }

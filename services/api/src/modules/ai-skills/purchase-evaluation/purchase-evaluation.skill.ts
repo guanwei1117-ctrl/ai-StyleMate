@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { LLMFactory } from '../../llm/llm-factory';
 import { ChatMessage } from '../../llm/llm-provider.interface';
 import { buildPurchaseEvaluationPrompt } from './prompts';
@@ -18,10 +18,6 @@ export class PurchaseEvaluationSkill {
   constructor(private readonly llmFactory: LLMFactory) {}
 
   async evaluate(input: PurchaseEvaluationInput): Promise<PurchaseEvaluationResult> {
-    if (input.wardrobeItems.length === 0) {
-      throw new BadRequestException('衣橱里还没有衣服，先去添加几件吧');
-    }
-
     const systemPrompt = buildPurchaseEvaluationPrompt(input);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -33,7 +29,7 @@ export class PurchaseEvaluationSkill {
     ];
 
     this.logger.log(
-      `开始买前判断 AI 调用 | 单品数: ${input.wardrobeItems.length}`,
+      `开始买前判断 AI 调用 | 单品数: ${input.wardrobeItems.length}${input.wardrobeItems.length === 0 ? '（空衣橱，仅基于风格档案判断）' : ''}`,
     );
     const startTime = Date.now();
     const response = await this.llmFactory.chat(messages, {

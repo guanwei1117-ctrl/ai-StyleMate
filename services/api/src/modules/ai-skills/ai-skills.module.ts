@@ -5,6 +5,7 @@ import { StructuredOutfitSkill } from './structured-outfit/structured-outfit.ski
 import { OutfitRecommendationSkill } from './outfit-recommendation/outfit-recommendation.skill';
 import { PurchaseEvaluationSkill } from './purchase-evaluation/purchase-evaluation.skill';
 import { ItemStylingSkill } from './item-styling/item-styling.skill';
+import { WardrobeGapSkill } from './wardrobe-gap/wardrobe-gap.skill';
 
 /**
  * AI Skills 共享模块
@@ -20,6 +21,7 @@ import { ItemStylingSkill } from './item-styling/item-styling.skill';
     OutfitRecommendationSkill,
     PurchaseEvaluationSkill,
     ItemStylingSkill,
+    WardrobeGapSkill,
   ],
   exports: [
     GarmentRecognitionSkill,
@@ -27,6 +29,7 @@ import { ItemStylingSkill } from './item-styling/item-styling.skill';
     OutfitRecommendationSkill,
     PurchaseEvaluationSkill,
     ItemStylingSkill,
+    WardrobeGapSkill,
   ],
 })
 export class AiSkillsModule {}

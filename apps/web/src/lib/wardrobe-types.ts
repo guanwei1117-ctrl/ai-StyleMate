@@ -151,3 +151,52 @@ export const STYLING_PLAN_LABELS: Record<ItemStylingPlan['type'], string> = {
   flattering: '显瘦显高',
   vibe: '更有氛围感',
 };
+
+// ---------- 衣橱缺口分析 ----------
+
+export interface WardrobeGapSuggestion {
+  subCategory: string;
+  color: string;
+  styleTags: string[];
+  budgetRange: string;
+}
+
+export interface WardrobeGapItem {
+  category: string;
+  current: number;
+  recommended: number;
+  missing: number;
+  priority: number;
+  reason: string;
+  suggestion: WardrobeGapSuggestion;
+}
+
+export interface WardrobeGapResult {
+  summary: string;
+  gaps: WardrobeGapItem[];
+  personalized: boolean;
+}
+
+// ---------- 购物清单 ----------
+
+export interface ShoppingListItem {
+  id: string;
+  userId: string;
+  category: string;
+  subCategory?: string;
+  description?: string;
+  color?: string;
+  budgetRange?: string;
+  priority: number;
+  reason?: string;
+  purchased: boolean;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const PRIORITY_LABELS: Record<number, string> = {
+  1: '先买',
+  2: '其次',
+  3: '可缓',
+};

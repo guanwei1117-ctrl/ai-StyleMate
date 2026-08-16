@@ -4,6 +4,8 @@ import {
   RecognizeResponse,
   PurchaseEvaluationResult,
   ItemStylingResult,
+  WardrobeGapResult,
+  ShoppingListItem,
 } from './wardrobe-types';
 import { buildApiErrorMessage } from './api-error';
 import { getCurrentUserId, getAuthToken } from './auth';
@@ -252,20 +254,96 @@ export async function styleWardrobeItem(
 }
 
 /**
- * 衣橱缺口分析 — 检查品类是否均衡
+ * 衣橱缺口分析 — AI 个性化分析（结合风格档案+季节+预算），失败回退规则
  */
 export async function analyzeWardrobeGaps(
   userId: string,
-): Promise<{
-  gaps: Array<{ category: string; current: number; recommended: number; missing: number }>;
-  totalItems: number;
-}> {
+  season?: string,
+): Promise<WardrobeGapResult> {
+  const params = new URLSearchParams({ userId });
+  if (season) params.set('season', season);
+
   const res = await fetch(
-    `${API_BASE}/recommendations/wardrobe-gaps?userId=${encodeURIComponent(userId)}`,
+    `${API_BASE}/recommendations/wardrobe-gaps?${params.toString()}`,
     { headers: authHeaders() },
   );
   if (!res.ok) {
     throw new Error(await buildApiErrorMessage(res, '衣橱缺口分析失败'));
   }
   return res.json();
+}
+
+// ---------- 购物清单 ----------
+
+/**
+ * 获取购物清单
+ */
+export async function fetchShoppingList(): Promise<ShoppingListItem[]> {
+  const userId = getCurrentUserId();
+  const res = await fetch(
+    `${API_BASE}/recommendations/shopping-list?userId=${encodeURIComponent(userId)}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '获取购物清单失败'));
+  }
+  return res.json();
+}
+
+/**
+ * 批量加入购物清单（后端自动去重）
+ */
+export async function addShoppingItems(items: Array<{
+  category: string;
+  subCategory?: string;
+  description?: string;
+  color?: string;
+  budgetRange?: string;
+  priority?: number;
+  reason?: string;
+  source?: string;
+}>): Promise<ShoppingListItem[]> {
+  const userId = getCurrentUserId();
+  const res = await fetch(`${API_BASE}/recommendations/shopping-list`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ userId, items }),
+  });
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '加入购物清单失败'));
+  }
+  return res.json();
+}
+
+/**
+ * 更新购物清单单品（标记已买/改优先级）
+ */
+export async function updateShoppingItem(
+  id: string,
+  patch: { purchased?: boolean; priority?: number; description?: string },
+): Promise<ShoppingListItem> {
+  const userId = getCurrentUserId();
+  const res = await fetch(`${API_BASE}/recommendations/shopping-list/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ userId, ...patch }),
+  });
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '更新购物清单失败'));
+  }
+  return res.json();
+}
+
+/**
+ * 删除购物清单单品
+ */
+export async function deleteShoppingItem(id: string): Promise<void> {
+  const userId = getCurrentUserId();
+  const res = await fetch(
+    `${API_BASE}/recommendations/shopping-list/${id}?userId=${encodeURIComponent(userId)}`,
+    { method: 'DELETE', headers: authHeaders() },
+  );
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '删除购物清单单品失败'));
+  }
 }

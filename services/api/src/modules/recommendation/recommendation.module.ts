@@ -9,6 +9,7 @@ import { AiSkillsModule } from '../ai-skills/ai-skills.module';
 import { MemoryModule } from '../memory/memory.module';
 import { AiRateLimiter } from '../scoring/ai-rate-limiter';
 import { Outfit } from '../wardrobe/entities/outfit.entity';
+import { ShoppingListItem } from './entities/shopping-list-item.entity';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { Outfit } from '../wardrobe/entities/outfit.entity';
     WardrobeModule,
     AiSkillsModule,
     MemoryModule,
-    TypeOrmModule.forFeature([Outfit]),
+    TypeOrmModule.forFeature([Outfit, ShoppingListItem]),
   ],
   controllers: [RecommendationController],
   providers: [RecommendationService, WeatherService, AiRateLimiter],

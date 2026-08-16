@@ -62,6 +62,8 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
  * 将商品图片信息 + 用户衣橱数据 + 用户画像 + 长期记忆注入 prompt
  */
 export function buildPurchaseEvaluationPrompt(input: PurchaseEvaluationInput): string {
+  const isEmptyWardrobe = input.wardrobeItems.length === 0;
+
   const itemsJson = JSON.stringify(
     input.wardrobeItems.map((i) => ({
       id: i.id,
@@ -92,14 +94,24 @@ export function buildPurchaseEvaluationPrompt(input: PurchaseEvaluationInput): s
 
   const memoryText = buildMemoryContextText(input.memoryContext);
 
+  const wardrobeSection = isEmptyWardrobe
+    ? `## 用户衣橱单品
+用户衣橱目前是空的。请仅基于用户风格档案和长期记忆判断：
+- 这件商品本身是否适合用户（风格、身材、颜色、场景）？
+- matchedWardrobeItems 返回空数组。
+- possibleOutfits 改为"如果买这件，建议搭配什么"的购买建议（如"这件+白色基础T恤+蓝色牛仔裤 = 日常休闲"）。
+- duplicateRisk 按 low 处理（没有衣橱可比对），idleRisk 重点评估"这件是否容易闲置"。
+- recommendedCategory 给出"买完这件后，下一件最值得补充的品类"。`
+    : `## 用户衣橱单品
+以下是用户衣橱中已有的衣物数据（含穿着次数和最后穿着时间）：
+${itemsJson}`;
+
   return `你是 StyleMate 的专业买前顾问。用户上传了一件商品的图片，想判断是否值得购买。
 
 你的任务不是简单回答"好看不好看"，而是要结合用户已有衣橱和长期记忆进行深度分析。
 
 ${memoryText}
-## 用户衣橱单品
-以下是用户衣橱中已有的衣物数据（含穿着次数和最后穿着时间）：
-${itemsJson}
+${wardrobeSection}
 
 ${profileText}
 
