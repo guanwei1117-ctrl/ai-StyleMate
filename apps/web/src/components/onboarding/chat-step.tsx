@@ -35,6 +35,7 @@ export default function ChatStep({ answers, onFinalize }: ChatStepProps) {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneResult, setDoneResult] = useState<StyleChatResult | null>(null);
   const [turnCount, setTurnCount] = useState(0);
@@ -108,6 +109,17 @@ export default function ChatStep({ answers, onFinalize }: ChatStepProps) {
     setError(null);
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     await sendTurn(lastUser?.content, false);
+  };
+
+  // 生成报告：立即进入“生成中”状态，避免 AI 分析期间用户误以为无响应而重复点击
+  const handleGenerateReport = async () => {
+    if (generating || !doneResult?.statement) return;
+    setGenerating(true);
+    try {
+      await onFinalize(doneResult.statement);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -196,14 +208,32 @@ export default function ChatStep({ answers, onFinalize }: ChatStepProps) {
                 </div>
               )}
             </div>
+            {generating && (
+              <div
+                role="status"
+                className="flex items-center justify-center gap-2 rounded-xl border border-ink-900/10 bg-white px-4 py-3 text-sm text-ink-700"
+              >
+                <Loader2 size={16} className="animate-spin" />
+                正在生成报告中…AI 正在分析你的风格，请稍候，不要重复点击。
+              </div>
+            )}
             <button
               type="button"
-              onClick={() => doneResult.statement && onFinalize(doneResult.statement)}
-              disabled={!doneResult.statement}
-              className="flex w-full items-center justify-center gap-2 bg-ink-900 px-6 py-3.5 text-sm font-medium text-creme-100 transition hover:bg-ink-800 disabled:opacity-60"
+              onClick={handleGenerateReport}
+              disabled={!doneResult.statement || generating}
+              className="flex w-full items-center justify-center gap-2 bg-ink-900 px-6 py-3.5 text-sm font-medium text-creme-100 transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              对照风格库生成风格档案
-              <ArrowRight size={16} />
+              {generating ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  正在生成报告中…
+                </>
+              ) : (
+                <>
+                  对照风格库生成风格档案
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </div>
         ) : (

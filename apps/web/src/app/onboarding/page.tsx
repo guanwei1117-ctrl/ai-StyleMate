@@ -104,6 +104,8 @@ export default function OnboardingPage() {
 function OnboardingContent() {
   const faceInputRef = useRef<HTMLInputElement>(null);
   const fullBodyInputRef = useRef<HTMLInputElement>(null);
+  // 报告生成在途标记：runSubmit 防重入（快速连点只会触发一次分析）
+  const submitInFlightRef = useRef(false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>(createDefaultAnswers);
   const [results, setResults] = useState<StyleMatchResult[]>([]);
@@ -215,48 +217,56 @@ function OnboardingContent() {
   }, [answers, step]);
 
   const runSubmit = async (answersArg: OnboardingAnswers) => {
-    const shape = deriveBodyShape(
-      answersArg.height!,
-      answersArg.weight!,
-      answersArg.bust,
-      answersArg.waist,
-      answersArg.hip,
-    );
-    const matched = matchStyles(answersArg);
+    // 防止用户在 AI 分析期间重复点击，触发多次并发分析
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+    // 先进入“分析中”状态，让用户立即看到反馈（按钮置灰 + 提示文案）
     setAnalysisStatus('ai');
     setAnalysisError(null);
-
     try {
-      const ai = await analyzeStyleProfileWithAi(answersArg, shape, matched);
-      const aiMatched = mergeAiStyleResults(matched, ai);
-      setAiAnalysis(ai);
+      const shape = deriveBodyShape(
+        answersArg.height!,
+        answersArg.weight!,
+        answersArg.bust,
+        answersArg.waist,
+        answersArg.hip,
+      );
+      const matched = matchStyles(answersArg);
+
+      try {
+        const ai = await analyzeStyleProfileWithAi(answersArg, shape, matched);
+        const aiMatched = mergeAiStyleResults(matched, ai);
+        setAiAnalysis(ai);
+        setBodyShape(shape);
+        setResults(aiMatched);
+        const profile = createStoredStyleProfile(answersArg, shape, aiMatched, ai);
+        saveStyleProfile(profile);
+        syncPushLocal(SYNC_ENTRIES.styleProfile, profile);
+        await syncProfileToServer(answersArg, aiMatched, shape);
+        setAnalysisStatus('idle');
+        setStep(FLOW.length);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'AI 风格分析失败，已回落到本地规则。';
+        setAnalysisError(message);
+        setAnalysisStatus('fallback');
+        console.warn('[onboarding] AI style profile failed, using local result:', error);
+      }
+
+      setAiAnalysis(null);
       setBodyShape(shape);
-      setResults(aiMatched);
-      const profile = createStoredStyleProfile(answersArg, shape, aiMatched, ai);
-      saveStyleProfile(profile);
-      syncPushLocal(SYNC_ENTRIES.styleProfile, profile);
-      await syncProfileToServer(answersArg, aiMatched, shape);
+      setResults(matched);
+      const fallbackProfile = createStoredStyleProfile(answersArg, shape, matched);
+      saveStyleProfile(fallbackProfile);
+      syncPushLocal(SYNC_ENTRIES.styleProfile, fallbackProfile);
+      await syncProfileToServer(answersArg, matched, shape);
       setAnalysisStatus('idle');
       setStep(FLOW.length);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'AI 风格分析失败，已回落到本地规则。';
-      setAnalysisError(message);
-      setAnalysisStatus('fallback');
-      console.warn('[onboarding] AI style profile failed, using local result:', error);
+    } finally {
+      submitInFlightRef.current = false;
     }
-
-    setAiAnalysis(null);
-    setBodyShape(shape);
-    setResults(matched);
-    const fallbackProfile = createStoredStyleProfile(answersArg, shape, matched);
-    saveStyleProfile(fallbackProfile);
-    syncPushLocal(SYNC_ENTRIES.styleProfile, fallbackProfile);
-    await syncProfileToServer(answersArg, matched, shape);
-    setAnalysisStatus('idle');
-    setStep(FLOW.length);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // 对话测评收尾：AI 总结的自述 → 提取风格/预算/目标 → 生成最终档案
