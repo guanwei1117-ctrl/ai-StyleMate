@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { register, login, isAuthenticated } from '@/lib/auth';
+import { syncOnLogin } from '@/lib/sync-api';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -35,6 +36,12 @@ export default function AuthPage() {
         await register(phone.trim(), password, nickname.trim() || undefined);
       } else {
         await login(phone.trim(), password);
+      }
+      // 登录后跨设备同步：拉取服务端周计划/风格档案并按"谁新用谁"合并（失败不影响登录）
+      try {
+        await syncOnLogin();
+      } catch {
+        // 静默处理
       }
       router.push('/');
     } catch (err: any) {

@@ -23,6 +23,8 @@ if (dbEnabled) {
   const { MemoryModule } = require('./modules/memory/memory.module');
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { AuthModule } = require('./modules/auth/auth.module');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { SyncModule } = require('./modules/sync/sync.module');
 
   dbModules.push(
     TypeOrmModule.forRoot({
@@ -41,6 +43,7 @@ if (dbEnabled) {
     FeedbackModule,
     MemoryModule,
     AuthModule,
+    SyncModule,
   );
 }
 

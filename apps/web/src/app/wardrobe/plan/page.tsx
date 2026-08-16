@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, X, Shirt, Check, Trash2, Sparkles } fr
 import { fetchSavedOutfits } from '@/lib/today-outfit-api';
 import { fetchWardrobeItems } from '@/lib/wardrobe-api';
 import TodayOutfitDialog from '@/components/wardrobe/today-outfit-dialog';
+import { syncPushLocal, SYNC_ENTRIES } from '@/lib/sync-api';
 import type { WardrobeItem } from '@/lib/wardrobe-types';
 
 type SavedOutfit = Awaited<ReturnType<typeof fetchSavedOutfits>>[number];
@@ -70,7 +71,12 @@ export default function PlanPage() {
     loadPlansFromStorage();
   }, [loadAll, loadPlansFromStorage]);
 
-  const savePlans = useCallback((u: Record<string,DayPlan>) => { setPlans(u); localStorage.setItem('stylemate.plan',JSON.stringify(u)); }, []);
+  const savePlans = useCallback((u: Record<string,DayPlan>) => {
+    setPlans(u);
+    localStorage.setItem('stylemate.plan',JSON.stringify(u));
+    // 登录后跨设备同步（防抖上传）
+    syncPushLocal(SYNC_ENTRIES.weekPlan, u);
+  }, []);
 
   const weekDays = useMemo(()=>Array.from({length:7},(_,i)=>{const d=new Date(weekStart);d.setDate(d.getDate()+i);return d;}),[weekStart]);
   const today = new Date(); today.setHours(0,0,0,0);
