@@ -34,6 +34,7 @@ export default function ChatStep({ answers, onFinalize }: ChatStepProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneResult, setDoneResult] = useState<StyleChatResult | null>(null);
   const [turnCount, setTurnCount] = useState(0);
@@ -94,7 +95,12 @@ export default function ChatStep({ answers, onFinalize }: ChatStepProps) {
 
   const handleForceFinalize = async () => {
     if (typing || doneResult || messages.length === 0) return;
-    await sendTurn(undefined, true);
+    setFinalizing(true);
+    try {
+      await sendTurn(undefined, true);
+    } finally {
+      setFinalizing(false);
+    }
   };
 
   const handleRetry = async () => {
@@ -232,7 +238,7 @@ export default function ChatStep({ answers, onFinalize }: ChatStepProps) {
                 disabled={typing}
                 className="w-full text-center text-xs text-ink-400 underline-offset-2 hover:text-ink-700 hover:underline disabled:opacity-50"
               >
-                聊得差不多了，直接生成结果
+                {finalizing ? 'AI 正在总结你的画像…' : '聊得差不多了，直接生成结果'}
               </button>
             )}
           </div>

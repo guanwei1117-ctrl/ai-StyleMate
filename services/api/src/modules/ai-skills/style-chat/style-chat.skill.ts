@@ -4,6 +4,25 @@ import { ChatMessage } from '../../llm/llm-provider.interface';
 import { buildStyleChatPrompt } from './prompts';
 import { StyleChatInput, StyleChatResult } from './style-chat.dto';
 
+/**
+ * 强制结束时硬保证输出：无论模型返回什么，done 必须为 true 且必须有 statement。
+ * （模型偶尔会无视结束指令继续提问，前端依赖 done 字段推进流程，必须兜底。）
+ */
+export function hardenFinalizeResult(
+  parsed: StyleChatResult,
+  forceFinalize: boolean,
+): StyleChatResult {
+  if (!forceFinalize) return parsed;
+  return {
+    ...parsed,
+    done: true,
+    statement:
+      parsed.statement?.trim() ||
+      parsed.reply?.trim() ||
+      '用户完成了一次穿搭偏好对话，偏好细节以对话记录为准。',
+  };
+}
+
 @Injectable()
 export class StyleChatSkill {
   private readonly logger = new Logger(StyleChatSkill.name);
@@ -19,9 +38,12 @@ export class StyleChatSkill {
       { role: 'system', content: systemPrompt },
       {
         role: 'user',
-        content: input.userMessage
-          ? '（已在上文给出我的最新回复，请继续）'
-          : '开始吧。',
+        // 三种场景的用户消息必须与系统提示一致，避免"开始吧"与"结束"矛盾
+        content: input.forceFinalize
+          ? '请立即结束对话，直接输出总结 JSON（done 必须为 true）。'
+          : input.userMessage
+            ? '（已在上文给出我的最新回复，请继续）'
+            : '开始吧。',
       },
     ];
 
@@ -36,10 +58,12 @@ export class StyleChatSkill {
     });
 
     const parsed = this.parseResponse(response.content);
+    // 强制结束兜底：保证前端能进入"生成档案"步骤
+    const result = hardenFinalizeResult(parsed, !!input.forceFinalize);
     this.logger.log(
-      `引导式测评对话完成 | 耗时 ${Date.now() - startTime}ms | done: ${parsed.done} | 回复长度: ${parsed.reply.length}`,
+      `引导式测评对话完成 | 耗时 ${Date.now() - startTime}ms | done: ${result.done} | 回复长度: ${result.reply.length}`,
     );
-    return parsed;
+    return result;
   }
 
   private parseResponse(content: string): StyleChatResult {
