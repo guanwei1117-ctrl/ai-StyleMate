@@ -14,6 +14,7 @@ const NAV_LINKS: NavItem[] = [
   { label: '风格测评', href: '/onboarding' },
   { label: '我的档案', href: '/onboarding?view=history' },
   { label: '衣橱', href: '/wardrobe' },
+  { label: '社区', href: '/ootd' },
   { label: 'AI 记忆', href: '/memory' },
   { label: '关于', dialog: true },
 ];

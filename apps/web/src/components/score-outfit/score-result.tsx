@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { EvaluateOutfitResponse } from "@/lib/scoring-types";
 import DimensionCard from "./dimension-card";
 import { motion } from "framer-motion";
@@ -13,11 +14,13 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
-import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle, Share2, Loader2 } from "lucide-react";
+import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle, Share2, Loader2, Users } from "lucide-react";
 import { buildScoringSummaryText } from "@/lib/scoring-summary";
 import { renderShareCardImage } from "@/lib/scoring-share-card";
 import { fetchWardrobeItems } from "@/lib/wardrobe-api";
 import { CATEGORY_LABELS, WardrobeItem } from "@/lib/wardrobe-types";
+import { publishOotd, blobToDataUrl } from "@/lib/ootd-api";
+import { isAuthenticated } from "@/lib/auth";
 import type { StructuredOutfitResult } from "@stylemate/shared";
 
 interface ScoreResultProps {
@@ -28,10 +31,12 @@ interface ScoreResultProps {
 }
 
 export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultProps) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
   const [sharing, setSharing] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
+  const [publishing, setPublishing] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   const handleCopySummary = async () => {
@@ -80,6 +85,37 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
     }
   };
 
+  // 发布到 OOTD 社区：生成分享卡 → 上传 → 跳转社区
+  const handlePublishOotd = async () => {
+    if (!isAuthenticated()) {
+      setShareMessage("请先登录后再发布到社区");
+      router.push('/auth');
+      return;
+    }
+    setPublishing(true);
+    setShareMessage("");
+    try {
+      const blob = await renderShareCardImage(result, thumbnail);
+      const imageData = await blobToDataUrl(blob);
+      const scoreAvg = result.dimensions.length > 0
+        ? Math.round(result.dimensions.reduce((sum, d) => sum + d.score, 0) / result.dimensions.length)
+        : undefined;
+      await publishOotd({
+        imageData,
+        caption: result.overallComment,
+        scoreAvg,
+        scoreJson: JSON.stringify(
+          result.dimensions.map((d) => ({ label: d.label, score: d.score })),
+        ),
+      });
+      router.push('/ootd');
+    } catch (err) {
+      setShareMessage(err instanceof Error ? err.message : '发布失败，请重试');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const radarData = result.dimensions.map((d) => ({
     dimension: d.label,
     score: d.score,
@@ -107,6 +143,15 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
             >
               {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
               {sharing ? '生成中…' : '生成分享图'}
+            </button>
+            <button
+              type="button"
+              onClick={handlePublishOotd}
+              disabled={publishing}
+              className="inline-flex items-center justify-center gap-2 border border-ink-900 px-4 py-2 text-xs text-ink-900 transition hover:bg-[#e8ece8] disabled:opacity-60"
+            >
+              {publishing ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
+              {publishing ? '发布中…' : '发布到社区'}
             </button>
           </div>
         </div>
