@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Trash2, Check, Loader2, Sparkles, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Trash2, Check, Loader2, Sparkles } from 'lucide-react';
 import {
   fetchWardrobeItem,
   updateWardrobeItem,
   deleteWardrobeItem,
 } from '@/lib/wardrobe-api';
-import { fetchShoppingLinks, openShoppingLink } from '@/lib/shopping-api';
+import { fetchShoppingLinks, openShoppingLink, SHOPPING_PLATFORMS, type ShoppingPlatform } from '@/lib/shopping-api';
 import ItemStylingDialog from '@/components/wardrobe/item-styling-dialog';
 import {
   WardrobeItem,
@@ -40,18 +40,21 @@ export default function WardrobeItemDetailPage() {
   const [stylingOpen, setStylingOpen] = useState(false);
   const [searchingTaobao, setSearchingTaobao] = useState(false);
 
-  // 淘宝找同款：用这件单品自身信息 + 个人画像生成搜索
-  const handleSearchTaobao = async () => {
+  // 平台找同款：用这件单品自身信息 + 个人画像生成搜索
+  const handleSearchPlatform = async (platform: ShoppingPlatform) => {
     if (!item) return;
     setSearchingTaobao(true);
     setError(null);
     try {
-      const result = await fetchShoppingLinks({
-        category: item.category,
-        subCategory: item.subCategory || undefined,
-        color: item.color || undefined,
-        styleTags: item.styleTags?.length ? item.styleTags : undefined,
-      });
+      const result = await fetchShoppingLinks(
+        {
+          category: item.category,
+          subCategory: item.subCategory || undefined,
+          color: item.color || undefined,
+          styleTags: item.styleTags?.length ? item.styleTags : undefined,
+        },
+        platform,
+      );
       openShoppingLink(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成搜索链接失败');
@@ -370,16 +373,25 @@ export default function WardrobeItemDetailPage() {
                   <Sparkles size={16} />
                   帮我搭这件
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSearchTaobao}
-                  disabled={searchingTaobao}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 px-5 py-2 text-sm text-orange-600 transition-colors hover:bg-orange-50 disabled:opacity-60"
-                  title="按这件单品的颜色、品类和你的风格画像去淘宝找同款"
-                >
-                  {searchingTaobao ? <Loader2 size={16} className="animate-spin" /> : <ShoppingBag size={16} />}
-                  淘宝找同款
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-ink-400">找同款：</span>
+                  {searchingTaobao ? (
+                    <Loader2 size={15} className="animate-spin text-ink-400" />
+                  ) : (
+                    SHOPPING_PLATFORMS.map((p) => (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => handleSearchPlatform(p.key)}
+                        disabled={searchingTaobao}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${p.className}`}
+                        title={`按这件单品的颜色、品类和你的风格画像去${p.label}找同款`}
+                      >
+                        {p.label}
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>

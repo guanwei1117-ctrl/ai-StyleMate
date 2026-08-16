@@ -7,6 +7,8 @@ import {
 } from './shopping-link-provider.interface';
 import { TaobaoDeepLinkProvider } from './taobao-deep-link.provider';
 import { TaobaoAffiliateProvider } from './taobao-affiliate.provider';
+import { JdDeepLinkProvider } from './jd-deep-link.provider';
+import { PddDeepLinkProvider } from './pdd-deep-link.provider';
 
 /**
  * 电商导购服务 — Provider 注册表 + 回退策略
@@ -26,10 +28,14 @@ export class ShoppingService {
   constructor(
     private readonly taobaoDeepLink: TaobaoDeepLinkProvider,
     private readonly taobaoAffiliate: TaobaoAffiliateProvider,
+    private readonly jdDeepLink: JdDeepLinkProvider,
+    private readonly pddDeepLink: PddDeepLinkProvider,
   ) {
     // 每个平台按优先级排列：[联盟, 深链兜底]
     this.providerMap = new Map<ShoppingPlatform, ShoppingLinkProvider[]>();
     this.providerMap.set('taobao', [taobaoAffiliate, taobaoDeepLink]);
+    this.providerMap.set('jd', [jdDeepLink]);
+    this.providerMap.set('pdd', [pddDeepLink]);
   }
 
   async getLinks(

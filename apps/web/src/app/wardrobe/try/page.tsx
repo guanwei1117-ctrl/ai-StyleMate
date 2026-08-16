@@ -18,7 +18,7 @@ import TodayOutfitDialog from '@/components/wardrobe/today-outfit-dialog';
 import PurchaseEvaluationDialog from '@/components/wardrobe/purchase-evaluation-dialog';
 import ShoppingListDialog from '@/components/wardrobe/shopping-list-dialog';
 import { analyzeWardrobeGaps, addShoppingItems } from '@/lib/wardrobe-api';
-import { fetchShoppingLinks, openShoppingLink } from '@/lib/shopping-api';
+import { fetchShoppingLinks, openShoppingLink, SHOPPING_PLATFORMS, type ShoppingPlatform } from '@/lib/shopping-api';
 import { getCurrentUserId } from '@/lib/auth';
 import { WardrobeGapResult, PRIORITY_LABELS } from '@/lib/wardrobe-types';
 
@@ -101,21 +101,24 @@ export default function TryPage() {
     }
   };
 
-  // 去淘宝找这件缺口单品：用建议的颜色/子类/预算拼精准搜索词
-  const handleSearchTaobao = async (category: string) => {
+  // 去平台找这件缺口单品：用建议的颜色/子类/预算拼精准搜索词
+  const handleSearchPlatform = async (category: string, platform: ShoppingPlatform) => {
     if (!gapsResult) return;
     const gap = gapsResult.gaps.find((g) => g.category === category);
     if (!gap) return;
     setSearchingGap(category);
     setGapsError(null);
     try {
-      const result = await fetchShoppingLinks({
-        category: gap.category,
-        subCategory: gap.suggestion.subCategory || undefined,
-        color: gap.suggestion.color || undefined,
-        styleTags: gap.suggestion.styleTags?.length ? gap.suggestion.styleTags : undefined,
-        budgetRange: gap.suggestion.budgetRange || undefined,
-      });
+      const result = await fetchShoppingLinks(
+        {
+          category: gap.category,
+          subCategory: gap.suggestion.subCategory || undefined,
+          color: gap.suggestion.color || undefined,
+          styleTags: gap.suggestion.styleTags?.length ? gap.suggestion.styleTags : undefined,
+          budgetRange: gap.suggestion.budgetRange || undefined,
+        },
+        platform,
+      );
       openShoppingLink(result);
     } catch (err) {
       setGapsError(err instanceof Error ? err.message : '生成搜索链接失败');
@@ -356,18 +359,22 @@ export default function TryPage() {
                         {gap.suggestion.budgetRange && (
                           <span className="text-[11px] text-ink-400">{gap.suggestion.budgetRange}</span>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => handleSearchTaobao(gap.category)}
-                          disabled={searchingGap !== null}
-                          className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-600 transition-colors hover:bg-orange-100 disabled:opacity-50"
-                          title="跳转淘宝搜索这件（预填精准关键词）"
-                        >
-                          {searchingGap === gap.category ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : null}
-                          去淘宝找
-                        </button>
+                        {searchingGap === gap.category ? (
+                          <Loader2 size={13} className="animate-spin text-ink-400" />
+                        ) : (
+                          SHOPPING_PLATFORMS.map((p) => (
+                            <button
+                              key={p.key}
+                              type="button"
+                              onClick={() => handleSearchPlatform(gap.category, p.key)}
+                              disabled={searchingGap !== null}
+                              className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${p.className}`}
+                              title={`去${p.label}找这件（预填精准关键词）`}
+                            >
+                              {p.short}
+                            </button>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>

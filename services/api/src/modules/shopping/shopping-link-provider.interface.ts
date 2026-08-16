@@ -12,7 +12,7 @@
  * 自动回退到 DeepLink，保证功能永远可用。
  */
 
-export type ShoppingPlatform = 'taobao';
+export type ShoppingPlatform = 'taobao' | 'jd' | 'pdd';
 
 /** 生成搜索链接所需的单品信息（来自购物清单/缺口建议/起步方案） */
 export interface ShoppingLinkQuery {

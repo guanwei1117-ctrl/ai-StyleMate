@@ -34,8 +34,10 @@ export interface ShoppingLinkProduct {
   itemUrl: string;
 }
 
+export type ShoppingPlatform = 'taobao' | 'jd' | 'pdd';
+
 export interface ShoppingLinkResult {
-  platform: 'taobao';
+  platform: ShoppingPlatform;
   mode: 'deep-link' | 'affiliate-api';
   query: string;
   deepLink?: string;
@@ -43,6 +45,13 @@ export interface ShoppingLinkResult {
   products?: ShoppingLinkProduct[];
   note?: string;
 }
+
+/** 前端平台选择器配置 */
+export const SHOPPING_PLATFORMS: Array<{ key: ShoppingPlatform; label: string; short: string; className: string }> = [
+  { key: 'taobao', label: '淘宝', short: '淘', className: 'bg-orange-50 text-orange-600 hover:bg-orange-100' },
+  { key: 'jd', label: '京东', short: '京', className: 'bg-red-50 text-red-600 hover:bg-red-100' },
+  { key: 'pdd', label: '拼多多', short: '拼', className: 'bg-rose-50 text-rose-600 hover:bg-rose-100' },
+];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -89,9 +98,10 @@ export function buildShoppingProfileContext(): ShoppingProfileContext | undefine
  */
 export async function fetchShoppingLinks(
   item: ShoppingLinkQuery,
+  platform: ShoppingPlatform = 'taobao',
 ): Promise<ShoppingLinkResult> {
-  const body: { platform: string; item: ShoppingLinkQuery } = {
-    platform: 'taobao',
+  const body: { platform: ShoppingPlatform; item: ShoppingLinkQuery } = {
+    platform,
     item: {
       ...item,
       profile: item.profile ?? buildShoppingProfileContext(),

@@ -9,7 +9,7 @@ import {
   updateShoppingItem,
   deleteShoppingItem,
 } from '@/lib/wardrobe-api';
-import { fetchShoppingLinks, openShoppingLink } from '@/lib/shopping-api';
+import { fetchShoppingLinks, openShoppingLink, SHOPPING_PLATFORMS, type ShoppingPlatform } from '@/lib/shopping-api';
 import {
   ShoppingListItem,
   PRIORITY_LABELS,
@@ -79,17 +79,20 @@ export default function ShoppingListDialog({ open, onClose }: Props) {
     }
   };
 
-  // 去淘宝找这件：生成精准搜索词 → 深链/商品卡
-  const handleSearchTaobao = async (item: ShoppingListItem) => {
+  // 去平台找这件：生成精准搜索词 → 深链/商品卡
+  const handleSearchPlatform = async (item: ShoppingListItem, platform: ShoppingPlatform) => {
     setBusyId(item.id);
     setError(null);
     try {
-      const result = await fetchShoppingLinks({
-        category: item.category,
-        subCategory: item.subCategory,
-        color: item.color,
-        budgetRange: item.budgetRange,
-      });
+      const result = await fetchShoppingLinks(
+        {
+          category: item.category,
+          subCategory: item.subCategory,
+          color: item.color,
+          budgetRange: item.budgetRange,
+        },
+        platform,
+      );
       openShoppingLink(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成搜索链接失败');
@@ -178,7 +181,7 @@ export default function ShoppingListDialog({ open, onClose }: Props) {
                       busy={busyId === item.id}
                       onToggle={() => togglePurchased(item)}
                       onRemove={() => remove(item)}
-                      onTaobao={() => handleSearchTaobao(item)}
+                      onSearch={(platform) => handleSearchPlatform(item, platform)}
                     />
                   ))}
                 </div>
@@ -226,13 +229,13 @@ function ShoppingItemRow({
   busy,
   onToggle,
   onRemove,
-  onTaobao,
+  onSearch,
 }: {
   item: ShoppingListItem;
   busy: boolean;
   onToggle: () => void;
   onRemove: () => void;
-  onTaobao?: () => void;
+  onSearch?: (platform: ShoppingPlatform) => void;
 }) {
   const label =
     item.description ||
@@ -288,16 +291,25 @@ function ShoppingItemRow({
         </div>
       </div>
 
-      {!item.purchased && onTaobao && (
-        <button
-          type="button"
-          onClick={onTaobao}
-          disabled={busy}
-          className="shrink-0 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-600 transition-colors hover:bg-orange-100 disabled:opacity-50"
-          title="跳转淘宝搜索这件（预填精准关键词）"
-        >
-          {busy ? <Loader2 size={12} className="animate-spin" /> : '去淘宝找'}
-        </button>
+      {!item.purchased && onSearch && (
+        <div className="flex shrink-0 items-center gap-1">
+          {busy ? (
+            <Loader2 size={13} className="animate-spin text-ink-400" />
+          ) : (
+            SHOPPING_PLATFORMS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => onSearch(p.key)}
+                disabled={busy}
+                title={`去${p.label}找这件（预填精准关键词）`}
+                className={`rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${p.className}`}
+              >
+                {p.short}
+              </button>
+            ))
+          )}
+        </div>
       )}
       <button
         type="button"
