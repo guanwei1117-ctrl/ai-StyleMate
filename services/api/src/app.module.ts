@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { StyleEngineModule } from './modules/style-engine/style-engine.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
+import { ShoppingModule } from './modules/shopping/shopping.module';
 
 // 仅在 PostgreSQL 可用时加载数据库相关模块
 // Phase 1 起默认启用数据库持久化（设置环境变量 ENABLE_DB=false 可显式关闭）
@@ -49,6 +50,8 @@ if (dbEnabled) {
     ...dbModules,
     StyleEngineModule,
     ScoringModule,
+    // 电商导购：无 DB 依赖（深链模式），联盟模式仅依赖环境变量
+    ShoppingModule,
   ],
   controllers: [AppController],
 })

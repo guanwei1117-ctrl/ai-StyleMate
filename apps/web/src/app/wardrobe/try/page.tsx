@@ -11,12 +11,14 @@ import {
   ListTodo,
   Plus,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TodayOutfitDialog from '@/components/wardrobe/today-outfit-dialog';
 import PurchaseEvaluationDialog from '@/components/wardrobe/purchase-evaluation-dialog';
 import ShoppingListDialog from '@/components/wardrobe/shopping-list-dialog';
 import { analyzeWardrobeGaps, addShoppingItems } from '@/lib/wardrobe-api';
+import { fetchShoppingLinks, openShoppingLink } from '@/lib/shopping-api';
 import { getCurrentUserId } from '@/lib/auth';
 import { WardrobeGapResult, PRIORITY_LABELS } from '@/lib/wardrobe-types';
 
@@ -82,6 +84,7 @@ export default function TryPage() {
   const [gapsError, setGapsError] = useState<string | null>(null);
   const [addedGaps, setAddedGaps] = useState<Set<string>>(new Set());
   const [addingGap, setAddingGap] = useState<string | null>(null);
+  const [searchingGap, setSearchingGap] = useState<string | null>(null);
 
   const handleGapsAnalysis = async () => {
     setGapsLoading(true);
@@ -95,6 +98,29 @@ export default function TryPage() {
       setGapsError(err instanceof Error ? err.message : '分析失败');
     } finally {
       setGapsLoading(false);
+    }
+  };
+
+  // 去淘宝找这件缺口单品：用建议的颜色/子类/预算拼精准搜索词
+  const handleSearchTaobao = async (category: string) => {
+    if (!gapsResult) return;
+    const gap = gapsResult.gaps.find((g) => g.category === category);
+    if (!gap) return;
+    setSearchingGap(category);
+    setGapsError(null);
+    try {
+      const result = await fetchShoppingLinks({
+        category: gap.category,
+        subCategory: gap.suggestion.subCategory || undefined,
+        color: gap.suggestion.color || undefined,
+        styleTags: gap.suggestion.styleTags?.length ? gap.suggestion.styleTags : undefined,
+        budgetRange: gap.suggestion.budgetRange || undefined,
+      });
+      openShoppingLink(result);
+    } catch (err) {
+      setGapsError(err instanceof Error ? err.message : '生成搜索链接失败');
+    } finally {
+      setSearchingGap(null);
     }
   };
 
@@ -330,6 +356,18 @@ export default function TryPage() {
                         {gap.suggestion.budgetRange && (
                           <span className="text-[11px] text-ink-400">{gap.suggestion.budgetRange}</span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => handleSearchTaobao(gap.category)}
+                          disabled={searchingGap !== null}
+                          className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-600 transition-colors hover:bg-orange-100 disabled:opacity-50"
+                          title="跳转淘宝搜索这件（预填精准关键词）"
+                        >
+                          {searchingGap === gap.category ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : null}
+                          去淘宝找
+                        </button>
                       </div>
                     )}
                   </div>

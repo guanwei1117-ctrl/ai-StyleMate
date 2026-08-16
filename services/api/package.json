@@ -7,7 +7,7 @@
     "build": "nest build",
     "start": "node dist/main",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/modules/scoring/image-data-url.validator.test.ts src/modules/scoring/ai-rate-limiter.test.ts src/modules/scoring/scoring-settings.test.ts src/modules/scoring/response-parser.service.test.ts src/modules/llm/llm-factory.test.ts src/common/guards/resolve-user-id.test.ts"
+    "test": "tsx --test src/modules/scoring/image-data-url.validator.test.ts src/modules/scoring/ai-rate-limiter.test.ts src/modules/scoring/scoring-settings.test.ts src/modules/scoring/response-parser.service.test.ts src/modules/llm/llm-factory.test.ts src/common/guards/resolve-user-id.test.ts src/modules/shopping/taobao-sign.test.ts src/modules/shopping/search-query.builder.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
