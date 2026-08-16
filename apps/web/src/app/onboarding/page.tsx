@@ -53,6 +53,7 @@ import {
 } from '@/data/styles';
 import styleImages from '@/data/style-images.json';
 import ResultView from '@/components/onboarding/result-view';
+import ChatStep from '@/components/onboarding/chat-step';
 import { OnboardingGuideDialog } from '@/components/onboarding/onboarding-guide-dialog';
 import { PhotoSlot } from '@/components/onboarding/photo-slot';
 import {
@@ -82,7 +83,7 @@ import { ONBOARDING_GUIDE_SECTIONS } from '@/lib/onboarding-guide';
 
 const FLOW = [
   { id: 'profile', label: '基础', desc: '身高 / 体重 / 年龄' },
-  { id: 'preference', label: '偏好', desc: '风格 / 预算 / 目标' },
+  { id: 'chat', label: '对话', desc: '和 AI 聊聊偏好' },
 ] as const;
 
 const genderOptions: { label: string; value: Gender }[] = [
@@ -213,28 +214,28 @@ function OnboardingContent() {
     return false;
   }, [answers, step]);
 
-  const handleSubmit = async () => {
+  const runSubmit = async (answersArg: OnboardingAnswers) => {
     const shape = deriveBodyShape(
-      answers.height!,
-      answers.weight!,
-      answers.bust,
-      answers.waist,
-      answers.hip,
+      answersArg.height!,
+      answersArg.weight!,
+      answersArg.bust,
+      answersArg.waist,
+      answersArg.hip,
     );
-    const matched = matchStyles(answers);
+    const matched = matchStyles(answersArg);
     setAnalysisStatus('ai');
     setAnalysisError(null);
 
     try {
-      const ai = await analyzeStyleProfileWithAi(answers, shape, matched);
+      const ai = await analyzeStyleProfileWithAi(answersArg, shape, matched);
       const aiMatched = mergeAiStyleResults(matched, ai);
       setAiAnalysis(ai);
       setBodyShape(shape);
       setResults(aiMatched);
-      const profile = createStoredStyleProfile(answers, shape, aiMatched, ai);
+      const profile = createStoredStyleProfile(answersArg, shape, aiMatched, ai);
       saveStyleProfile(profile);
       syncPushLocal(SYNC_ENTRIES.styleProfile, profile);
-      await syncProfileToServer(answers, aiMatched, shape);
+      await syncProfileToServer(answersArg, aiMatched, shape);
       setAnalysisStatus('idle');
       setStep(FLOW.length);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -249,14 +250,43 @@ function OnboardingContent() {
     setAiAnalysis(null);
     setBodyShape(shape);
     setResults(matched);
-    const fallbackProfile = createStoredStyleProfile(answers, shape, matched);
+    const fallbackProfile = createStoredStyleProfile(answersArg, shape, matched);
     saveStyleProfile(fallbackProfile);
     syncPushLocal(SYNC_ENTRIES.styleProfile, fallbackProfile);
-    await syncProfileToServer(answers, matched, shape);
+    await syncProfileToServer(answersArg, matched, shape);
     setAnalysisStatus('idle');
     setStep(FLOW.length);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // 对话测评收尾：AI 总结的自述 → 提取风格/预算/目标 → 生成最终档案
+  const finalizeFromChat = useCallback(
+    async (statement: string) => {
+      const prefs = extractStylePreference(statement);
+      const nextAnswers: OnboardingAnswers = {
+        ...answers,
+        userStatement: statement,
+        preferredStyleIds:
+          prefs.styleIds.length > 0 ? prefs.styleIds : answers.preferredStyleIds,
+        budget: (prefs.budget ?? answers.budget) as BudgetLevel | null,
+        dressingGoals:
+          prefs.dressingGoals.length > 0
+            ? (prefs.dressingGoals as DressingGoal[])
+            : answers.dressingGoals,
+        priorities:
+          prefs.priorities.length > 0
+            ? (prefs.priorities as PriorityDimension[])
+            : answers.priorities,
+      };
+      setAnswers(nextAnswers);
+      setStatementEdited(true);
+      await runSubmit(nextAnswers);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [answers],
+  );
+
+  const handleSubmit = () => runSubmit(answers);
 
   const handleRestart = () => {
     if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
@@ -305,12 +335,12 @@ function OnboardingContent() {
         <div className="flex flex-col gap-8">
           {!isHistoryView && (
             <header className="text-center">
-              <p className="mb-3 text-xs tracking-[0.3em] text-ink-400">STYLE TEST</p>
+              <p className="mb-3 text-xs tracking-[0.3em] text-ink-400">AI STYLE CHAT</p>
               <h1 className="font-display text-3xl leading-tight text-ink-900 sm:text-4xl">
-                测测适合什么风格
+                和 AI 聊聊，测出适合你的风格
               </h1>
               <p className="mt-4 text-sm leading-7 text-ink-500">
-                填基础，写偏好，生成建议。
+                先填基础信息，再和 AI 顾问对话——它会一步步问你、追问、听懂你的纠正，最后对照风格库生成专属档案。
               </p>
             </header>
           )}
@@ -384,12 +414,10 @@ function OnboardingContent() {
                     />
                   )}
                   {step === 1 && (
-                    <PreferenceStep
-                      answers={answers}
-                      updateAnswers={updateAnswers}
-                    />
+                    <ChatStep answers={answers} onFinalize={finalizeFromChat} />
                   )}
 
+                  {step === 0 && (
                   <div className="flex items-center justify-between border-t border-ink-900/10 p-5 sm:p-7">
                     <button
                       onClick={() => setStep((current) => Math.max(0, current - 1))}
@@ -411,6 +439,7 @@ function OnboardingContent() {
                       <ArrowRight size={16} />
                     </button>
                   </div>
+                  )}
                 </motion.section>
               ) : (
                 <motion.section

@@ -73,5 +73,30 @@ export class ScoringController {
     };
   }
 
+  /**
+   * 引导式测评对话 — AI 顾问逐步提问、结合上下文追问、支持用户纠正，最后总结画像
+   */
+  @Post('style-chat')
+  @ApiOperation({ summary: '引导式 AI 测评对话（提问/追问/纠正/总结）' })
+  async chatStyle(
+    @Body()
+    body: {
+      basicInfo: import('../ai-skills/style-chat/style-chat.dto').StyleChatBasicInfo;
+      history: import('../ai-skills/style-chat/style-chat.dto').StyleChatTurn[];
+      userMessage?: string;
+      forceFinalize?: boolean;
+    },
+  ) {
+    this.logger.log(
+      `收到引导式测评对话 | 轮次: ${body.history?.length ?? 0} | 强制结束: ${!!body.forceFinalize}`,
+    );
+    return this.scoringService.chatStyle({
+      basicInfo: body.basicInfo ?? {},
+      history: Array.isArray(body.history) ? body.history : [],
+      userMessage: body.userMessage,
+      forceFinalize: body.forceFinalize,
+    });
+  }
+
 }
 

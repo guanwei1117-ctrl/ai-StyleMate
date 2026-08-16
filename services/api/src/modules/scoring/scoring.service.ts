@@ -5,6 +5,11 @@ import { ChatMessage } from '../llm/llm-provider.interface';
 import { buildSystemPrompt } from './prompts/system-prompts';
 import { StructuredOutfitSkill } from '../ai-skills/structured-outfit/structured-outfit.skill';
 import { StructuredOutfitResult } from '../ai-skills/structured-outfit/structured-outfit.dto';
+import { StyleChatSkill } from '../ai-skills/style-chat/style-chat.skill';
+import {
+  StyleChatInput,
+  StyleChatResult,
+} from '../ai-skills/style-chat/style-chat.dto';
 import { MemoryService } from '../memory/memory.service';
 import { ResponseParserService } from './response-parser.service';
 import { PromptBuilderService } from './prompt-builder.service';
@@ -19,11 +24,19 @@ export class ScoringService {
   constructor(
     private readonly llmFactory: LLMFactory,
     private readonly structuredOutfitSkill: StructuredOutfitSkill,
+    private readonly styleChatSkill: StyleChatSkill,
     private readonly responseParser: ResponseParserService,
     private readonly promptBuilder: PromptBuilderService,
     private readonly aiCache: AiResponseCache,
     @Optional() private readonly memoryService: MemoryService,
   ) {}
+
+  /**
+   * 引导式测评对话：返回 AI 的下一个问题或最终总结
+   */
+  async chatStyle(input: StyleChatInput): Promise<StyleChatResult> {
+    return this.styleChatSkill.chat(input);
+  }
 
   async analyzeStyleProfile(dto: AnalyzeStyleProfileRequestDto) {
     const hasFaceImage = !!dto.faceImageBase64;
