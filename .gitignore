@@ -61,3 +61,7 @@ _api.log
 
 # Local Netlify folder
 .netlify
+
+# === 公网分享工具（cloudflared 二进制与运行日志，不入库）===
+.tools/
+tmp/
