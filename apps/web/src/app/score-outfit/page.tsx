@@ -2,12 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, History, Trash2, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PhotoUpload from '@/components/score-outfit/photo-upload';
 import ScoreResult from '@/components/score-outfit/score-result';
 import { evaluateOutfit } from '@/lib/scoring-api';
 import { loadStyleProfile } from '@/lib/style-profile-storage';
+import {
+  loadScoringHistory,
+  saveScoringHistoryRecord,
+  clearScoringHistory,
+  createScoringThumbnail,
+  type ScoringHistoryRecord,
+} from '@/lib/scoring-history';
 import type { EvaluateOutfitResponse } from '@/lib/scoring-types';
 
 const OCCASION_OPTIONS = [
@@ -30,8 +37,14 @@ export default function ScoreOutfitPage() {
   // 从本地档案读取用户基础画像，丰富评分上下文
   const [storedProfile, setStoredProfile] = useState<ReturnType<typeof loadStyleProfile>>(null);
 
+  // 诊断历史（localStorage 最近 5 次）
+  const [history, setHistory] = useState<ScoringHistoryRecord[]>([]);
+  // 当前报告的 Look 缩略图（用于分享卡）
+  const [resultThumbnail, setResultThumbnail] = useState<string | undefined>(undefined);
+
   useEffect(() => {
     setStoredProfile(loadStyleProfile());
+    setHistory(loadScoringHistory());
   }, []);
 
   const handleSubmit = async () => {
@@ -54,6 +67,15 @@ export default function ScoreOutfitPage() {
 
       const data = await evaluateOutfit({ imageBase64, userContext });
       setResult(data);
+
+      // 保存诊断历史（含缩略图，best-effort）
+      try {
+        const thumb = await createScoringThumbnail(imageBase64);
+        setResultThumbnail(thumb);
+        setHistory(saveScoringHistoryRecord(data, thumb));
+      } catch {
+        setHistory(saveScoringHistoryRecord(data));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '评分失败，请重试');
     } finally {
@@ -65,6 +87,20 @@ export default function ScoreOutfitPage() {
     setImageBase64('');
     setResult(null);
     setError(null);
+    setResultThumbnail(undefined);
+  };
+
+  // 从历史记录恢复查看报告
+  const handleViewHistory = (record: ScoringHistoryRecord) => {
+    if (!record.result) return;
+    setResult(record.result);
+    setResultThumbnail(record.thumbnail);
+    setError(null);
+  };
+
+  const handleClearHistory = () => {
+    clearScoringHistory();
+    setHistory([]);
   };
 
   return (
@@ -159,6 +195,73 @@ export default function ScoreOutfitPage() {
                   </>
                 )}
               </button>
+
+              {/* 最近诊断历史 */}
+              {history.length > 0 && (
+                <div className="border border-ink-900/10 bg-white/45 p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-ink-400">
+                      <History size={14} />
+                      最近诊断
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handleClearHistory}
+                      className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-red-600"
+                    >
+                      <Trash2 size={12} />
+                      清空
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {history.map((record) => (
+                      <button
+                        key={record.id}
+                        type="button"
+                        onClick={() => handleViewHistory(record)}
+                        disabled={!record.result}
+                        className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
+                          record.result
+                            ? 'border-ink-900/10 bg-white hover:border-ink-900/40'
+                            : 'cursor-not-allowed border-ink-900/5 bg-white/50 opacity-60'
+                        }`}
+                      >
+                        {record.thumbnail ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={record.thumbnail}
+                            alt="历史诊断"
+                            className="size-12 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-ink-50 text-xl">
+                            👗
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-ink-400">
+                              {new Date(record.createdAt).toLocaleString('zh-CN', {
+                                month: 'numeric',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                            <span className="rounded-full bg-ink-900 px-2 py-0.5 text-[10px] font-semibold text-creme-100">
+                              {record.averageScore} 分
+                            </span>
+                          </div>
+                          <p className="mt-1 line-clamp-1 text-sm text-ink-700">
+                            {record.overallComment}
+                          </p>
+                        </div>
+                        <ChevronRight size={16} className="shrink-0 text-ink-300" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -166,7 +269,7 @@ export default function ScoreOutfitPage() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <ScoreResult result={result} onReset={handleReset} />
+              <ScoreResult result={result} onReset={handleReset} thumbnail={resultThumbnail} />
             </motion.div>
           )}
         </AnimatePresence>

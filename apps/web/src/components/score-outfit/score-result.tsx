@@ -13,8 +13,9 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
-import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle } from "lucide-react";
+import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle, Share2, Loader2 } from "lucide-react";
 import { buildScoringSummaryText } from "@/lib/scoring-summary";
+import { renderShareCardImage } from "@/lib/scoring-share-card";
 import { fetchWardrobeItems } from "@/lib/wardrobe-api";
 import { CATEGORY_LABELS, WardrobeItem } from "@/lib/wardrobe-types";
 import type { StructuredOutfitResult } from "@stylemate/shared";
@@ -22,11 +23,15 @@ import type { StructuredOutfitResult } from "@stylemate/shared";
 interface ScoreResultProps {
   result: EvaluateOutfitResponse;
   onReset: () => void;
+  /** Look 缩略图（用于分享卡），可选 */
+  thumbnail?: string;
 }
 
-export default function ScoreResult({ result, onReset }: ScoreResultProps) {
+export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultProps) {
   const [mounted, setMounted] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
   useEffect(() => { setMounted(true); }, []);
 
   const handleCopySummary = async () => {
@@ -36,6 +41,42 @@ export default function ScoreResult({ result, onReset }: ScoreResultProps) {
       setCopyMessage("已复制诊断摘要");
     } catch {
       setCopyMessage("复制失败，请手动复制页面内容");
+    }
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    setShareMessage("");
+    try {
+      const blob = await renderShareCardImage(result, thumbnail);
+      const file = new File([blob], 'stylemate-outfit-report.png', { type: 'image/png' });
+
+      // 支持文件分享的系统（移动端）直接调起系统分享
+      const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
+      if (typeof nav.canShare === 'function' && nav.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'StyleMate 今日穿搭诊断' });
+        setShareMessage("已调起系统分享");
+      } else {
+        // 回退：下载图片
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'stylemate-outfit-report.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setShareMessage("分享图已下载，可保存后分享");
+      }
+    } catch (err) {
+      // 用户取消分享不算错误
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setShareMessage("");
+      } else {
+        setShareMessage("分享图生成失败，请重试");
+      }
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -49,15 +90,27 @@ export default function ScoreResult({ result, onReset }: ScoreResultProps) {
       <div className="border-b border-ink-900/10 pb-8">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs tracking-[0.28em] text-ink-400">DIAGNOSIS REPORT</p>
-          <button
-            type="button"
-            onClick={handleCopySummary}
-            className="inline-flex items-center justify-center gap-2 border border-ink-900/10 px-4 py-2 text-xs text-ink-600 transition hover:border-ink-900 hover:text-ink-900"
-          >
-            <Clipboard size={14} />
-            复制报告摘要
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopySummary}
+              className="inline-flex items-center justify-center gap-2 border border-ink-900/10 px-4 py-2 text-xs text-ink-600 transition hover:border-ink-900 hover:text-ink-900"
+            >
+              <Clipboard size={14} />
+              复制报告摘要
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={sharing}
+              className="inline-flex items-center justify-center gap-2 bg-ink-900 px-4 py-2 text-xs text-creme-100 transition hover:bg-ink-700 disabled:opacity-60"
+            >
+              {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+              {sharing ? '生成中…' : '生成分享图'}
+            </button>
+          </div>
         </div>
+        {shareMessage && <p className="mb-3 text-xs text-ink-500">{shareMessage}</p>}
         <h1 className="font-display text-[clamp(2.5rem,5vw,5rem)] leading-[0.9] text-ink-900">
           今日 Look
           <br />

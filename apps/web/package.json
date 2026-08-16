@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/lib/image-upload-rules.test.ts src/lib/style-profile-storage.test.ts src/lib/api-error.test.ts src/lib/scoring-history.test.ts src/lib/scoring-summary.test.ts src/lib/onboarding-guide.test.ts src/lib/onboarding-scenes.test.ts src/lib/body-analysis.test.ts src/lib/style-matcher.test.ts src/lib/image-compress.test.ts"
+    "test": "tsx --test src/lib/image-upload-rules.test.ts src/lib/style-profile-storage.test.ts src/lib/api-error.test.ts src/lib/scoring-history.test.ts src/lib/scoring-summary.test.ts src/lib/onboarding-guide.test.ts src/lib/onboarding-scenes.test.ts src/lib/body-analysis.test.ts src/lib/style-matcher.test.ts src/lib/image-compress.test.ts src/lib/scoring-share-card.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
