@@ -69,5 +69,6 @@ async function main() {
 
 main().catch((err) => {
   console.error('[schema:sync] 失败:', err?.message ?? err);
+  if (err?.stack) console.error(err.stack);
   process.exit(1);
 });
