@@ -40,21 +40,25 @@ async function main() {
   const dbUrl = process.env.DATABASE_URL;
   const urlCfg = dbUrl ? parseDatabaseUrl(dbUrl) : null;
 
+  const host = urlCfg?.host || process.env.DB_HOST || '127.0.0.1';
+  const port = parseInt(urlCfg?.port || process.env.DB_PORT || '5432', 10);
+  const username = urlCfg?.username || process.env.DB_USERNAME || 'stylemate';
+  const password = urlCfg?.password || process.env.DB_PASSWORD || 'stylemate';
+  const database = urlCfg?.database || process.env.DB_NAME || 'stylemate';
+
   const dataSource = new DataSource({
     type: 'postgres',
-    host: urlCfg?.host || process.env.DB_HOST || '127.0.0.1',
-    port: parseInt(urlCfg?.port || process.env.DB_PORT || '5432', 10),
-    username: urlCfg?.username || process.env.DB_USERNAME || 'stylemate',
-    password: urlCfg?.password || process.env.DB_PASSWORD || 'stylemate',
-    database: urlCfg?.database || process.env.DB_NAME || 'stylemate',
+    host,
+    port,
+    username,
+    password,
+    database,
     entities: [path.join(__dirname, '../modules/**/entities/*.entity.ts')],
     synchronize: true,
     logging: ['schema', 'error'],
   });
 
-  console.log(
-    `[schema:sync] 连接 ${dataSource.options.host}:${dataSource.options.port}/${dataSource.options.database} …`,
-  );
+  console.log(`[schema:sync] 连接 ${host}:${port}/${database} …`);
 
   await dataSource.initialize();
   console.log('[schema:sync] 表结构已同步完成 ✓');
