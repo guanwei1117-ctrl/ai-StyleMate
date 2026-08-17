@@ -53,7 +53,8 @@ async function main() {
     username,
     password,
     database,
-    entities: [path.join(__dirname, '../modules/**/entities/*.entity.ts')],
+    // 兼容 tsx（src）与编译产物（dist）两种运行环境
+    entities: [path.join(__dirname, '../modules/**/entities/*.entity.{ts,js}')],
     synchronize: true,
     logging: ['schema', 'error'],
   });
