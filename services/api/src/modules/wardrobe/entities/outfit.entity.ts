@@ -51,4 +51,6 @@ export class Outfit {
   score: number;
 
   /** AI 推荐理由 */
-  @Column({ name: 'ai_reason', type: 'text', nullabl
+  @Column({ name: 'ai_reason', type: 'text', nullable: true })
+  aiReason: string;
+}

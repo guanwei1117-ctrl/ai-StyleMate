@@ -63,4 +63,6 @@ export class KnowledgeChunk {
   @Column('json', { nullable: true })
   metadata: Record<string, any>;
 
-  @CreateDateColumn({ name: 'c
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+}

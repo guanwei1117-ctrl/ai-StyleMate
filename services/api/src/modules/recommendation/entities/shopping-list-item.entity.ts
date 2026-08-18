@@ -61,4 +61,9 @@ export class ShoppingListItem {
   @Column({ type: 'varchar', nullable: true })
   source?: string;
 
-  @CreateDateColumn({ name: 'cr
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+}
