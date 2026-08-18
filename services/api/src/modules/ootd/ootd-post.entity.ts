@@ -17,7 +17,7 @@ export class OotdPost {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'varchar' })
   userId: string;
 
   /** 分享卡图片 data URL（JPEG/PNG base64） */

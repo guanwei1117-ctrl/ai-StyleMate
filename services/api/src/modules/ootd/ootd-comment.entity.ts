@@ -12,10 +12,10 @@ export class OotdComment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'varchar' })
   userId: string;
 
-  @Column({ name: 'post_id' })
+  @Column({ name: 'post_id', type: 'varchar' })
   postId: string;
 
   @Column({ type: 'text' })

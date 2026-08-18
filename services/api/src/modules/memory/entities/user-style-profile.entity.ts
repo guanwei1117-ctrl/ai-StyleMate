@@ -23,23 +23,23 @@ export class UserStyleProfile {
   id: string;
 
   @Index()
-  @Column({ name: 'user_id', unique: true })
+  @Column({ name: 'user_id', type: 'varchar', unique: true })
   userId: string;
 
   /** 体型（pear / apple / hourglass / rectangle / inverted_triangle） */
-  @Column({ name: 'body_type', nullable: true })
+  @Column({ name: 'body_type', type: 'varchar', nullable: true })
   bodyType: string;
 
   /** 身高区间（如 "160-165"） */
-  @Column({ name: 'height_range', nullable: true })
+  @Column({ name: 'height_range', type: 'varchar', nullable: true })
   heightRange: string;
 
   /** 肤色色调（cool / warm / neutral） */
-  @Column({ name: 'skin_tone', nullable: true })
+  @Column({ name: 'skin_tone', type: 'varchar', nullable: true })
   skinTone: string;
 
   /** 脸型风格描述 */
-  @Column({ name: 'face_style', nullable: true })
+  @Column({ name: 'face_style', type: 'varchar', nullable: true })
   faceStyle: string;
 
   /** 适合的风格（客观条件推导） */

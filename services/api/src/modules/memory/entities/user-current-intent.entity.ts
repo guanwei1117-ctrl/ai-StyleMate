@@ -17,11 +17,11 @@ export class UserCurrentIntent {
   id: string;
 
   @Index()
-  @Column({ name: 'user_id', unique: true })
+  @Column({ name: 'user_id', type: 'varchar', unique: true })
   userId: string;
 
   /** 正在寻找什么（如 "通勤裤"、"白色衬衫"） */
-  @Column({ name: 'looking_for', nullable: true })
+  @Column({ name: 'looking_for', type: 'varchar', nullable: true })
   lookingFor: string;
 
   /** 预算范围 JSON: { min, max, currency } */
@@ -29,7 +29,7 @@ export class UserCurrentIntent {
   budgetRange: { min?: number; max?: number; currency?: string };
 
   /** 目标场景（如 "通勤"、"约会"） */
-  @Column({ name: 'target_occasion', nullable: true })
+  @Column({ name: 'target_occasion', type: 'varchar', nullable: true })
   targetOccasion: string;
 
   /** 偏好品牌列表 */

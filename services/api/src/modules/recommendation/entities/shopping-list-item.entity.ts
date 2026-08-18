@@ -22,27 +22,27 @@ export class ShoppingListItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'varchar' })
   userId: string;
 
   /** 品类 */
-  @Column()
+  @Column({ type: 'varchar' })
   category: string;
 
   /** 二级子类（如"大衣""托特包"） */
-  @Column({ name: 'sub_category', nullable: true })
+  @Column({ name: 'sub_category', type: 'varchar', nullable: true })
   subCategory?: string;
 
   /** 具体描述（颜色+品类，如"驼色羊毛大衣"） */
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   description?: string;
 
   /** 颜色 */
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   color?: string;
 
   /** 预算区间（如"¥400-800"） */
-  @Column({ name: 'budget_range', nullable: true })
+  @Column({ name: 'budget_range', type: 'varchar', nullable: true })
   budgetRange?: string;
 
   /** 优先级 1=先买 2=其次 3=可缓 */
@@ -50,7 +50,7 @@ export class ShoppingListItem {
   priority: number;
 
   /** 为什么需要 */
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   reason?: string;
 
   /** 是否已购买 */
@@ -58,12 +58,7 @@ export class ShoppingListItem {
   purchased: boolean;
 
   /** 来源 */
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   source?: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-}
+  @CreateDateColumn({ name: 'cr

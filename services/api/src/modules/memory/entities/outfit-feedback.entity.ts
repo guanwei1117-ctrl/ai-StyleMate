@@ -18,11 +18,11 @@ export class OutfitFeedback {
   id: string;
 
   @Index()
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'varchar' })
   userId: string;
 
   /** 关联的穿搭方案 ID（可选） */
-  @Column({ name: 'outfit_id', nullable: true })
+  @Column({ name: 'outfit_id', type: 'varchar', nullable: true })
   outfitId: string;
 
   /** 关联的衣橱单品 ID 列表 */

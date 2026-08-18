@@ -11,7 +11,7 @@ export class Feedback {
   id: string;
 
   @Index()
-  @Column()
+  @Column({ type: 'varchar' })
   userId: string;
 
   @Column({ type: 'varchar', length: 16, default: 'like' })

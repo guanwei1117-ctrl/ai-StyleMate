@@ -18,7 +18,7 @@ export class LlmCallLog {
   id: string;
 
   @Index()
-  @Column()
+  @Column({ type: 'varchar' })
   provider: string;
 
   @Column({ type: 'enum', enum: ['success', 'failed', 'timeout'] })

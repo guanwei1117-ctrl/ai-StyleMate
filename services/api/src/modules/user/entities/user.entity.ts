@@ -11,19 +11,19 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   phone: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   email: string;
 
-  @Column({ name: 'wechat_open_id', unique: true, nullable: true })
+  @Column({ name: 'wechat_open_id', type: 'varchar', unique: true, nullable: true })
   wechatOpenId: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   nickname: string;
 
-  @Column({ name: 'avatar_url', nullable: true })
+  @Column({ name: 'avatar_url', type: 'varchar', nullable: true })
   avatarUrl: string;
 
   @Column({ type: 'enum', enum: ['male', 'female', 'other'], nullable: true })
@@ -32,7 +32,7 @@ export class User {
   @Column({ type: 'date', nullable: true })
   birthday: string;
 
-  @Column({ name: 'password_hash', nullable: true, select: false })
+  @Column({ name: 'password_hash', type: 'varchar', nullable: true, select: false })
   passwordHash: string;
 
   @Column({ type: 'decimal', precision: 5, scale: 1, nullable: true })

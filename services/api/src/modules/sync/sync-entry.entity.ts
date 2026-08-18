@@ -22,17 +22,17 @@ export class UserSyncEntry {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'varchar' })
   userId: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   key: string;
 
   @Column({ type: 'text' })
   value: string;
 
   /** 客户端写入时间（ISO），用于"谁新用谁"合并 */
-  @Column({ name: 'client_updated_at' })
+  @Column({ name: 'client_updated_at', type: 'varchar' })
   clientUpdatedAt: string;
 
   @CreateDateColumn({ name: 'created_at' })

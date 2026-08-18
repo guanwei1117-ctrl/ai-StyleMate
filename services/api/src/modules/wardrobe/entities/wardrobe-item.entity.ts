@@ -11,7 +11,7 @@ export class WardrobeItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'varchar' })
   userId: string;
 
   @Column({
@@ -20,28 +20,28 @@ export class WardrobeItem {
   })
   category: string;
 
-  @Column({ name: 'sub_category', nullable: true })
+  @Column({ name: 'sub_category', type: 'varchar', nullable: true })
   subCategory: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   color: string;
 
-  @Column({ name: 'color_hex', nullable: true })
+  @Column({ name: 'color_hex', type: 'varchar', nullable: true })
   colorHex: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   pattern: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   material: string;
 
   @Column('simple-array', { nullable: true })
   season: string[];
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   brand: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   size: string;
 
   @Column({ name: 'image_urls', type: 'text', nullable: true, transformer: {
@@ -57,7 +57,7 @@ export class WardrobeItem {
   @Column('simple-json', { name: 'ai_tags', nullable: true })
   aiTags: Record<string, unknown>;
 
-  @Column({ name: 'purchase_url', nullable: true })
+  @Column({ name: 'purchase_url', type: 'varchar', nullable: true })
   purchaseUrl: string;
 
   @Column({
@@ -67,7 +67,7 @@ export class WardrobeItem {
   })
   status: string;
 
-  // --- Phase 1 新增字段：AI 结构化标签 ---
+  // --- Phase 1 新增字段：AI 结构化标�?---
   @Column('simple-array', { name: 'style_tags', nullable: true })
   styleTags: string[];
 
@@ -92,7 +92,7 @@ export class WardrobeItem {
   @Column('simple-array', { name: 'match_categories', nullable: true })
   matchCategories: string[];
 
-  @Column({ name: 'ai_summary', nullable: true })
+  @Column({ name: 'ai_summary', type: 'varchar', nullable: true })
   aiSummary: string;
 
   @Column({ name: 'last_worn_at', type: 'timestamptz', nullable: true })

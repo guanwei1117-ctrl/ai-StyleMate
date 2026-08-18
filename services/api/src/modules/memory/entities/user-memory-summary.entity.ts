@@ -25,7 +25,7 @@ export class UserMemorySummary {
   id: string;
 
   @Index()
-  @Column({ name: 'user_id', unique: true })
+  @Column({ name: 'user_id', type: 'varchar', unique: true })
   userId: string;
 
   /** AI 生成的用户摘要文本 */
