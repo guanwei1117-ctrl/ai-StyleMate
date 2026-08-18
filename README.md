@@ -183,6 +183,6 @@ python start.py # 一键启动（推荐）
 - `docs/stylemate-prd.md`：完整产品需求文档。
 - `docs/mvp-next-steps.md`：MVP 下一步开发任务清单。
 
-## 许可证
+##  许可证
 
 MIT

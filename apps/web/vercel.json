@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && npm run build --workspace=@stylemate/web",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && npm ci",
+  "github": {
+    "silent": true
+  }
+}
