@@ -37,7 +37,7 @@ if (dbEnabled) {
       password: process.env.DB_PASSWORD || 'stylemate',
       database: process.env.DB_NAME || 'stylemate',
       autoLoadEntities: true,
-      synchronize: process.env.NODE_ENV !== 'production',
+      synchronize: false,
     }),
     UserModule,
     WardrobeModule,
