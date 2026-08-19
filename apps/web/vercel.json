@@ -1,8 +1,9 @@
 {
   "framework": "nextjs",
-  "buildCommand": "cd ../.. && npm run build --workspace=@stylemate/web",
+  "buildCommand": "cd ../.. && npx turbo build --filter=@stylemate/web",
   "outputDirectory": ".next",
-  "installCommand": "cd ../.. && npm ci",
+  "installCommand": "cd ../.. && npm install --include-workspace-root",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/web/ packages/shared/",
   "github": {
     "silent": true
   }
