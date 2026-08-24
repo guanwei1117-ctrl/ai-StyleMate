@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { GlobalSuggestionFab, Providers } from '@/components/suggestion/global-suggestion-fab';
 
 export const metadata: Metadata = {
   title: 'StyleMate - AI 个人风格顾问',
@@ -10,7 +13,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <Providers>
+          {children}
+          <GlobalSuggestionFab />
+          <Analytics />
+          <SpeedInsights />
+        </Providers>
+      </body>
     </html>
   );
 }

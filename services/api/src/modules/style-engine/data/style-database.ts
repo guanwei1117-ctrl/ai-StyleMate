@@ -9,7 +9,20 @@
  * 5. 气质适配 — 原生气质 / 生活方式
  *
  * 设计原则：没有风格绝对"不适合"任何人，只有"更容易驾驭"和"需要更多调整"之分。
+ *
+ * 类型定义从 @stylemate/shared 统一导入。
  */
+
+import type {
+  BackendStyleCategory as StyleCategory,
+  BoneStructureRules,
+  VolumeSenseRules,
+  BodyTypeRules,
+  SkinToneRules,
+  TemperamentRules,
+} from '@stylemate/shared';
+
+export type { StyleCategory, BoneStructureRules, VolumeSenseRules, BodyTypeRules, SkinToneRules, TemperamentRules };
 
 export interface StyleDefinition {
   id: string;
@@ -32,71 +45,6 @@ export interface StyleDefinition {
   keyItems: string[];           // 标志单品
   colorPalette: string[];       // 色板 (hex)
   details: string[];            // 标志细节
-}
-
-export type StyleCategory =
-  | 'japanese'          // 日系
-  | 'korean'            // 韩系
-  | 'european'          // 欧洲
-  | 'american'          // 美式
-  | 'chinese'           // 中式
-  | 'minimal'           // 极简
-  | 'street'            // 街头
-  | 'feminine'          // 女性化
-  | 'vintage'           // 复古
-  | 'avant_garde';       // 前卫
-
-// ============================================================
-// 适配规则接口
-// ============================================================
-
-export interface BoneStructureRules {
-  idealFaceShapes: string[];         // 最适配脸型
-  adaptableFaceShapes: string[];     // 可适配脸型
-  idealFacialLines: string[];        // 最适配的五官线条类型
-  adaptableFacialLines: string[];
-  idealFrameSizes: string[];
-  adaptableFrameSizes: string[];
-}
-
-export interface VolumeSenseRules {
-  /** 权重：体积感对这个风格有多重要 (0-1) */
-  importance: number;
-  ideal: string[];
-  adaptable: string[];
-}
-
-export interface BodyTypeRules {
-  importance: number;
-  idealBodyShapes: string[];
-  adaptableBodyShapes: string[];
-  idealHeight: string[];
-  adaptableHeight: string[];
-  /** 这个风格对体型的修饰力 */
-  flatteringPower: 'strong' | 'moderate' | 'limited';
-  flatteringNote: string;
-}
-
-export interface SkinToneRules {
-  importance: number;
-  idealSeasons: string[];
-  adaptableSeasons: string[];
-  idealContrast: string[];
-  adaptableContrast: string[];
-  /** 色系倾向 */
-  colorFamily: string[];            // 主色调
-  avoidColors: string[];            // 避雷色
-  colorNote: string;
-}
-
-export interface TemperamentRules {
-  importance: number;
-  idealTemperaments: string[];
-  adaptableTemperaments: string[];
-  idealLifestyles: string[];
-  adaptableLifestyles: string[];
-  /** 内在自洽度 — 穿这个风格需要的内在状态 */
-  innerRequirement: string;
 }
 
 // ============================================================

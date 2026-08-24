@@ -6,30 +6,16 @@
  *   - 视觉元素 (visual)：按核心视觉辨识度划分
  *   - 场景圈层 (scene)：按使用场景与兴趣圈划分
  *   - 人物原型 (archetype)：按人物原型/亚文化划分
+ *
+ * 类型定义从 @stylemate/shared 统一导入。
  */
 
-export interface StyleCard {
-  id: string;
-  name: string;
-  /** 4 大维度分类 */
-  dimension: StyleDimension;
-  /** 风格子类标签（原 category 兼容） */
-  category: string;
-  description: string;
-  philosophy: string;
-  difficulty: number; // 1-5
-  silhouette: string[];
-  keyItems: string[];
-  colorPalette: string[];
-  /** 参考图片 URL（可选） */
-  imageUrl?: string;
-}
-
-/** 四大维度 */
-export type StyleDimension = '地域文化' | '视觉元素' | '场景圈层' | '人物原型';
-
-/** 向后兼容——所有子标签 */
-export type StyleCategory = string;
+import type {
+  StyleCard,
+  StyleDimension,
+  StyleCategory,
+} from '@stylemate/shared';
+export type { StyleCard, StyleDimension, StyleCategory };
 
 export const DIMENSION_LABELS: Record<StyleDimension, string> = {
   '地域文化': '地域文化',

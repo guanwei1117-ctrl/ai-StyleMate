@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { StyleEngineService } from './style-engine.service';
+import { StyleEngineService, ScoringSnapshotDto } from './style-engine.service';
 import { UserStyleDNA } from '@stylemate/shared';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('风格引擎')
 @Controller('style-engine')
@@ -44,5 +45,12 @@ export class StyleEngineController {
       return { code: 404, message: '风格不存在' };
     }
     return result;
+  }
+
+  @Post('snapshot')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '保存前端评分快照到后端记忆' })
+  async saveSnapshot(@Body() body: ScoringSnapshotDto) {
+    return this.styleEngine.saveSnapshot(body);
   }
 }

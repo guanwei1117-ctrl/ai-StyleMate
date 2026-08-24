@@ -289,34 +289,11 @@ export interface PhotoAnalysisResult {
  *   审美适配 50：体型(20) + 偏好(25) + 肤色(5)
  *   现实约束 30：预算(12) + 年龄适配(8) + 场景适配(10)
  *   行为偏好 20：优先级(10) + 目标(5) + 接受度(5)
+ *
+ * 类型定义从 @stylemate/shared 统一导入。
  */
-export interface StyleMatchResult {
-  styleId: string;
-  styleName: string;
-  category: string;
-  score: number;       // 0-100
-  matchReasons: string[];
-  matchBreakdown: {
-    // 审美适配（50分）
-    bodyShape: number;   // 0-20
-    preference: number;  // 0-25
-    skinTone: number;    // 0-5
-    // 现实约束（30分）
-    budget: number;      // 0-12
-    ageFit: number;      // 0-8
-    scene: number;       // 0-10
-    // 行为偏好（20分）
-    priority: number;    // 0-10
-    goal: number;        // 0-5
-    openness: number;    // 0-5
-  };
-  /** 三支柱汇总分（便于展示） */
-  pillars: {
-    aesthetic: number;   // 审美适配 0-50
-    realistic: number;   // 现实约束 0-30
-    behavioral: number;  // 行为偏好 0-20
-  };
-}
+import type { UnifiedStyleMatch } from '@stylemate/shared';
+export type StyleMatchResult = UnifiedStyleMatch;
 
 // ============================================================
 // 顾问级输出类型 —— 解释机制 + 避雷建议 + 多维评分
@@ -430,3 +407,59 @@ export function createDefaultAnswers(): OnboardingAnswers {
     userStatement: '',
   };
 }
+
+// ============================================================
+// Zustand 全局状态管理
+// ============================================================
+
+import { create } from 'zustand';
+
+/** 评分流程状态 */
+export interface ScoringState {
+  step: StepId;
+  answers: OnboardingAnswers;
+  bodyShape: BodyShape | null;
+  results: StyleMatchResult[];
+  aiAnalysis: Record<string, unknown> | null;
+  loading: boolean;
+  error: string | null;
+}
+
+/** 评分流程操作 */
+export interface ScoringActions {
+  setStep: (step: StepId) => void;
+  setAnswers: (answers: OnboardingAnswers) => void;
+  updateAnswers: (partial: Partial<OnboardingAnswers>) => void;
+  setBodyShape: (shape: BodyShape | null) => void;
+  setResults: (results: StyleMatchResult[]) => void;
+  setAiAnalysis: (analysis: Record<string, unknown> | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  reset: () => void;
+}
+
+export type ScoringStore = ScoringState & ScoringActions;
+
+const initialScoringState: ScoringState = {
+  step: 'photo',
+  answers: createDefaultAnswers(),
+  bodyShape: null,
+  results: [],
+  aiAnalysis: null,
+  loading: false,
+  error: null,
+};
+
+export const useScoringStore = create<ScoringStore>((set) => ({
+  ...initialScoringState,
+  setStep: (step) => set({ step }),
+  setAnswers: (answers) => set({ answers }),
+  updateAnswers: (partial) =>
+    set((state) => ({ answers: { ...state.answers, ...partial } })),
+  setBodyShape: (bodyShape) => set({ bodyShape }),
+  setResults: (results) => set({ results }),
+  setAiAnalysis: (aiAnalysis) => set({ aiAnalysis }),
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error }),
+  reset: () => set(initialScoringState),
+}));

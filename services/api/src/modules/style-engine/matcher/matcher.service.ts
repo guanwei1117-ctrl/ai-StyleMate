@@ -308,13 +308,26 @@ export function matchUserToStyle(dna: UserStyleDNA, style: StyleDefinition): Sty
   return {
     styleId: style.id,
     styleName: style.name,
-    overallScore,
+    score: overallScore,
     category: matchCategory(overallScore),
     dimensions: dims,
     summary,
     recommendedItems: style.keyItems.slice(0, 5),
     colorPalette: style.colorPalette,
     difficulty: style.difficulty,
+    matchReasons: [],
+    matchBreakdown: {
+      bodyShape: 0,
+      preference: 0,
+      skinTone: 0,
+      budget: 0,
+      ageFit: 0,
+      scene: 0,
+      priority: 0,
+      goal: 0,
+      openness: 0,
+    },
+    pillars: { aesthetic: 0, realistic: 0, behavioral: 0 },
   };
 }
 
@@ -322,7 +335,7 @@ export function matchUserToStyle(dna: UserStyleDNA, style: StyleDefinition): Sty
 export function analyzeAllStyles(dna: UserStyleDNA, styles: StyleDefinition[]): StyleAnalysisReport {
   const matches = styles
     .map((style) => matchUserToStyle(dna, style))
-    .sort((a, b) => b.overallScore - a.overallScore);
+    .sort((a, b) => b.score - a.score);
 
   const coreStyles = matches.filter((m) => m.category === 'core');
   const exploreStyles = matches.filter((m) => m.category === 'explore');

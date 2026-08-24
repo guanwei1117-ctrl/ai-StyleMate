@@ -303,7 +303,7 @@ export type Lifestyle =
   | 'outdoor_enthusiast'
   | 'urban_commuter';
 
-/** 风格适配维度详情 */
+/** 风格适配维度详情（后端五维） */
 export interface DimensionMatch {
   dimension: 'bone_structure' | 'volume_sense' | 'body_type' | 'skin_tone' | 'temperament';
   score: number;          // 0-100
@@ -312,18 +312,61 @@ export interface DimensionMatch {
   tips: string;           // 调整建议
 }
 
-/** 风格匹配结果 */
-export interface StyleMatchResult {
+/** 三支柱评分明细（前端） */
+export interface PillarBreakdown {
+  bodyShape: number;   // 0-20
+  preference: number;  // 0-25
+  skinTone: number;    // 0-5
+  budget: number;      // 0-12
+  ageFit: number;      // 0-8
+  scene: number;       // 0-10
+  priority: number;    // 0-10
+  goal: number;        // 0-5
+  openness: number;    // 0-5
+}
+
+/** 三支柱汇总（前端） */
+export interface PillarSummary {
+  aesthetic: number;   // 审美适配 0-50
+  realistic: number;   // 现实约束 0-30
+  behavioral: number;  // 行为偏好 0-20
+}
+
+/**
+ * 统一风格匹配结果
+ *
+ * 同时包含：
+ * - 后端五维详情（dimensions）
+ * - 前端三支柱摘要（matchBreakdown + pillars）
+ * - 公共字段（styleId, styleName, score, category 等）
+ */
+export interface UnifiedStyleMatch {
   styleId: string;
   styleName: string;
-  overallScore: number;         // 0-100 加权总分
-  category: 'core' | 'explore' | 'challenge';
+  /** 综合得分 0-100 */
+  score: number;
+  /** 匹配分类 */
+  category: string;
+  /** 匹配理由 */
+  matchReasons: string[];
+  /** 后端五维详情 */
   dimensions: DimensionMatch[];
-  summary: string;               // 一句话总结
-  recommendedItems: string[];    // 推荐标志单品
-  colorPalette: string[];        // 推荐色系 hex
-  difficulty: number;            // 1-5 入门难度
+  /** 前端三支柱明细 */
+  matchBreakdown: PillarBreakdown;
+  /** 前端三支柱汇总 */
+  pillars: PillarSummary;
+  /** 一句话总结 */
+  summary: string;
+  /** 推荐标志单品 */
+  recommendedItems: string[];
+  /** 推荐色系 hex */
+  colorPalette: string[];
+  /** 入门难度 1-5 */
+  difficulty: number;
 }
+
+/** 向后兼容别名 */
+export type StyleMatchResult = UnifiedStyleMatch;
 
 /** 用户风格分析报告 */
 export interface StyleAnalysisReport {
@@ -357,6 +400,110 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   hasMore: boolean;
+}
+
+// ============================================================
+// 统一风格系统（前后端共享）
+// ============================================================
+
+/** 风格四大维度（前端分类） */
+export type StyleDimension = '地域文化' | '视觉元素' | '场景圈层' | '人物原型';
+
+/** 风格子类标签（前端分类） */
+export type StyleCategory = string;
+
+/** 风格卡片（前端展示用） */
+export interface StyleCard {
+  id: string;
+  name: string;
+  dimension: StyleDimension;
+  category: string;
+  description: string;
+  philosophy: string;
+  difficulty: number;
+  silhouette: string[];
+  keyItems: string[];
+  colorPalette: string[];
+  imageUrl?: string;
+}
+
+/** 后端风格分类 */
+export type BackendStyleCategory =
+  | 'japanese' | 'korean' | 'european' | 'american' | 'chinese'
+  | 'minimal' | 'street' | 'feminine' | 'vintage' | 'avant_garde';
+
+/** 骨骼结构规则 */
+export interface BoneStructureRules {
+  idealFaceShapes: string[];
+  adaptableFaceShapes: string[];
+  idealFacialLines: string[];
+  adaptableFacialLines: string[];
+  idealFrameSizes: string[];
+  adaptableFrameSizes: string[];
+}
+
+/** 量感规则 */
+export interface VolumeSenseRules {
+  importance: number;
+  ideal: string[];
+  adaptable: string[];
+}
+
+/** 体型规则 */
+export interface BodyTypeRules {
+  importance: number;
+  idealBodyShapes: string[];
+  adaptableBodyShapes: string[];
+  idealHeight: string[];
+  adaptableHeight: string[];
+  flatteringPower: 'strong' | 'moderate' | 'limited';
+  flatteringNote: string;
+}
+
+/** 肤色规则 */
+export interface SkinToneRules {
+  importance: number;
+  idealSeasons: string[];
+  adaptableSeasons: string[];
+  idealContrast: string[];
+  adaptableContrast: string[];
+  colorFamily: string[];
+  avoidColors: string[];
+  colorNote: string;
+}
+
+/** 气质规则 */
+export interface TemperamentRules {
+  importance: number;
+  idealTemperaments: string[];
+  adaptableTemperaments: string[];
+  idealLifestyles: string[];
+  adaptableLifestyles: string[];
+  innerRequirement: string;
+}
+
+/** 统一风格定义（合并前端 StyleCard + 后端 StyleDefinition） */
+export interface UnifiedStyleDefinition {
+  id: string;
+  name: string;
+  alias?: string[];
+  dimension?: StyleDimension;
+  category: string;
+  backendCategory?: BackendStyleCategory;
+  description: string;
+  philosophy: string;
+  difficulty: number;
+  silhouette: string[];
+  keyItems: string[];
+  colorPalette: string[];
+  details?: string[];
+  imageUrl?: string;
+  /** 五维适配规则（后端使用） */
+  boneRules?: BoneStructureRules;
+  volumeRules?: VolumeSenseRules;
+  bodyRules?: BodyTypeRules;
+  skinRules?: SkinToneRules;
+  temperamentRules?: TemperamentRules;
 }
 
 // ============================================================

@@ -240,6 +240,11 @@ export function matchStyles(answers: OnboardingAnswers): StyleMatchResult[] {
         matchReasons: reasons,
         matchBreakdown: breakdown,
         pillars: pillarsNew,
+        dimensions: [],
+        summary: style.philosophy,
+        recommendedItems: style.keyItems,
+        colorPalette: style.colorPalette,
+        difficulty: style.difficulty,
       };
     })
     .sort((a, b) => b.score - a.score);

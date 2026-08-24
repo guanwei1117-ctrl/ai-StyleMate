@@ -53,6 +53,11 @@ test('style profile AI payload includes selected scenes, custom scene, and riche
         openness: 3,
       },
       pillars: { aesthetic: 35, realistic: 28, behavioral: 15 },
+      dimensions: [],
+      summary: '',
+      recommendedItems: [],
+      colorPalette: [],
+      difficulty: 1,
     },
   ]);
 

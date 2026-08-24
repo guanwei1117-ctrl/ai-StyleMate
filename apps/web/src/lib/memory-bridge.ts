@@ -11,6 +11,10 @@
  */
 
 import type { ScoringSnapshot } from './scoring-types';
+import { getAuthToken, getCurrentUserId } from './auth';
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 /** 存储键 */
 export const MEMORY_STORAGE_KEY = 'stylemate.memory.v1';
@@ -73,4 +77,37 @@ export function extractTrendFromSnapshots(
   // TODO: 根据多条快照学习用户的风格偏好变化
   // 例如：某大类得分是否在上升、用户选择的风格是否在变化
   return {};
+}
+
+/**
+ * 将评分快照异步同步到后端记忆服务
+ *
+ * 调用时机：buildScoringSnapshot() 完成后
+ * 策略：fire-and-forget，不阻塞主流程，失败静默忽略
+ */
+export async function syncSnapshotToServer(
+  snapshot: ScoringSnapshot,
+  matchResults?: unknown[],
+): Promise<void> {
+  const token = getAuthToken();
+  const userId = getCurrentUserId();
+  if (!token || !userId) return;
+
+  try {
+    await fetch(`${API_BASE}/style-engine/snapshot`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        userId,
+        timestamp: snapshot.timestamp,
+        userProfile: snapshot.userProfile,
+        matchResults: matchResults ?? [],
+      }),
+    });
+  } catch {
+    // 网络错误静默忽略，不影响主流程
+  }
 }
