@@ -15,6 +15,7 @@ export interface AuthUser {
   userId: string;
   phone: string;
   nickname?: string;
+  role?: 'admin' | 'user';
 }
 
 // ==================== Token & User 管理 ====================
