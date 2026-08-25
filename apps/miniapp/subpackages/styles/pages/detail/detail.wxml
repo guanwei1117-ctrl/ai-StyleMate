@@ -1,0 +1,56 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:elif="{{!style}}" class="empty">
+    <text>风格不存在</text>
+  </view>
+
+  <view wx:else class="detail-content">
+    <!-- 头部 -->
+    <view class="header-section">
+      <text class="style-name">{{style.name}}</text>
+      <view class="style-meta">
+        <text class="meta-tag">{{style.dimension}}</text>
+        <text class="meta-tag">{{style.category}}</text>
+        <text class="difficulty-badge">难度 {{style.difficulty}}</text>
+      </view>
+    </view>
+
+    <!-- 色板 -->
+    <view class="section">
+      <text class="section-title">🎨 色板</text>
+      <view class="color-palette">
+        <view wx:for="{{style.colorPalette}}" wx:key="*this" class="color-swatch" style="background: {{item}}"></view>
+      </view>
+    </view>
+
+    <!-- 描述 -->
+    <view class="section">
+      <text class="section-title">📝 描述</text>
+      <text class="desc-text">{{style.description}}</text>
+    </view>
+
+    <!-- 理念 -->
+    <view class="section philosophy">
+      <text class="philosophy-text">{{style.philosophy}}</text>
+    </view>
+
+    <!-- 廓形 -->
+    <view class="section">
+      <text class="section-title">👔 推荐廓形</text>
+      <view class="tag-list">
+        <text class="tag-item" wx:for="{{style.silhouette}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 关键单品 -->
+    <view class="section">
+      <text class="section-title">👕 关键单品</text>
+      <view class="tag-list">
+        <text class="tag-item" wx:for="{{style.keyItems}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+  </view>
+</view>

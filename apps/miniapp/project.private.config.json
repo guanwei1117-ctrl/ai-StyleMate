@@ -1,0 +1,7 @@
+{
+  "description": "私有配置 - 不提交到版本控制",
+  "projectname": "stylemate-miniapp",
+  "setting": {
+    "compileHotReLoad": true
+  }
+}

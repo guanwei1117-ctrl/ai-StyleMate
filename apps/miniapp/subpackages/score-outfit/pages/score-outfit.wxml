@@ -1,0 +1,63 @@
+<view class="page">
+  <!-- 上传状态 -->
+  <view wx:if="{{state === 'upload'}}" class="upload-state">
+    <view class="upload-area" bindtap="chooseImage">
+      <image wx:if="{{imagePath}}" class="preview-image" src="{{imagePath}}" mode="aspectFill" />
+      <view wx:else class="upload-placeholder">
+        <text class="upload-icon">📸</text>
+        <text class="upload-text">拍照或选择图片</text>
+        <text class="upload-hint">上传你的穿搭照片，AI 帮你评分</text>
+      </view>
+    </view>
+
+    <view class="upload-actions" wx:if="{{imagePath}}">
+      <button class="action-btn secondary" bindtap="retake">重新选择</button>
+      <button class="action-btn primary" bindtap="submitScore" loading="{{loading}}" disabled="{{loading}}">开始评分</button>
+    </view>
+  </view>
+
+  <!-- 结果状态 -->
+  <view wx:elif="{{state === 'result' && result}}" class="result-state">
+    <!-- 图片预览 -->
+    <image wx:if="{{imagePath}}" class="result-image" src="{{imagePath}}" mode="aspectFill" />
+
+    <!-- 总评 -->
+    <view class="overall-section">
+      <text class="overall-title">{{result.greeting}}</text>
+      <text class="overall-comment">{{result.overallComment}}</text>
+    </view>
+
+    <!-- 维度评分 -->
+    <view class="dimensions-section">
+      <text class="section-title">📊 多维评分</text>
+      <view class="dimension-item" wx:for="{{result.dimensions}}" wx:key="key">
+        <view class="dimension-header">
+          <text class="dimension-label">{{item.label}}</text>
+          <text class="dimension-score">{{item.score}}</text>
+        </view>
+        <view class="dimension-bar">
+          <view class="bar-fill" style="width: {{item.score}}%"></view>
+        </view>
+        <text class="dimension-comment">{{item.comment}}</text>
+      </view>
+    </view>
+
+    <!-- 单品评价 -->
+    <view class="section" wx:if="{{result.itemComments.length > 0}}">
+      <text class="section-title">👔 单品评价</text>
+      <text class="comment-item" wx:for="{{result.itemComments}}" wx:key="*this">· {{item}}</text>
+    </view>
+
+    <!-- 改进建议 -->
+    <view class="section">
+      <text class="section-title">💡 改进建议</text>
+      <text class="improvement-item" wx:for="{{result.improvements}}" wx:key="*this">✨ {{item}}</text>
+    </view>
+
+    <!-- 操作 -->
+    <view class="result-actions">
+      <button class="action-btn primary" bindtap="retake">再评一套</button>
+      <button class="action-btn secondary" bindtap="goBack">返回首页</button>
+    </view>
+  </view>
+</view>

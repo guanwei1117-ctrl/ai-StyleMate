@@ -1,0 +1,52 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbf7f2"/>
+      <stop offset="0.52" stop-color="#f3f7f6"/>
+      <stop offset="1" stop-color="#f7f2fb"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#2d2a32" flood-opacity="0.13"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10" fill="none" stroke="#7c7480" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .title{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:46px;font-weight:800;fill:#25242a;}
+      .subtitle{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:22px;fill:#67616c;}
+      .step-title{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:25px;font-weight:800;fill:#232229;}
+      .label{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:18px;font-weight:700;fill:#3b3740;}
+      .body{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:16px;fill:#514c56;}
+      .small{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:14px;fill:#665f6a;}
+      .quote{font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:17px;font-weight:700;fill:#3a3237;}
+      .card{fill:#ffffff;stroke:#e5dfe8;stroke-width:1.5;filter:url(#shadow);}
+      .problem{fill:#fff4f2;stroke:#f2c7bf;stroke-width:1;}
+      .view{fill:#f2f8f5;stroke:#bfe0d0;stroke-width:1;}
+      .chip{fill:#f7f3ee;stroke:#e2d6ca;stroke-width:1;}
+      .arrow{stroke:#7c7480;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrowhead);}
+      .num{font-family:Arial,sans-serif;font-size:20px;font-weight:800;fill:#fff;}
+    </style>
+  </defs>
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+  <rect x="54" y="42" width="1492" height="1014" rx="30" fill="#ffffff" opacity="0.48" stroke="#eee5ee"/>
+  <text x="90" y="105" class="title">AI 穿搭助手：用户视角全流程体验图</text>
+  <text x="92" y="143" class="subtitle">从登录到长期使用：用户在每一步遇到的问题、真实看法，以及产品应该如何优化</text>
+  <g transform="translate(90 185)"><rect x="0" y="0" width="230" height="68" rx="18" class="chip"/><text x="22" y="29" class="label">核心判断</text><text x="22" y="53" class="small">少问用户，多记住用户</text></g>
+  <g transform="translate(345 185)"><rect x="0" y="0" width="300" height="68" rx="18" class="chip"/><text x="22" y="29" class="label">体验目标</text><text x="22" y="53" class="small">直接给可穿方案，而不是长篇测评</text></g>
+  <g transform="translate(670 185)"><rect x="0" y="0" width="330" height="68" rx="18" class="chip"/><text x="22" y="29" class="label">商业价值</text><text x="22" y="53" class="small">用记忆和衣柜数据提升复购与粘性</text></g>
+  <g transform="translate(1025 185)"><rect x="0" y="0" width="380" height="68" rx="18" class="chip"/><text x="22" y="29" class="label">差异化</text><text x="22" y="53" class="small">买前判断 + 单品拯救 + 衣柜缺口分析</text></g>
+
+  <g transform="translate(80 295)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#7d5fff"/><text x="32" y="45" class="num">1</text><text x="72" y="45" class="step-title">登录 / 注册</text><text x="26" y="84" class="quote">用户想法：“别让我一上来填一堆。”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：流程太长会流失，用户还没</text><text x="40" y="145" class="body">感受到价值就被表单劝退。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：支持手机号/微信快捷登录，</text><text x="40" y="205" class="body">先承诺“1 分钟建立穿搭档案”。</text></g>
+  <g transform="translate(455 295)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#2d9c7f"/><text x="32" y="45" class="num">2</text><text x="72" y="45" class="step-title">首次建档</text><text x="26" y="84" class="quote">用户想法：“分析一次，以后别再问。”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：每次都上传自拍、选风格，</text><text x="40" y="145" class="body">会让 AI 显得不记人。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：生成长期画像：身材、脸型、</text><text x="40" y="205" class="body">适合风格、喜欢/不喜欢、避坑规则。</text></g>
+  <g transform="translate(830 295)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#d6852f"/><text x="32" y="45" class="num">3</text><text x="72" y="45" class="step-title">我的衣柜</text><text x="26" y="84" class="quote">用户想法：“我懒得手动录衣服。”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：上传成本高、标签要手填，</text><text x="40" y="145" class="body">衣柜功能就很难坚持用。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：AI 自动识别品类、颜色、</text><text x="40" y="205" class="body">季节、风格、场合和百搭程度。</text></g>
+  <g transform="translate(1205 295)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#cf4f73"/><text x="32" y="45" class="num">4</text><text x="72" y="45" class="step-title">今天穿什么</text><text x="26" y="84" class="quote">用户想法：“直接告诉我穿哪套。”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：只给风格测评没用，早上</text><text x="40" y="145" class="body">真正痛点是快速做决定。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：首页给 3 套：稳妥通勤、</text><text x="40" y="205" class="body">显瘦显高、拍照好看。</text></g>
+  <path d="M410 412 C430 412 430 412 450 412" class="arrow"/><path d="M785 412 C805 412 805 412 825 412" class="arrow"/><path d="M1160 412 C1180 412 1180 412 1200 412" class="arrow"/>
+
+  <g transform="translate(80 600)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#6b8e23"/><text x="32" y="45" class="num">5</text><text x="72" y="45" class="step-title">帮我搭这件</text><text x="26" y="84" class="quote">用户想法：“这件买了很久不会穿。”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：衣服闲置不是因为不好看，</text><text x="40" y="145" class="body">而是不知道怎么组合。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：点单品生成日常、通勤、</text><text x="40" y="205" class="body">约会、显瘦、拍照 5 套搭配。</text></g>
+  <g transform="translate(455 600)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#ad6a44"/><text x="32" y="45" class="num">6</text><text x="72" y="45" class="step-title">这件值得买吗</text><text x="26" y="84" class="quote">用户想法：“别只说好看，帮我省钱。”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：冲动消费后发现重复、不搭、</text><text x="40" y="145" class="body">不适合自己，最后闲置。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：结合衣柜判断能搭几套、</text><text x="40" y="205" class="body">是否重复、买哪个颜色更值。</text></g>
+  <g transform="translate(830 600)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#4e7fc9"/><text x="32" y="45" class="num">7</text><text x="72" y="45" class="step-title">反馈记忆</text><text x="26" y="84" class="quote">用户想法：“我点过不喜欢，就别再推。”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：只保存历史没有用，反馈</text><text x="40" y="145" class="body">必须改变下一次推荐。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：喜欢/不喜欢/今天穿了/</text><text x="40" y="205" class="body">太显胖/太正式都写入长期记忆。</text></g>
+  <g transform="translate(1205 600)"><rect width="325" height="235" rx="22" class="card"/><circle cx="38" cy="38" r="22" fill="#6f57a8"/><text x="32" y="45" class="num">8</text><text x="72" y="45" class="step-title">衣柜缺口分析</text><text x="26" y="84" class="quote">用户想法：“我到底该买什么？”</text><rect x="24" y="104" width="277" height="48" rx="12" class="problem"/><text x="40" y="124" class="body">问题：用户以为缺衣服，其实常常</text><text x="40" y="145" class="body">是缺关键连接单品。</text><rect x="24" y="164" width="277" height="48" rx="12" class="view"/><text x="40" y="184" class="body">建议：分析重复、闲置、难搭、</text><text x="40" y="205" class="body">真正缺的品类和优先购买项。</text></g>
+  <path d="M1205 535 C1190 570 1120 570 1080 592" class="arrow"/><path d="M410 717 C430 717 430 717 450 717" class="arrow"/><path d="M785 717 C805 717 805 717 825 717" class="arrow"/><path d="M1160 717 C1180 717 1180 717 1200 717" class="arrow"/>
+
+  <g transform="translate(90 890)"><rect width="1420" height="118" rx="24" fill="#27232c" opacity="0.95"/><text x="34" y="40" style="font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:26px;font-weight:800;fill:#fff;">用户视角最终结论</text><text x="34" y="76" style="font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:19px;fill:#f2edf4;">我不想要一个只会点评我的 AI，我想要一个能记住我、理解我的衣柜、每天直接告诉我穿什么、买前帮我少踩坑的衣橱助理。</text><text x="34" y="103" style="font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif;font-size:16px;fill:#d9d1df;">产品改造重点：减少重复分析，把 AI 从“风格测评”转为“长期记忆 + 穿搭决策 + 消费判断”。</text></g>
+</svg>

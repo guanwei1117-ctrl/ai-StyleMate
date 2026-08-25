@@ -1,0 +1,69 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 无档案状态 -->
+  <view wx:elif="{{!hasProfile}}" class="empty-state">
+    <text class="empty-icon">🎯</text>
+    <text class="empty-title">还没有风格档案</text>
+    <text class="empty-desc">完成风格测评，找到最适合你的穿搭风格</text>
+    <button class="start-btn" bindtap="startOnboarding">开始风格测评</button>
+  </view>
+
+  <!-- 有档案状态 -->
+  <view wx:else class="profile-content">
+    <!-- 体型摘要 -->
+    <view class="body-card">
+      <text class="card-label">体型类型</text>
+      <text class="body-value">{{bodyShape}}</text>
+    </view>
+
+    <!-- 核心风格 -->
+    <view class="section">
+      <text class="section-title">核心推荐风格</text>
+      <view
+        class="style-chip"
+        wx:for="{{coreStyles}}"
+        wx:key="styleId"
+        data-id="{{item.styleId}}"
+        bindtap="goToStyleDetail"
+      >
+        <text class="chip-name">{{item.styleName}}</text>
+        <text class="chip-score">{{item.score}}分</text>
+      </view>
+    </view>
+
+    <!-- 适配度概览 -->
+    <view class="section">
+      <text class="section-title">适配度概览</text>
+      <view class="score-bar">
+        <text class="score-label">色彩适配</text>
+        <view class="bar-track">
+          <view class="bar-fill" style="width: {{colorScore}}%"></view>
+        </view>
+        <text class="score-num">{{colorScore}}</text>
+      </view>
+      <view class="score-bar">
+        <text class="score-label">廓形适配</text>
+        <view class="bar-track">
+          <view class="bar-fill" style="width: {{silhouetteScore}}%"></view>
+        </view>
+        <text class="score-num">{{silhouetteScore}}</text>
+      </view>
+      <view class="score-bar">
+        <text class="score-label">场景适配</text>
+        <view class="bar-track">
+          <view class="bar-fill" style="width: {{sceneScore}}%"></view>
+        </view>
+        <text class="score-num">{{sceneScore}}</text>
+      </view>
+    </view>
+
+    <!-- 底部操作 -->
+    <view class="actions">
+      <button class="action-btn" bindtap="startOnboarding">重新测评</button>
+      <button class="action-btn secondary" bindtap="goToSettings">编辑资料</button>
+    </view>
+  </view>
+</view>

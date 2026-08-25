@@ -1,0 +1,66 @@
+<view class="page">
+  <!-- 顶部问候区 -->
+  <view class="header">
+    <view class="greeting-section">
+      <text class="greeting">{{greeting}}，</text>
+      <text class="nickname" wx:if="{{isLoggedIn}}">{{nickname || '小美'}}</text>
+      <text class="nickname" wx:else>欢迎来到 StyleMate</text>
+    </view>
+    <view class="avatar" bindtap="goToAuth" wx:if="{{!isLoggedIn}}">
+      <text class="avatar-placeholder">👤</text>
+    </view>
+    <view class="avatar" bindtap="goToProfile" wx:else>
+      <text class="avatar-placeholder">👤</text>
+    </view>
+  </view>
+
+  <!-- 天气信息 -->
+  <view class="weather-card" wx:if="{{weatherInfo}}">
+    <text class="weather-temp">{{weatherInfo.temperature}}°C</text>
+    <text class="weather-desc">{{weatherInfo.condition}} · {{weatherInfo.city}}</text>
+  </view>
+
+  <!-- 4 宫格功能入口 -->
+  <view class="feature-grid">
+    <view
+      class="feature-card"
+      wx:for="{{features}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-url="{{item.url}}"
+      bindtap="navigateTo"
+    >
+      <text class="feature-icon">{{item.icon}}</text>
+      <text class="feature-title">{{item.title}}</text>
+      <text class="feature-desc">{{item.desc}}</text>
+    </view>
+  </view>
+
+  <!-- 最近穿搭记录 -->
+  <view class="recent-section" wx:if="{{recentRecords.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">最近穿搭</text>
+      <text class="section-more">查看全部 ›</text>
+    </view>
+    <scroll-view class="records-scroll" scroll-x>
+      <view
+        class="record-item"
+        wx:for="{{recentRecords}}"
+        wx:key="id"
+      >
+        <image class="record-image" src="{{item.image}}" mode="aspectFill" />
+        <text class="record-date">{{item.date}}</text>
+      </view>
+      <view class="record-add" bindtap="navigateTo" data-url="/subpackages/score-outfit/pages/score-outfit">
+        <text class="add-icon">+</text>
+        <text class="add-text">新诊断</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 未登录提示 -->
+  <view class="login-tip" wx:if="{{!isLoggedIn}}">
+    <text class="tip-text">登录后可解锁穿搭诊断和今日推荐</text>
+    <button class="tip-btn" bindtap="goToAuth">微信一键登录</button>
+  </view>
+</view>

@@ -1,0 +1,169 @@
+.page {
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+}
+
+/* 上传状态 */
+.upload-area {
+  width: 100%;
+  height: 500rpx;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--spacing-lg);
+  background: var(--color-creme-light);
+  border: 4rpx dashed var(--color-haze);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  font-size: 80rpx;
+  margin-bottom: var(--spacing-md);
+}
+
+.upload-text {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.upload-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.upload-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+/* 结果状态 */
+.result-image {
+  width: 100%;
+  height: 360rpx;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  background: var(--color-haze-light);
+}
+
+.overall-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.overall-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.overall-comment {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 维度评分 */
+.dimensions-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
+.dimension-item {
+  margin-bottom: var(--spacing-md);
+}
+
+.dimension-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.dimension-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.dimension-score {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-olive);
+}
+
+.dimension-bar {
+  height: 10rpx;
+  background: var(--color-haze-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--spacing-xs);
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-olive-light), var(--color-olive));
+  border-radius: var(--radius-full);
+}
+
+.dimension-comment {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* 通用区块 */
+.section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.comment-item, .improvement-item {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+}
+
+/* 操作按钮 */
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-bottom: var(--spacing-3xl);
+}
+
+.action-btn {
+  padding: var(--spacing-md) 0;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+
+.action-btn.primary {
+  background: var(--color-olive);
+  color: var(--text-on-dark);
+}
+
+.action-btn.secondary {
+  background: var(--color-creme-dark);
+  color: var(--text-primary);
+}

@@ -1,0 +1,204 @@
+.page {
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+}
+
+/* 顶部问候区 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.greeting-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.greeting {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+}
+
+.nickname {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: var(--radius-full);
+  background: var(--color-haze-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder {
+  font-size: 40rpx;
+}
+
+/* 天气卡片 */
+.weather-card {
+  background: linear-gradient(135deg, var(--color-olive), var(--color-olive-light));
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.weather-temp {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--text-on-dark);
+}
+
+.weather-desc {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 4 宫格 */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.feature-card {
+  background: var(--color-creme-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast);
+}
+
+.feature-card:active {
+  transform: scale(0.97);
+}
+
+.feature-icon {
+  font-size: 56rpx;
+  margin-bottom: var(--spacing-sm);
+}
+
+.feature-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.feature-desc {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* 最近穿搭 */
+.recent-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.section-more {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.records-scroll {
+  display: flex;
+  flex-direction: row;
+  white-space: nowrap;
+  padding-bottom: var(--spacing-sm);
+}
+
+.record-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: var(--spacing-md);
+  width: 160rpx;
+}
+
+.record-image {
+  width: 160rpx;
+  height: 200rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-haze-light);
+}
+
+.record-date {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-xs);
+}
+
+.record-add {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 160rpx;
+  height: 200rpx;
+  border-radius: var(--radius-md);
+  border: 2rpx dashed var(--color-haze);
+  background: var(--color-creme-light);
+}
+
+.add-icon {
+  font-size: 48rpx;
+  color: var(--color-olive);
+}
+
+.add-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-olive-light);
+  margin-top: var(--spacing-xs);
+}
+
+/* 登录提示 */
+.login-tip {
+  background: var(--color-creme-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.tip-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+  display: block;
+}
+
+.tip-btn {
+  display: inline-block;
+  background: var(--color-olive);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-md);
+  padding: var(--spacing-md) var(--spacing-2xl);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}

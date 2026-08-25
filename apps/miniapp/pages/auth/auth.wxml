@@ -1,0 +1,42 @@
+<view class="page">
+  <view class="content">
+    <view class="logo-section">
+      <text class="logo-icon">👗</text>
+      <text class="logo-title">StyleMate</text>
+      <text class="logo-desc">AI 穿搭助手 · 找到你的风格</text>
+    </view>
+
+    <view class="features">
+      <view class="feature-item">
+        <text class="feature-icon">📸</text>
+        <text class="feature-text">拍照诊断穿搭</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">🎯</text>
+        <text class="feature-text">精准风格匹配</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">👔</text>
+        <text class="feature-text">每日穿搭推荐</text>
+      </view>
+    </view>
+
+    <button
+      class="login-btn"
+      bindtap="handleWxLogin"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+    >
+      微信一键登录
+    </button>
+
+    <view class="agreement">
+      <text class="agreement-text">登录即表示同意</text>
+      <text class="agreement-link">用户协议</text>
+      <text class="agreement-text">和</text>
+      <text class="agreement-link">隐私政策</text>
+    </view>
+
+    <button class="skip-btn" bindtap="skipLogin">先逛逛</button>
+  </view>
+</view>

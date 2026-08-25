@@ -1,0 +1,53 @@
+<view class="page">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索风格名称" value="{{searchKeyword}}" bindinput="onSearchInput" />
+  </view>
+
+  <!-- 维度标签 -->
+  <scroll-view class="dimension-tabs" scroll-x>
+    <view
+      class="dimension-tab {{currentDimension === '全部' ? 'active' : ''}}"
+      data-dimension="全部"
+      bindtap="onDimensionTap"
+    >全部</view>
+    <view
+      wx:for="{{dimensions}}"
+      wx:key="*this"
+      class="dimension-tab {{currentDimension === item ? 'active' : ''}}"
+      data-dimension="{{item}}"
+      bindtap="onDimensionTap"
+    >{{item}}</view>
+  </scroll-view>
+
+  <!-- 维度标签说明 -->
+  <text class="dimension-label">{{dimensionLabel}}</text>
+
+  <!-- 风格列表 -->
+  <scroll-view class="style-list" scroll-y>
+    <view
+      class="style-item"
+      wx:for="{{filteredStyles}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="goToDetail"
+    >
+      <view class="style-color-bar">
+        <view wx:for="{{item.colorPalette.slice(0, 4)}}" wx:key="*this" class="color-block" style="background: {{item}}"></view>
+      </view>
+      <view class="style-info">
+        <view class="style-name-row">
+          <text class="style-name">{{item.name}}</text>
+          <text class="style-difficulty">难度{{item.difficulty}}</text>
+        </view>
+        <text class="style-desc">{{item.description}}</text>
+        <view class="style-tags">
+          <text class="tag">{{item.category}}</text>
+          <text class="tag">{{item.dimension}}</text>
+        </view>
+      </view>
+      <text class="style-arrow">›</text>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>StyleMate — AI 穿搭顾问 · 竖屏宣传片</title>
+    <script src="gsap.min.js"></script>
+    <style>
+      :root {
+        --creme: #fafaf8;
+        --creme-200: #f3f1ec;
+        --ink: #141412;
+        --ink-700: #3a3a36;
+        --ink-400: #6e6e65;
+        --haze: #7b93a0;
+        --haze-deep: #586d7c;
+        --haze-pale: #dce4e8;
+        --almond: #e8d5c0;
+        --olive: #6b7f5e;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #000;
+        overflow: hidden;
+      }
+      body {
+        width: 1080px;
+        height: 1920px;
+        font-family: "Playfair Display", serif;
+        color: var(--ink);
+      }
+      .scene {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+      }
+      #scene1 { z-index: 1; background: var(--creme); }
+      #scene2 { z-index: 2; background: var(--creme); opacity: 0; }
+      #scene3 { z-index: 3; background: var(--creme); opacity: 0; }
+      #scene4 { z-index: 4; background: var(--creme); opacity: 0; }
+      #scene5 { z-index: 5; background: var(--creme); opacity: 0; }
+      #scene6 { z-index: 6; background: var(--ink); opacity: 0; }
+
+      /* ---------- 装饰层 ---------- */
+      .deco { position: absolute; inset: 0; pointer-events: none; }
+      .glow {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+      }
+      .ghost {
+        position: absolute;
+        font-family: "Playfair Display", serif;
+        font-weight: 800;
+        color: var(--ink);
+        opacity: 0.05;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+      .ghost-d { color: var(--creme); opacity: 0.06; }
+      .hairline {
+        position: absolute;
+        background: var(--ink);
+        opacity: 0.22;
+      }
+      .hairline-d { background: var(--creme); opacity: 0.16; }
+      .dot {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--haze);
+        opacity: 0.55;
+      }
+      .safe { position: absolute; top: 170px; left: 64px; right: 64px; bottom: 170px; }
+
+      /* ---------- 文本系统 ---------- */
+      .kicker {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--ink-400);
+      }
+      .kicker-d { color: var(--creme); opacity: 0.55; }
+      .display {
+        font-family: "Playfair Display", serif;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 0.98;
+        color: var(--ink);
+      }
+      .display-d { color: var(--creme); }
+      .sub {
+        font-family: "Playfair Display", serif;
+        font-weight: 400;
+        font-size: 40px;
+        line-height: 1.35;
+        color: var(--ink-700);
+      }
+      .sub-d { color: var(--creme); opacity: 0.85; }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 26px;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        color: var(--ink-400);
+      }
+      .mono-d { color: var(--creme); opacity: 0.5; }
+
+      .scene-label {
+        display: inline-block;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 22px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--haze-deep);
+        border: 2px solid var(--haze-deep);
+        border-radius: 999px;
+        padding: 14px 28px;
+      }
+
+      /* ---------- S1 氛围开场 ---------- */
+      .s1-title {
+        position: absolute;
+        top: 640px;
+        left: 64px;
+        font-size: 168px;
+      }
+      .s1-kicker { position: absolute; top: 250px; left: 70px; }
+      .s1-rule {
+        position: absolute;
+        top: 480px;
+        left: 70px;
+        width: 140px;
+        height: 4px;
+        background: var(--haze);
+      }
+      .s1-sub { position: absolute; top: 1280px; left: 70px; font-size: 36px; color: var(--ink-400); }
+
+      /* ---------- S2 痛点 ---------- */
+      .s2-title {
+        position: absolute;
+        top: 430px;
+        left: 64px;
+        font-size: 118px;
+      }
+      .s2-list { position: absolute; top: 900px; left: 64px; right: 64px; }
+      .s2-item {
+        display: flex;
+        align-items: baseline;
+        gap: 36px;
+        padding: 44px 0;
+        border-top: 2px solid var(--haze-pale);
+      }
+      .s2-item:last-child { border-bottom: 2px solid var(--haze-pale); }
+      .s2-num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 30px;
+        color: var(--haze-deep);
+      }
+      .s2-text {
+        font-family: "Playfair Display", serif;
+        font-weight: 600;
+        font-size: 52px;
+        color: var(--ink);
+      }
+      .s2-tag {
+        margin-left: auto;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 22px;
+        color: var(--ink-400);
+        background: var(--creme-200);
+        border-radius: 999px;
+        padding: 10px 22px;
+      }
+
+      /* ---------- S3 风格测评 ---------- */
+      .s3-head { position: absolute; top: 220px; left: 64px; right: 64px; }
+      .s3-title {
+        position: absolute;
+        top: 310px;
+        left: 64px;
+        font-size: 104px;
+      }
+      .phone {
+        position: absolute;
+        top: 880px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 620px;
+        height: 760px;
+        background: #fff;
+        border: 3px solid var(--ink);
+        border-radius: 64px;
+        box-shadow: 0 40px 80px rgba(20, 20, 18, 0.14);
+        padding: 44px;
+      }
+      .phone-notch {
+        position: absolute;
+        top: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 160px;
+        height: 20px;
+        background: var(--ink);
+        border-radius: 999px;
+      }
+      .phone-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        letter-spacing: 0.18em;
+        color: var(--ink-700);
+        margin-top: 30px;
+      }
+      .phone-photo {
+        height: 360px;
+        border-radius: 36px;
+        margin-top: 30px;
+        background: linear-gradient(135deg, var(--almond) 0%, var(--haze-pale) 55%, var(--olive) 130%);
+        position: relative;
+        overflow: hidden;
+      }
+      .phone-photo::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 60px;
+        transform: translateX(-50%);
+        width: 130px;
+        height: 210px;
+        border-radius: 999px 999px 60px 60px;
+        background: rgba(250, 250, 248, 0.55);
+      }
+      .analyze-row {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin-top: 34px;
+      }
+      .analyze-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--olive);
+      }
+      .analyze-text {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 28px;
+        color: var(--ink-700);
+      }
+      .progress-track {
+        margin-top: 28px;
+        height: 12px;
+        background: var(--creme-200);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--haze), var(--olive));
+        border-radius: 999px;
+      }
+
+      /* ---------- S4 AI 风格档案 (Hero) ---------- */
+      .s4-label { position: absolute; top: 220px; left: 64px; }
+      .s4-title {
+        position: absolute;
+        top: 310px;
+        left: 64px;
+        font-size: 100px;
+      }
+      .archive {
+        position: absolute;
+        top: 780px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 720px;
+        background: #fff;
+        border: 3px solid var(--ink);
+        border-radius: 56px;
+        box-shadow: 0 44px 90px rgba(20, 20, 18, 0.16);
+        padding: 56px;
+      }
+      .archive-head {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        padding-bottom: 40px;
+        border-bottom: 2px solid var(--creme-200);
+      }
+      .archive-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--haze), var(--olive));
+        position: relative;
+      }
+      .archive-avatar::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 22px;
+        transform: translateX(-50%);
+        width: 48px;
+        height: 76px;
+        border-radius: 999px 999px 30px 30px;
+        background: rgba(250, 250, 248, 0.6);
+      }
+      .archive-meta { flex: 1; }
+      .archive-kicker {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 22px;
+        letter-spacing: 0.22em;
+        color: var(--ink-400);
+      }
+      .archive-name {
+        font-family: "Playfair Display", serif;
+        font-weight: 700;
+        font-style: italic;
+        font-size: 56px;
+        letter-spacing: -0.02em;
+        margin-top: 6px;
+      }
+      .archive-score {
+        text-align: center;
+      }
+      .archive-score-num {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 56px;
+        color: var(--olive);
+        font-variant-numeric: tabular-nums;
+      }
+      .archive-score-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 20px;
+        color: var(--ink-400);
+        letter-spacing: 0.1em;
+      }
+      .chips { display: flex; gap: 18px; margin-top: 40px; }
+      .chip {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 26px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink);
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        padding: 14px 30px;
+      }
+      .chip.filled { background: var(--ink); color: var(--creme); }
+      .swatches { display: flex; gap: 22px; margin-top: 44px; align-items: center; }
+      .swatch {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 2px solid rgba(20, 20, 18, 0.14);
+      }
+      .swatch-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        color: var(--ink-400);
+        margin-left: auto;
+      }
+
+      /* ---------- S5 今日穿搭诊断 ---------- */
+      .s5-label { position: absolute; top: 220px; left: 64px; }
+      .s5-title {
+        position: absolute;
+        top: 310px;
+        left: 64px;
+        font-size: 96px;
+      }
+      .look {
+        position: absolute;
+        top: 860px;
+        left: 64px;
+        width: 340px;
+        height: 560px;
+        border-radius: 40px;
+        border: 3px solid var(--ink);
+        background: linear-gradient(160deg, var(--haze-pale) 0%, var(--almond) 60%, var(--olive) 140%);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 34px 70px rgba(20, 20, 18, 0.16);
+      }
+      .look::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 44px;
+        transform: translateX(-50%);
+        width: 96px;
+        height: 150px;
+        border-radius: 999px 999px 50px 50px;
+        background: rgba(250, 250, 248, 0.5);
+      }
+      .rating {
+        position: absolute;
+        top: 860px;
+        left: 460px;
+        right: 64px;
+      }
+      .rating-score {
+        display: flex;
+        align-items: baseline;
+        gap: 18px;
+      }
+      .rating-num {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 128px;
+        color: var(--olive);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.04em;
+      }
+      .rating-unit {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 34px;
+        color: var(--ink-400);
+      }
+      .bars { margin-top: 44px; }
+      .bar-row { display: flex; align-items: center; gap: 24px; margin-bottom: 30px; }
+      .bar-name {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        color: var(--ink-700);
+        width: 110px;
+      }
+      .bar-track {
+        flex: 1;
+        height: 10px;
+        background: var(--creme-200);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+      }
+      .b1 { background: var(--haze); }
+      .b2 { background: var(--almond); }
+      .b3 { background: var(--olive); }
+      .b4 { background: var(--ink); }
+      .s5-tip {
+        position: absolute;
+        top: 1640px;
+        left: 64px;
+        right: 64px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        background: #fff;
+        border: 2px solid var(--ink);
+        border-radius: 32px;
+        padding: 30px 36px;
+        box-shadow: 0 20px 44px rgba(20, 20, 18, 0.1);
+      }
+      .s5-tip-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--olive);
+        flex-shrink: 0;
+      }
+      .s5-tip-text {
+        font-family: "Playfair Display", serif;
+        font-size: 34px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .s5-tip-text em { font-style: italic; color: var(--olive); }
+
+      /* ---------- S6 CTA ---------- */
+      .s6-title {
+        position: absolute;
+        top: 620px;
+        left: 64px;
+        font-size: 150px;
+      }
+      .s6-cta {
+        position: absolute;
+        top: 1150px;
+        left: 64px;
+        display: inline-flex;
+        align-items: center;
+        gap: 26px;
+        background: var(--creme);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 40px 60px;
+        font-family: "Playfair Display", serif;
+        font-weight: 700;
+        font-size: 44px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      }
+      .s6-cta-arrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 40px;
+      }
+      .s6-foot {
+        position: absolute;
+        bottom: 200px;
+        left: 64px;
+        right: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .s6-logo {
+        font-family: "Playfair Display", serif;
+        font-weight: 800;
+        font-size: 34px;
+        letter-spacing: 0.02em;
+        color: var(--creme);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="stylemate-promo"
+      data-width="1080"
+      data-height="1920"
+      data-start="0"
+      data-duration="20"
+    >
+      <!-- ==================== S1 氛围开场 ==================== -->
+      <div id="scene1" class="scene">
+        <div class="deco">
+          <div class="glow" data-g1 data-layout-allow-overflow style="width:900px;height:900px;top:-240px;left:-240px;background:rgba(123,147,160,0.20);"></div>
+          <div class="glow" data-g2 data-layout-allow-overflow style="width:760px;height:760px;bottom:-200px;right:-200px;background:rgba(232,213,192,0.35);"></div>
+          <div class="ghost" data-gh1 data-layout-allow-overflow style="top:60px;left:-40px;font-size:460px;">STYLE</div>
+          <div class="hairline" data-h1 style="top:0;bottom:0;left:960px;width:2px;"></div>
+          <div class="dot" data-d1 style="width:22px;height:22px;top:210px;right:120px;"></div>
+        </div>
+        <div class="s1-kicker kicker" data-k1>StyleMate · AI Wardrobe Advisor</div>
+        <div class="s1-rule" data-r1></div>
+        <div class="s1-title display" data-t1>今天<br />穿什么？</div>
+        <div class="s1-sub mono" data-s1>3 分钟，生成你的专属风格档案</div>
+      </div>
+
+      <!-- ==================== S2 痛点 ==================== -->
+      <div id="scene2" class="scene">
+        <div class="deco">
+          <div class="glow" data-g1 data-layout-allow-overflow style="width:800px;height:800px;top:-200px;right:-200px;background:rgba(107,127,94,0.14);"></div>
+          <div class="ghost" data-gh1 data-layout-allow-overflow style="bottom:-30px;left:-50px;font-size:380px;">CLOSET</div>
+          <div class="hairline" data-h1 style="top:0;bottom:0;left:64px;width:2px;opacity:0.12;"></div>
+        </div>
+        <div class="scene-label" data-l1 style="position:absolute;top:220px;left:64px;">Three Reasons</div>
+        <div class="s2-title display" data-t1>衣柜满的，<br />却总没得穿。</div>
+        <div class="s2-list" data-l2>
+          <div class="s2-item"><span class="s2-num">01</span><span class="s2-text">说不清自己的风格</span><span class="s2-tag">风格模糊</span></div>
+          <div class="s2-item"><span class="s2-num">02</span><span class="s2-text">每天出门前纠结</span><span class="s2-tag">搭配困难</span></div>
+          <div class="s2-item"><span class="s2-num">03</span><span class="s2-text">买了单品不会搭</span><span class="s2-tag">重复穿搭</span></div>
+        </div>
+      </div>
+
+      <!-- ==================== S3 风格测评 ==================== -->
+      <div id="scene3" class="scene">
+        <div class="deco">
+          <div class="glow" data-g1 data-layout-allow-overflow style="width:720px;height:720px;bottom:-220px;left:-200px;background:rgba(123,147,160,0.18);"></div>
+          <div class="ghost" data-gh1 data-layout-allow-overflow style="top:80px;right:-60px;font-size:300px;">UPLOAD</div>
+          <div class="dot" data-d1 style="width:18px;height:18px;top:260px;right:130px;"></div>
+          <div class="hairline" data-h1 style="top:0;bottom:0;right:64px;width:2px;opacity:0.12;"></div>
+        </div>
+        <div class="scene-label" data-l1 style="position:absolute;top:220px;left:64px;">01 · Style Test</div>
+        <div class="s3-title display" data-t1>上传照片，<br />AI 认识你。</div>
+        <div class="phone" data-p1>
+          <div class="phone-notch"></div>
+          <div class="phone-label">STYLE ANALYSIS</div>
+          <div class="phone-photo"></div>
+          <div class="analyze-row">
+            <div class="analyze-dot" data-ad1></div>
+            <div class="analyze-text">AI 正在分析你的穿搭偏好…</div>
+          </div>
+          <div class="progress-track"><div class="progress-fill" data-pf1></div></div>
+        </div>
+      </div>
+
+      <!-- ==================== S4 AI 风格档案 (Hero) ==================== -->
+      <div id="scene4" class="scene">
+        <div class="deco">
+          <div class="glow" data-g1 data-layout-allow-overflow style="width:860px;height:860px;top:-260px;left:-180px;background:rgba(232,213,192,0.4);"></div>
+          <div class="glow" data-g2 data-layout-allow-overflow style="width:640px;height:640px;bottom:-180px;right:-160px;background:rgba(123,147,160,0.16);"></div>
+          <div class="ghost" data-gh1 data-layout-allow-overflow style="bottom:-40px;left:-60px;font-size:340px;">ARCHIVE</div>
+          <div class="hairline" data-h1 style="top:0;bottom:0;left:64px;width:2px;opacity:0.12;"></div>
+        </div>
+        <div class="scene-label" data-l1 style="position:absolute;top:220px;left:64px;">02 · AI Style Archive</div>
+        <div class="s4-title display" data-t1>你的风格，<br />一张档案。</div>
+        <div class="archive" data-a1>
+          <div class="archive-head">
+            <div class="archive-avatar"></div>
+            <div class="archive-meta">
+              <div class="archive-kicker">YOUR STYLE ARCHIVE</div>
+              <div class="archive-name">极简知识分子</div>
+            </div>
+            <div class="archive-score">
+              <div class="archive-score-num" data-n1>92</div>
+              <div class="archive-score-label">STYLE SCORE</div>
+            </div>
+          </div>
+          <div class="chips">
+            <span class="chip filled">Clean</span>
+            <span class="chip">Tailored</span>
+            <span class="chip">Muted</span>
+          </div>
+          <div class="swatches">
+            <span class="swatch" style="background:#f4f1ec;"></span>
+            <span class="swatch" style="background:#7b93a0;"></span>
+            <span class="swatch" style="background:#6b7f5e;"></span>
+            <span class="swatch" style="background:#141412;"></span>
+            <span class="swatch-label">YOUR PALETTE</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== S5 今日穿搭诊断 ==================== -->
+      <div id="scene5" class="scene">
+        <div class="deco">
+          <div class="glow" data-g1 data-layout-allow-overflow style="width:760px;height:760px;top:-220px;right:-180px;background:rgba(107,127,94,0.16);"></div>
+          <div class="ghost" data-gh1 data-layout-allow-overflow style="bottom:-30px;right:-50px;font-size:340px;">RATING</div>
+          <div class="dot" data-d1 style="width:20px;height:20px;top:250px;left:120px;"></div>
+          <div class="hairline" data-h1 style="top:0;bottom:0;right:64px;width:2px;opacity:0.12;"></div>
+        </div>
+        <div class="scene-label" data-l1 style="position:absolute;top:220px;left:64px;">03 · Daily Diagnosis</div>
+        <div class="s5-title display" data-t1>今天这样穿，<br />AI 打 88 分。</div>
+        <div class="look" data-lk1></div>
+        <div class="rating">
+          <div class="rating-score">
+            <span class="rating-num" data-rn1>88</span>
+            <span class="rating-unit">/100</span>
+          </div>
+          <div class="bars">
+            <div class="bar-row"><span class="bar-name">廓形</span><div class="bar-track"><div class="bar-fill b1" data-bf1></div></div></div>
+            <div class="bar-row"><span class="bar-name">配色</span><div class="bar-track"><div class="bar-fill b2" data-bf2></div></div></div>
+            <div class="bar-row"><span class="bar-name">场合</span><div class="bar-track"><div class="bar-fill b3" data-bf3></div></div></div>
+            <div class="bar-row"><span class="bar-name">质感</span><div class="bar-track"><div class="bar-fill b4" data-bf4></div></div></div>
+          </div>
+        </div>
+        <div class="s5-tip" data-tp1>
+          <div class="s5-tip-dot"></div>
+          <div class="s5-tip-text">建议：内搭换<em>燕麦色</em>，更衬你的气质</div>
+        </div>
+      </div>
+
+      <!-- ==================== S6 CTA ==================== -->
+      <div id="scene6" class="scene">
+        <div class="deco">
+          <div class="glow" data-g1 data-layout-allow-overflow style="width:900px;height:900px;top:-260px;right:-220px;background:rgba(123,147,160,0.22);"></div>
+          <div class="ghost ghost-d" data-gh1 data-layout-allow-overflow style="top:100px;left:-60px;font-size:420px;">STYLEMATE</div>
+          <div class="hairline hairline-d" data-h1 style="top:0;bottom:0;left:64px;width:2px;"></div>
+        </div>
+        <div class="s6-title display display-d" data-t1>找到<br />你的风格。</div>
+        <div class="s6-cta" data-cta1>
+          <span>开始免费测评</span>
+          <span class="s6-cta-arrow">→</span>
+        </div>
+        <div class="s6-foot">
+          <span class="s6-logo" data-lg1>StyleMate</span>
+          <span class="mono mono-d" data-m1>AI WARDROBE ADVISOR</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      var PUSH = 0.5;      // 主转场时长
+      var TOTAL = 20;
+
+      /* ================= 时间锚点 ================= */
+      var T1 = 3.4;   // S1 → S2
+      var T2 = 6.8;   // S2 → S3
+      var T3 = 10.2;  // S3 → S4 (blur crossfade)
+      var T4 = 14.4;  // S4 → S5
+      var T5 = 17.6;  // S5 → S6
+      var END = TOTAL - 0.4;
+
+      /* ================= 转场工具 ================= */
+      function verticalPush(oldId, newId, T) {
+        tl.fromTo(newId, { y: 1920, opacity: 1 }, { y: 0, opacity: 1, duration: PUSH, ease: "power3.inOut" }, T);
+        tl.to(oldId, { y: -1920, duration: PUSH, ease: "power3.inOut" }, T);
+        tl.set(oldId, { y: 0, opacity: 0, visibility: "hidden" }, T + PUSH);
+        tl.set(newId, { visibility: "visible" }, T + PUSH);
+      }
+      function blurCross(oldId, newId, T) {
+        tl.to(oldId, { filter: "blur(10px)", scale: 1.03, opacity: 0, duration: 0.55, ease: "power2.inOut" }, T);
+        tl.fromTo(newId,
+          { filter: "blur(10px)", scale: 0.97, opacity: 0 },
+          { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.55, ease: "power2.inOut" }, T + 0.1);
+        tl.set(oldId, { filter: "blur(0px)", scale: 1, opacity: 0, visibility: "hidden" }, T + 0.75);
+        tl.set(newId, { visibility: "visible" }, T + 0.75);
+      }
+
+      /* ================= S1 氛围开场 ================= */
+      tl.fromTo("#scene1 [data-k1]", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, 0.25);
+      tl.fromTo("#scene1 [data-r1]", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.7, ease: "expo.out" }, 0.3);
+      tl.fromTo("#scene1 [data-t1]", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.6, ease: "expo.out" }, 0.5);
+      tl.fromTo("#scene1 [data-s1]", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 1.0);
+      // ambient
+      tl.fromTo("#scene1 [data-g1]", { scale: 0.9 }, { scale: 1.1, duration: 2.2, yoyo: true, repeat: 1, ease: "sine.inOut" }, 0);
+      tl.fromTo("#scene1 [data-g2]", { scale: 1.0 }, { scale: 1.18, duration: 2.4, yoyo: true, repeat: 1, ease: "sine.inOut" }, 0);
+      tl.fromTo("#scene1 [data-gh1]", { y: 0 }, { y: -30, duration: 2.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, 0);
+
+      /* ================= S1 → S2 ================= */
+      verticalPush("#scene1", "#scene2", T1);
+
+      /* ================= S2 痛点 ================= */
+      tl.fromTo("#scene2 [data-l1]", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, T1 + 0.2);
+      tl.fromTo("#scene2 [data-t1]", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, T1 + 0.25);
+      tl.fromTo("#scene2 .s2-item", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out", stagger: 0.12 }, T1 + 0.5);
+      // ambient
+      tl.fromTo("#scene2 [data-g1]", { scale: 0.92 }, { scale: 1.12, duration: 2.2, yoyo: true, repeat: 1, ease: "sine.inOut" }, T1);
+      tl.fromTo("#scene2 [data-gh1]", { y: 0 }, { y: -24, duration: 2.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, T1);
+
+      /* ================= S2 → S3 ================= */
+      verticalPush("#scene2", "#scene3", T2);
+
+      /* ================= S3 风格测评 ================= */
+      tl.fromTo("#scene3 [data-l1]", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, T2 + 0.2);
+      tl.fromTo("#scene3 [data-t1]", { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, T2 + 0.25);
+      tl.fromTo("#scene3 [data-p1]", { y: 120, opacity: 0, rotation: 3 }, { y: 0, opacity: 1, rotation: 0, duration: 0.6, ease: "power3.out" }, T2 + 0.5);
+      tl.fromTo("#scene3 [data-pf1]", { width: "0%" }, { width: "86%", duration: 1.0, ease: "power1.inOut" }, T2 + 0.9);
+      tl.fromTo("#scene3 [data-ad1]", { opacity: 0 }, { opacity: 1, duration: 0.3 }, T2 + 0.7);
+      // ambient
+      tl.fromTo("#scene3 [data-g1]", { scale: 0.92 }, { scale: 1.1, duration: 2.2, yoyo: true, repeat: 1, ease: "sine.inOut" }, T2);
+      tl.fromTo("#scene3 [data-gh1]", { y: 0 }, { y: -20, duration: 2.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, T2);
+
+      /* ================= S3 → S4 ================= */
+      blurCross("#scene3", "#scene4", T3);
+
+      /* ================= S4 AI 风格档案 (Hero) ================= */
+      tl.fromTo("#scene4 [data-l1]", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, T3 + 0.25);
+      tl.fromTo("#scene4 [data-t1]", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, T3 + 0.3);
+      tl.fromTo("#scene4 [data-a1]", { y: 80, opacity: 0, rotationY: -14, transformPerspective: 1200 }, { y: 0, opacity: 1, rotationY: 0, duration: 0.7, ease: "power3.out" }, T3 + 0.6);
+      tl.fromTo("#scene4 [data-n1]", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, T3 + 1.1);
+      // ambient
+      tl.fromTo("#scene4 [data-g1]", { scale: 0.9 }, { scale: 1.12, duration: 2.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, T3);
+      tl.fromTo("#scene4 [data-g2]", { scale: 1.0 }, { scale: 1.16, duration: 2.4, yoyo: true, repeat: 1, ease: "sine.inOut" }, T3);
+      tl.fromTo("#scene4 [data-gh1]", { y: 0 }, { y: -26, duration: 2.8, yoyo: true, repeat: 1, ease: "sine.inOut" }, T3);
+
+      /* ================= S4 → S5 ================= */
+      verticalPush("#scene4", "#scene5", T4);
+
+      /* ================= S5 今日穿搭诊断 ================= */
+      tl.fromTo("#scene5 [data-l1]", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, T4 + 0.2);
+      tl.fromTo("#scene5 [data-t1]", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, T4 + 0.25);
+      tl.fromTo("#scene5 [data-lk1]", { x: -80, opacity: 0, rotation: -4 }, { x: 0, opacity: 1, rotation: 0, duration: 0.55, ease: "power3.out" }, T4 + 0.5);
+      tl.fromTo("#scene5 [data-rn1]", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, T4 + 0.55);
+      tl.fromTo("#scene5 [data-bf1]", { width: "0%" }, { width: "92%", duration: 0.7, ease: "power1.inOut" }, T4 + 0.7);
+      tl.fromTo("#scene5 [data-bf2]", { width: "0%" }, { width: "86%", duration: 0.7, ease: "power1.inOut" }, T4 + 0.8);
+      tl.fromTo("#scene5 [data-bf3]", { width: "0%" }, { width: "78%", duration: 0.7, ease: "power1.inOut" }, T4 + 0.9);
+      tl.fromTo("#scene5 [data-bf4]", { width: "0%" }, { width: "90%", duration: 0.7, ease: "power1.inOut" }, T4 + 1.0);
+      tl.fromTo("#scene5 [data-tp1]", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, T4 + 1.1);
+      // ambient
+      tl.fromTo("#scene5 [data-g1]", { scale: 0.92 }, { scale: 1.12, duration: 2.2, yoyo: true, repeat: 1, ease: "sine.inOut" }, T4);
+      tl.fromTo("#scene5 [data-gh1]", { y: 0 }, { y: -22, duration: 2.6, yoyo: true, repeat: 1, ease: "sine.inOut" }, T4);
+
+      /* ================= S5 → S6 ================= */
+      verticalPush("#scene5", "#scene6", T5);
+
+      /* ================= S6 CTA ================= */
+      tl.fromTo("#scene6 [data-t1]", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.65, ease: "expo.out" }, T5 + 0.25);
+      tl.fromTo("#scene6 [data-cta1]", { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.6)" }, T5 + 0.8);
+      tl.fromTo("#scene6 [data-lg1]", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, T5 + 1.1);
+      tl.fromTo("#scene6 [data-m1]", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, T5 + 1.2);
+      // ambient
+      tl.fromTo("#scene6 [data-g1]", { scale: 0.9 }, { scale: 1.15, duration: 2.4, yoyo: true, repeat: 1, ease: "sine.inOut" }, T5);
+      tl.fromTo("#scene6 [data-gh1]", { y: 0 }, { y: -30, duration: 2.8, yoyo: true, repeat: 1, ease: "sine.inOut" }, T5);
+
+      /* ================= 结尾淡出 ================= */
+      tl.to("#scene6", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, END);
+      tl.set("#scene6", { visibility: "hidden" }, END + 0.5);
+
+      window.__timelines["stylemate-promo"] = tl;
+    </script>
+  </body>
+</html>

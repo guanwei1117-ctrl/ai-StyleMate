@@ -1,0 +1,73 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/auth/auth",
+    "pages/style-profile/style-profile",
+    "pages/user/user"
+  ],
+  "subpackages": [
+    {
+      "root": "subpackages/onboarding",
+      "pages": [
+        "pages/quiz/quiz",
+        "pages/result/result"
+      ]
+    },
+    {
+      "root": "subpackages/styles",
+      "pages": [
+        "pages/list/list",
+        "pages/detail/detail"
+      ]
+    },
+    {
+      "root": "subpackages/score-outfit",
+      "pages": [
+        "pages/score-outfit"
+      ]
+    },
+    {
+      "root": "subpackages/daily-recommend",
+      "pages": [
+        "pages/daily-recommend"
+      ]
+    }
+  ],
+  "window": {
+    "navigationBarTitleText": "StyleMate",
+    "navigationBarTextStyle": "black",
+    "navigationBarBackgroundColor": "#F5F0EB",
+    "backgroundColor": "#F5F0EB",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2C3E2D",
+    "backgroundColor": "#F5F0EB",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/images/tab-home.png",
+        "selectedIconPath": "assets/images/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/style-profile/style-profile",
+        "text": "档案",
+        "iconPath": "assets/images/tab-profile.png",
+        "selectedIconPath": "assets/images/tab-profile-active.png"
+      },
+      {
+        "pagePath": "pages/user/user",
+        "text": "我的",
+        "iconPath": "assets/images/tab-user.png",
+        "selectedIconPath": "assets/images/tab-user-active.png"
+      }
+    ]
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "usingComponents": {}
+}

@@ -1,0 +1,73 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading">
+    <text>正在为你推荐今日穿搭...</text>
+  </view>
+
+  <view wx:else class="content">
+    <!-- 天气信息 -->
+    <view class="weather-card" wx:if="{{weather}}">
+      <text class="weather-temp">{{weather.temperature}}°</text>
+      <view class="weather-info">
+        <text class="weather-condition">{{weather.condition}}</text>
+        <text class="weather-city">{{weather.city}} · 体感{{weather.apparentTemperature}}°</text>
+      </view>
+    </view>
+
+    <!-- 场景选择 -->
+    <view class="occasion-section">
+      <text class="section-label">今日场景</text>
+      <view class="occasion-tabs">
+        <view
+          wx:for="{{occasions}}"
+          wx:key="value"
+          class="occasion-tab {{selectedOccasion === item.value ? 'active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="selectOccasion"
+        >{{item.label}}</view>
+      </view>
+    </view>
+
+    <!-- 方案切换 -->
+    <view class="plan-tabs">
+      <view
+        wx:for="{{plans}}"
+        wx:key="type"
+        class="plan-tab {{currentPlanIndex === index ? 'active' : ''}}"
+        data-index="{{index}}"
+        bindtap="switchPlan"
+      >
+        <text class="plan-tab-title">{{item.title}}</text>
+        <text class="plan-tab-score">{{item.score}}分</text>
+      </view>
+    </view>
+
+    <!-- 当前方案 -->
+    <view class="plan-detail" wx:if="{{plans[currentPlanIndex]}}">
+      <view class="plan-item" wx:if="{{plans[currentPlanIndex].top}}">
+        <text class="plan-category">👔 上衣</text>
+        <text class="plan-desc">{{plans[currentPlanIndex].top.description}}</text>
+      </view>
+      <view class="plan-item" wx:if="{{plans[currentPlanIndex].bottom}}">
+        <text class="plan-category">👖 下装</text>
+        <text class="plan-desc">{{plans[currentPlanIndex].bottom.description}}</text>
+      </view>
+      <view class="plan-item" wx:if="{{plans[currentPlanIndex].shoes}}">
+        <text class="plan-category">👟 鞋子</text>
+        <text class="plan-desc">{{plans[currentPlanIndex].shoes.description}}</text>
+      </view>
+      <view class="plan-item" wx:if="{{plans[currentPlanIndex].outerwear}}">
+        <text class="plan-category">🧥 外套</text>
+        <text class="plan-desc">{{plans[currentPlanIndex].outerwear.description}}</text>
+      </view>
+
+      <view class="plan-reason">
+        <text class="reason-label">推荐理由</text>
+        <text class="reason-text">{{plans[currentPlanIndex].reason}}</text>
+      </view>
+
+      <button class="adopt-btn" bindtap="adoptPlan">采纳这个方案</button>
+    </view>
+
+    <button class="back-btn" bindtap="goBack">返回首页</button>
+  </view>
+</view>

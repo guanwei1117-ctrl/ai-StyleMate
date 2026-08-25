@@ -1,0 +1,115 @@
+.page {
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+}
+
+.loading, .empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  color: var(--text-tertiary);
+}
+
+.detail-content {
+  padding-bottom: var(--spacing-3xl);
+}
+
+/* 头部 */
+.header-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.style-name {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
+.style-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.meta-tag {
+  font-size: var(--font-size-xs);
+  color: var(--color-olive);
+  background: rgba(107, 143, 113, 0.1);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+}
+
+.difficulty-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-almond);
+  background: rgba(196, 168, 130, 0.15);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+}
+
+/* 区块 */
+.section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
+/* 色板 */
+.color-palette {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.color-swatch {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: var(--radius-md);
+  border: 2rpx solid var(--color-haze);
+}
+
+/* 描述 */
+.desc-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* 理念 */
+.philosophy {
+  background: var(--color-creme-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  border-left: 6rpx solid var(--color-olive);
+}
+
+.philosophy-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-olive);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+/* 标签列表 */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.tag-item {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--color-creme-light);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 2rpx solid var(--color-haze);
+}

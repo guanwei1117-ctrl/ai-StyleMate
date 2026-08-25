@@ -1,0 +1,85 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-animation">
+      <text class="loading-icon">✨</text>
+    </view>
+    <text class="loading-text">正在分析你的风格...</text>
+  </view>
+
+  <view wx:else class="result-content">
+    <!-- 头部 -->
+    <view class="result-header">
+      <text class="result-title">你的风格档案已生成</text>
+      <text class="result-body">体型类型：{{bodyShape}}</text>
+    </view>
+
+    <!-- 体型解读 -->
+    <view class="section" wx:if="{{bodyExplain}}">
+      <text class="section-title">📋 体型解读</text>
+      <text class="body-desc">{{bodyExplain.featureDesc}}</text>
+      <view class="advantage-list">
+        <text class="advantage-item" wx:for="{{bodyExplain.advantages}}" wx:key="*this">✓ {{item}}</text>
+      </view>
+    </view>
+
+    <!-- 核心风格 -->
+    <view class="section">
+      <text class="section-title">⭐ 核心推荐风格</text>
+      <view
+        class="core-style-card"
+        wx:for="{{coreStyles}}"
+        wx:key="styleId"
+        data-id="{{item.styleId}}"
+        bindtap="goToStyleDetail"
+      >
+        <view class="core-style-header">
+          <text class="core-style-name">{{item.styleName}}</text>
+          <text class="core-style-score">{{item.score}}分</text>
+        </view>
+        <text class="core-style-reason" wx:for="{{item.matchReasons}}" wx:key="*this">· {{item}}</text>
+      </view>
+    </view>
+
+    <!-- 适配度评分 -->
+    <view class="section">
+      <text class="section-title">📊 适配度评分</text>
+      <view class="score-item">
+        <text class="score-label">色彩适配</text>
+        <view class="score-bar"><view class="bar-fill" style="width: {{colorScore}}%"></view></view>
+        <text class="score-value">{{colorScore}}</text>
+      </view>
+      <view class="score-item">
+        <text class="score-label">廓形适配</text>
+        <view class="score-bar"><view class="bar-fill" style="width: {{silhouetteScore}}%"></view></view>
+        <text class="score-value">{{silhouetteScore}}</text>
+      </view>
+      <view class="score-item">
+        <text class="score-label">场景适配</text>
+        <view class="score-bar"><view class="bar-fill" style="width: {{sceneScore}}%"></view></view>
+        <text class="score-value">{{sceneScore}}</text>
+      </view>
+    </view>
+
+    <!-- 避雷建议 -->
+    <view class="section" wx:if="{{avoidanceAdvice.length > 0}}">
+      <text class="section-title">⚠️ 避雷建议</text>
+      <view class="avoidance-item" wx:for="{{avoidanceAdvice}}" wx:key="warning">
+        <text class="avoidance-warning">🔴 {{item.warning}}</text>
+        <text class="avoidance-reason">{{item.reason}}</text>
+        <text class="avoidance-alt">🟢 替换为：{{item.alternatives.join(' / ')}}</text>
+      </view>
+    </view>
+
+    <!-- 风险提示 -->
+    <view class="section" wx:if="{{riskFlags.length > 0}}">
+      <text class="section-title">💡 提示</text>
+      <text class="risk-item" wx:for="{{riskFlags}}" wx:key="*this">· {{item}}</text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="actions">
+      <button class="action-btn primary" bindtap="goToProfile">查看完整档案</button>
+      <button class="action-btn secondary" bindtap="goToHome">返回首页</button>
+    </view>
+  </view>
+</view>

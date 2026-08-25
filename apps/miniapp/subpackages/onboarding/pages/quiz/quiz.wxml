@@ -1,0 +1,157 @@
+<view class="page">
+  <!-- 进度条 -->
+  <view class="progress-bar">
+    <view class="progress-fill" style="width: {{(currentStep + 1) / totalSteps * 100}}%"></view>
+  </view>
+
+  <!-- 步骤标题 -->
+  <view class="step-header">
+    <text class="step-title">{{steps[currentStep].title}}</text>
+    <text class="step-subtitle">{{steps[currentStep].subtitle}}</text>
+  </view>
+
+  <!-- 步骤 0: 身体数据 -->
+  <view wx:if="{{currentStep === 0}}" class="step-content">
+    <view class="form-group">
+      <text class="form-label">性别</text>
+      <view class="option-row">
+        <view class="option-btn {{gender === 'female' ? 'active' : ''}}" data-value="female" bindtap="selectGender">女性</view>
+        <view class="option-btn {{gender === 'male' ? 'active' : ''}}" data-value="male" bindtap="selectGender">男性</view>
+        <view class="option-btn {{gender === 'other' ? 'active' : ''}}" data-value="other" bindtap="selectGender">其他</view>
+      </view>
+    </view>
+    <view class="form-group">
+      <text class="form-label">身高 (cm)</text>
+      <input class="form-input" type="number" placeholder="例如 165" value="{{heightInput}}" bindinput="onHeightInput" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">体重 (kg)</text>
+      <input class="form-input" type="number" placeholder="例如 55" value="{{weightInput}}" bindinput="onWeightInput" />
+    </view>
+  </view>
+
+  <!-- 步骤 1: 风格偏好 -->
+  <view wx:elif="{{currentStep === 1}}" class="step-content">
+    <text class="form-hint">选择你喜欢的风格（最多5个）</text>
+    <scroll-view class="style-scroll" scroll-y>
+      <view class="style-grid">
+        <view
+          wx:for="{{allStyles}}"
+          wx:key="id"
+          class="style-option {{selectedStyleIds.indexOf(item.id) >= 0 ? 'active' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="toggleStyle"
+        >
+          <text class="style-name">{{item.name}}</text>
+          <text class="style-desc">{{item.description}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 步骤 2: 预算 -->
+  <view wx:elif="{{currentStep === 2}}" class="step-content">
+    <view class="option-card {{budget === 'budget' ? 'active' : ''}}" data-value="budget" bindtap="selectBudget">
+      <text class="card-title">💰 平价实惠</text>
+      <text class="card-desc">¥0-300/件 · 快时尚品牌、基础款为主</text>
+    </view>
+    <view class="option-card {{budget === 'mid' ? 'active' : ''}}" data-value="mid" bindtap="selectBudget">
+      <text class="card-title">💵 中等价位</text>
+      <text class="card-desc">¥300-1000/件 · 设计师品牌、品质基础款</text>
+    </view>
+    <view class="option-card {{budget === 'premium' ? 'active' : ''}}" data-value="premium" bindtap="selectBudget">
+      <text class="card-title">💎 轻奢品质</text>
+      <text class="card-desc">¥1000+/件 · 高级成衣、奢侈品牌</text>
+    </view>
+  </view>
+
+  <!-- 步骤 3: 生活方式 -->
+  <view wx:elif="{{currentStep === 3}}" class="step-content">
+    <scroll-view class="form-scroll" scroll-y>
+      <view class="form-group">
+        <text class="form-label">年龄段</text>
+        <view class="option-row wrap">
+          <view wx:for="{{['under_18','18_24','25_29','30_39','40_49','50_plus']}}" wx:key="*this"
+            class="option-btn small {{ageGroup === item ? 'active' : ''}}"
+            data-value="{{item}}" bindtap="selectAgeGroup"
+          >{{item === 'under_18' ? '18岁以下' : item === '50_plus' ? '50岁以上' : item.replace('_', '-') + '岁'}}</view>
+        </view>
+      </view>
+      <view class="form-group">
+        <text class="form-label">职业</text>
+        <view class="option-row wrap">
+          <view wx:for="{{['student','office_worker','creative','management','service','medical_education','homemaker','other']}}" wx:key="*this"
+            class="option-btn small {{occupation === item ? 'active' : ''}}"
+            data-value="{{item}}" bindtap="selectOccupation"
+          >{{item === 'student' ? '学生' : item === 'office_worker' ? '上班族' : item === 'creative' ? '创意/自由' : item === 'management' ? '管理' : item === 'service' ? '服务' : item === 'medical_education' ? '医疗/教育' : item === 'homemaker' ? '居家' : '其他'}}</view>
+        </view>
+      </view>
+      <view class="form-group">
+        <text class="form-label">日常场景（可多选）</text>
+        <view class="option-row wrap">
+          <view wx:for="{{['school','commute','office','date','street','party','travel','workout','home']}}" wx:key="*this"
+            class="option-btn small {{dailyScenes.indexOf(item) >= 0 ? 'active' : ''}}"
+            data-value="{{item}}" bindtap="toggleScene"
+          >{{item === 'school' ? '上学' : item === 'commute' ? '通勤' : item === 'office' ? '办公室' : item === 'date' ? '约会' : item === 'street' ? '出街' : item === 'party' ? '聚会' : item === 'travel' ? '旅行' : item === 'workout' ? '运动' : '居家'}}</view>
+        </view>
+      </view>
+      <view class="form-group">
+        <text class="form-label">气候</text>
+        <view class="option-row">
+          <view wx:for="{{['cold','mild','hot','variable']}}" wx:key="*this"
+            class="option-btn {{climate === item ? 'active' : ''}}"
+            data-value="{{item}}" bindtap="selectClimate"
+          >{{item === 'cold' ? '❄️ 寒冷' : item === 'mild' ? '🌤️ 温和' : item === 'hot' ? '☀️ 炎热' : '🌡️ 多变'}}</view>
+        </view>
+      </view>
+      <view class="form-group">
+        <text class="form-label">穿衣目标（必选）</text>
+        <view class="option-row wrap">
+          <view wx:for="{{['look_polished','express_personality','comfort_first','look_slim','professional','try_new_style','build_wardrobe']}}" wx:key="*this"
+            class="option-btn small {{dressingGoals.indexOf(item) >= 0 ? 'active' : ''}}"
+            data-value="{{item}}" bindtap="toggleGoal"
+          >{{item === 'look_polished' ? '得体精致' : item === 'express_personality' ? '表达个性' : item === 'comfort_first' ? '舒适至上' : item === 'look_slim' ? '显瘦显高' : item === 'professional' ? '职场专业' : item === 'try_new_style' ? '尝试新风格' : '胶囊衣橱'}}</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 步骤 4: 优先级 -->
+  <view wx:elif="{{currentStep === 4}}" class="step-content">
+    <text class="form-hint">选择你最在意的方面（最多3个）</text>
+    <view class="option-card {{priorities.indexOf('comfort') >= 0 ? 'active' : ''}}" data-value="comfort" bindtap="togglePriority">
+      <text class="card-title">🛋️ 舒适度</text>
+      <text class="card-desc">面料柔软、版型宽松不束缚</text>
+    </view>
+    <view class="option-card {{priorities.indexOf('slimming') >= 0 ? 'active' : ''}}" data-value="slimming" bindtap="togglePriority">
+      <text class="card-title">📏 显瘦</text>
+      <text class="card-desc">修饰身形、优化比例</text>
+    </view>
+    <view class="option-card {{priorities.indexOf('texture') >= 0 ? 'active' : ''}}" data-value="texture" bindtap="togglePriority">
+      <text class="card-title">✨ 质感</text>
+      <text class="card-desc">面料高级、剪裁讲究</text>
+    </view>
+    <view class="option-card {{priorities.indexOf('personality') >= 0 ? 'active' : ''}}" data-value="personality" bindtap="togglePriority">
+      <text class="card-title">🎨 个性表达</text>
+      <text class="card-desc">独特辨识度、不撞款</text>
+    </view>
+  </view>
+
+  <!-- 步骤 5: 完成 -->
+  <view wx:elif="{{currentStep === 5}}" class="step-content">
+    <view class="complete-section">
+      <text class="complete-icon">🎉</text>
+      <text class="complete-title">信息已收集完成</text>
+      <text class="complete-desc">正在为你生成专属风格档案...</text>
+    </view>
+  </view>
+
+  <!-- 底部导航 -->
+  <view class="nav-bar">
+    <button class="nav-btn prev" wx:if="{{currentStep > 0}}" bindtap="prevStep">上一步</button>
+    <view class="nav-spacer" wx:if="{{currentStep === 0}}"></view>
+    <button class="nav-btn next" bindtap="nextStep" loading="{{submitting}}" disabled="{{submitting}}">
+      {{currentStep < totalSteps - 1 ? '下一步' : '完成'}}
+    </button>
+  </view>
+</view>

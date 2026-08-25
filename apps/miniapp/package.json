@@ -1,0 +1,15 @@
+{
+  "name": "stylemate-miniapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StyleMate AI 穿搭助手 - 微信小程序",
+  "scripts": {
+    "dev": "echo '请在微信开发者工具中打开 apps/miniapp 目录'",
+    "build": "echo '构建由微信开发者工具完成'"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "miniprogram-api-typings": "^3.12.0"
+  }
+}

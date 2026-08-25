@@ -1,0 +1,149 @@
+/* ============================================
+   StyleMate 设计系统 - 全局样式变量
+   ============================================ */
+
+/* 品牌色系 */
+page {
+  /* 主色调 - 墨绿/橄榄 */
+  --color-ink: #1A1A1A;
+  --color-ink-light: #333333;
+  --color-olive: #6B8F71;
+  --color-olive-light: #8BAF91;
+  --color-olive-dark: #4A6B50;
+
+  /* 背景色 - 米白/奶油 */
+  --color-creme: #F5F0EB;
+  --color-creme-light: #FAF7F3;
+  --color-creme-dark: #E8E0D8;
+
+  /* 辅助色 */
+  --color-haze: #D4CEC8;
+  --color-haze-light: #E5E0DB;
+  --color-almond: #C4A882;
+  --color-almond-light: #D4BC9E;
+
+  /* 功能色 */
+  --color-success: #6B8F71;
+  --color-warning: #D4A76A;
+  --color-error: #C45A5A;
+  --color-info: #7A9BB5;
+
+  /* 文字色 */
+  --text-primary: #1A1A1A;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-placeholder: #BBBBBB;
+  --text-on-dark: #FFFFFF;
+
+  /* 间距系统 */
+  --spacing-xs: 4rpx;
+  --spacing-sm: 8rpx;
+  --spacing-md: 16rpx;
+  --spacing-lg: 24rpx;
+  --spacing-xl: 32rpx;
+  --spacing-2xl: 48rpx;
+  --spacing-3xl: 64rpx;
+
+  /* 圆角 */
+  --radius-sm: 8rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 24rpx;
+  --radius-xl: 32rpx;
+  --radius-full: 9999rpx;
+
+  /* 字体 */
+  --font-size-xs: 22rpx;
+  --font-size-sm: 26rpx;
+  --font-size-md: 28rpx;
+  --font-size-lg: 32rpx;
+  --font-size-xl: 36rpx;
+  --font-size-2xl: 44rpx;
+  --font-size-3xl: 52rpx;
+
+  /* 阴影 */
+  --shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+
+  /* 过渡 */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+
+  /* 背景色 */
+  background-color: var(--color-creme);
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+/* 通用重置 */
+view,
+scroll-view,
+swiper,
+text,
+image,
+button,
+input,
+textarea {
+  box-sizing: border-box;
+}
+
+button {
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  line-height: inherit;
+}
+
+button::after {
+  border: none;
+}
+
+image {
+  display: block;
+}
+
+/* 通用工具类 */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

@@ -1,0 +1,189 @@
+.page {
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  color: var(--text-tertiary);
+}
+
+.content {
+  padding-bottom: var(--spacing-3xl);
+}
+
+/* 天气卡片 */
+.weather-card {
+  background: linear-gradient(135deg, #87CEEB, #B8E0F7);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.weather-temp {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+.weather-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.weather-condition {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: #1A1A1A;
+}
+
+.weather-city {
+  font-size: var(--font-size-xs);
+  color: rgba(26, 26, 26, 0.6);
+}
+
+/* 场景选择 */
+.occasion-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.section-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.occasion-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.occasion-tab {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: var(--color-creme-light);
+  border-radius: var(--radius-full);
+  border: 2rpx solid var(--color-haze);
+}
+
+.occasion-tab.active {
+  background: var(--color-olive);
+  border-color: var(--color-olive);
+  color: var(--text-on-dark);
+}
+
+/* 方案切换 */
+.plan-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.plan-tab {
+  flex: 1;
+  background: var(--color-creme-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  text-align: center;
+  border: 2rpx solid var(--color-haze);
+}
+
+.plan-tab.active {
+  border-color: var(--color-olive);
+  background: rgba(107, 143, 113, 0.08);
+}
+
+.plan-tab-title {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.plan-tab-score {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-olive);
+}
+
+/* 方案详情 */
+.plan-detail {
+  background: var(--color-creme-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.plan-item {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1rpx solid var(--color-haze-light);
+}
+
+.plan-item:last-of-type {
+  border-bottom: none;
+}
+
+.plan-category {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  width: 120rpx;
+}
+
+.plan-desc {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.plan-reason {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: rgba(107, 143, 113, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.reason-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-olive);
+  font-weight: 600;
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.reason-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.adopt-btn {
+  width: 100%;
+  background: var(--color-olive);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-md);
+  padding: var(--spacing-md) 0;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  margin-top: var(--spacing-lg);
+}
+
+.back-btn {
+  width: 100%;
+  background: var(--color-creme-dark);
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  padding: var(--spacing-md) 0;
+  border-radius: var(--radius-full);
+  margin-top: var(--spacing-md);
+}

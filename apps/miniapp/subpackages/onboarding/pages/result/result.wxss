@@ -1,0 +1,223 @@
+.page {
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 70vh;
+}
+
+.loading-animation {
+  margin-bottom: var(--spacing-lg);
+}
+
+.loading-icon {
+  font-size: 80rpx;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.loading-text {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+}
+
+/* 结果内容 */
+.result-content {
+  padding-bottom: var(--spacing-3xl);
+}
+
+.result-header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.result-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-olive);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.result-body {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* 区块 */
+.section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
+.body-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.advantage-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.advantage-item {
+  font-size: var(--font-size-sm);
+  color: var(--color-olive);
+  background: rgba(107, 143, 113, 0.1);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+}
+
+/* 核心风格卡片 */
+.core-style-card {
+  background: var(--color-creme-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.core-style-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.core-style-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.core-style-score {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-olive);
+}
+
+.core-style-reason {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* 评分 */
+.score-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.score-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  width: 140rpx;
+}
+
+.score-bar {
+  flex: 1;
+  height: 12rpx;
+  background: var(--color-haze-light);
+  border-radius: var(--radius-full);
+  margin: 0 var(--spacing-md);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--color-olive);
+  border-radius: var(--radius-full);
+}
+
+.score-value {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-olive);
+  width: 60rpx;
+  text-align: right;
+}
+
+/* 避雷 */
+.avoidance-item {
+  background: rgba(196, 90, 90, 0.06);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.avoidance-warning {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-error);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.avoidance-reason {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.avoidance-alt {
+  font-size: var(--font-size-xs);
+  color: var(--color-olive);
+  display: block;
+}
+
+/* 风险 */
+.risk-item {
+  font-size: var(--font-size-sm);
+  color: var(--color-warning);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* 操作 */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.action-btn {
+  padding: var(--spacing-md) 0;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+
+.action-btn.primary {
+  background: var(--color-olive);
+  color: var(--text-on-dark);
+}
+
+.action-btn.secondary {
+  background: var(--color-creme-dark);
+  color: var(--text-primary);
+}
