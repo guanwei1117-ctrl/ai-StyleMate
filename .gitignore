@@ -65,3 +65,17 @@ _api.log
 # === 公网分享工具（cloudflared 二进制与运行日志，不入库）===
 .tools/
 tmp/
+
+# === 已从 git 中删除的跟踪文件（保留在本地但不上传到 GitHub）===
+tsc-trace.txt
+lark-auth-qr.png
+user-flow-feedback.svg
+video/
+.agents/
+scripts/deploy.sh
+docker-compose.prod.yml
+start-public.ps1
+stop-public.ps1
+check-public.ps1
+netlify.toml
+docs/deploy-guide.md

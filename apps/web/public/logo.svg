@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <defs>
+    <linearGradient id="sm-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+  </defs>
+  <!-- 衣架图标 -->
+  <g transform="translate(8, 12)">
+    <path d="M0 36 L20 8 L40 36" stroke="url(#sm-grad)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="20" y1="8" x2="20" y2="24" stroke="url(#sm-grad)" stroke-width="3" stroke-linecap="round"/>
+    <line x1="14" y1="24" x2="26" y2="24" stroke="url(#sm-grad)" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <!-- 文字 -->
+  <text x="58" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#1F2937">
+    StyleMate<tspan fill="url(#sm-grad)" font-weight="300">.</tspan>
+  </text>
+  <text x="58" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#9CA3AF" letter-spacing="2">
+    AI STYLE COMPANION
+  </text>
+</svg>

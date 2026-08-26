@@ -1,190 +1,336 @@
-# StyleMate — AI 穿搭助手
+<div align="center">
+  <br/>
+  <img src="apps/web/public/images/home/image.png" alt="StyleMate" width="800" style="border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.12);"/>
+  <br/>
+  <h1>StyleMate · AI 穿搭助手</h1>
+  <p>
+    <strong>从风格灵感、个人测评到每日穿搭，帮你完成从买到穿的无痛闭环</strong>
+  </p>
+  <p>
+    <a href="https://github.com/guanwei1117-ctrl/cleanfit/blob/main/LICENSE">
+      <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/>
+    </a>
+    <a href="https://nextjs.org/">
+      <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js 14"/>
+    </a>
+    <a href="https://nestjs.com/">
+      <img src="https://img.shields.io/badge/NestJS-10-red?logo=nestjs" alt="NestJS 10"/>
+    </a>
+    <a href="https://www.typescriptlang.org/">
+      <img src="https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript" alt="TypeScript"/>
+    </a>
+    <a href="https://turbo.build/">
+      <img src="https://img.shields.io/badge/Monorepo-Turborepo-8B5CF6?logo=turborepo" alt="Turborepo"/>
+    </a>
+    <a href="https://tailwindcss.com/">
+      <img src="https://img.shields.io/badge/Tailwind-3.4-06B6D4?logo=tailwindcss" alt="Tailwind CSS"/>
+    </a>
+    <br/>
+    <img src="https://img.shields.io/github/stars/guanwei1117-ctrl/cleanfit?style=social" alt="GitHub stars"/>
+    <img src="https://img.shields.io/github/forks/guanwei1117-ctrl/cleanfit?style=social" alt="GitHub forks"/>
+    <img src="https://img.shields.io/github/watchers/guanwei1117-ctrl/cleanfit?style=social" alt="GitHub watchers"/>
+  </p>
+  <br/>
+</div>
 
-> 从风格灵感、个人测评到今日 Look 诊断，再到"今天穿什么"与"该买什么"，帮助用户完成从买到穿的无痛穿搭闭环。
+---
 
-## 项目简介
+## ✨ 特性一览
 
-`StyleMate` 是一个智能穿搭与个人风格顾问 Web 产品。围绕两个核心痛点——**不会穿搭**与**不会买**——提供从认识风格、认识自己、穿得对、穿什么、买到值得买的全流程能力。
+<table>
+<tr>
+<td width="33%">
 
-## 当前已实现
+### 🎯 风格测评
+三步完成风格画像：填基础信息 → AI 对话式深度了解 → 生成 80 种风格档案
 
-- **首页与导航**：进入风格库、测评、诊断和衣橱主流程。
-- **风格库**：80 种穿搭风格，按地域文化、视觉元素、场景圈层、人物原型组织。
-- **风格详情**：展示理念、适合人群、难度、避雷点、核心单品、廓形和颜色体系。
-- **风格测评（AI 对话式）**：第一步填基础信息（性别/身高/体重/年龄段/职业/城市/场景），第二步与 AI 穿搭顾问对话——它一个问题一个问题地了解你的风格偏好、雷区、预算、舒适度与场景，结合上下文追问（如提到约会就问约会穿搭），你可以随时纠正它的理解，聊完自动总结画像，最后对照 80 种风格库生成风格档案。
-- **本地风格匹配**：AI 不可用时按三支柱规则回退生成 Top 风格。
-- **AI 风格档案**：调用后端 AI 接口综合分析照片、自述和候选风格。
-- **今日穿搭诊断**：上传 Look、选择诊断视角，获得 8 维评分和改良建议；诊断报告附带 **衣橱替换建议（WARDROBE SWAPS）**，把问题单品映射到衣橱里可直接替换的选择；支持 **生成报告分享图**（移动端系统分享 / 桌面端下载 PNG）与 **最近诊断历史**（本地保存 5 次，可回看）。
-- **我的衣橱**：AI 拍照识别（品类/颜色/材质/风格/季节等自动落库）、手动录入、二级子类筛选与搜索、单品详情编辑。
-- **帮我搭这件**：以衣橱中任意一件单品为核心，AI 生成 3 套搭配（衣橱已有单品 + 建议补充单品）。
-- **今天穿什么**：结合实时天气（Open-Meteo）、衣橱与长期记忆生成 3 套方案（规则引擎 + AI + 记忆 4:4:2 混合评分）；**衣橱为空时自动生成"起步方案"**（建议购买单品 + 预算，不挡新手）。
-- **周穿搭计划**：把保存的方案安排到一周任意一天，标记已穿，手动换单品。
-- **衣橱缺口分析**：AI 结合风格档案、季节与预算给出个性化缺口清单（缺什么、为什么、先买什么），AI 失败回退规则分析。
-- **购物清单**：缺口建议、起步方案与单品搭配的建议单品可一键加入清单；支持勾选已买、优先级排序、预算合计与去重。
-- **电商导购（淘宝/京东/拼多多）**：搜索词**结合个人风格画像**——颜色+品类+适合风格+体型修饰（如梨形自动加"高腰"）+身高（小个子）+目标（显瘦）+预算（平价/轻奢），自动排除讨厌的关键词；入口覆盖购物清单、缺口报告、单品详情（找同款）、帮我搭这件与起步方案的建议单品；移动端唤起 App、桌面端打开搜索页；**预留淘宝客联盟 Provider**（配置 AppKey 后自动返回真实商品卡与佣金链接）。
-- **社区 OOTD**：诊断报告一键发布（自动生成分享卡）、信息流浏览、点赞、评论、删除本人帖子；发布/互动需登录。
-- **值得买吗**：上传商品截图，AI 结合衣橱与风格档案给出买/考虑/跳过决策、理由、可搭组合；**衣橱为空也可用**。
-- **智能记忆系统**：长期画像、行为反馈、当前意图、AI 记忆摘要四层记忆，所有 AI 推荐自动读取与更新记忆。
-- **登录注册**：手机号 + 密码 JWT 鉴权；登录/注册时本地数据（衣橱、搭配、购物清单、记忆）自动迁移到账号，跨设备同步；**周计划与风格档案登录后自动服务端同步**（按时间戳"谁新用谁"合并）。
-- **图片安全基础限制**：前后端均限制 JPG / PNG / WebP，单张图片不超过 8MB。
+</td>
+<td width="33%">
 
-## 规划中 / 未完整实现
+### 📸 穿搭诊断
+上传穿搭照片，AI 从 8 个维度评分 + 改良建议 + 衣橱替换方案
 
-- 京东/拼多多联盟返利（深链已可用，联盟 Provider 按同一接口即可接入）、会员系统。
-- 小程序 / App / 虚拟试穿。
+</td>
+<td width="33%">
 
-## 技术栈
+### 🌤️ 每日穿搭
+结合实时天气、衣橱和风格记忆，AI 每天为你生成 3 套穿搭方案
 
-| 层级 | 技术 |
-|---|---|
-| Web 前端 | Next.js 14 + TypeScript + TailwindCSS |
-| 后端 API | NestJS + TypeScript |
-| 数据库能力 | PostgreSQL + TypeORM（默认启用，设 `ENABLE_DB=false` 关闭） |
-| AI 推理 | Claude / OpenAI / DashScope Qwen-VL 兼容接口 |
-| Monorepo | npm workspaces + Turborepo |
+</td>
+</tr>
+<tr>
+<td width="33%">
 
-## 项目结构
+### 👔 智能衣橱
+拍照自动识别品类/颜色/材质/风格，AI 帮你搭、帮你分析缺口
+
+</td>
+<td width="33%">
+
+### 🛒 购物清单
+缺口分析 → 一键加入购物清单 → 多平台比价（淘宝/京东/拼多多）
+
+</td>
+<td width="33%">
+
+### 🧠 记忆系统
+长期画像 + 行为反馈 + 当前意图，AI 越来越懂你的风格偏好
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ 系统架构
+
+```mermaid
+graph TB
+    subgraph "前端层"
+        WEB[Next.js 14 + TailwindCSS]
+    end
+    subgraph "反向代理"
+        NX[Nginx<br/>SSL 终结 / 静态文件]
+    end
+    subgraph "后端层"
+        API[NestJS API<br/>:4000]
+        PG[(PostgreSQL)]
+        RD[(Redis)]
+        QD[(Qdrant)]
+    end
+    subgraph "AI 层"
+        CL[Claude]
+        OP[OpenAI]
+        QW[Qwen-VL]
+    end
+
+    WEB -->|HTTPS| NX
+    NX -->|/api/*| API
+    API --> PG
+    API --> RD
+    API --> QD
+    API --> CL
+    API --> OP
+    API --> QW
+```
+
+---
+
+## 🚀 快速开始
+
+**前置条件：** [Docker Desktop](https://www.docker.com/products/docker-desktop/) · [Node.js](https://nodejs.org/) ≥ 18 · [Python](https://python.org/) ≥ 3.8
+
+```bash
+# 1. 安装依赖
+npm install
+
+# 2. 一键启动（自动拉起数据库 + 前后端）
+python start.py
+```
+
+启动后访问：
+| 服务 | 地址 |
+|------|------|
+| Web 前端 | http://localhost:3000 |
+| API 文档 | http://localhost:4000/api/docs |
+
+> 详细启动说明见下方 [📖 使用指南](#-使用指南)
+
+---
+
+## 🎬 核心功能展示
+
+### 🎯 风格测评 — 三步找到你的风格
+
+```
+Step 1: 基础信息     →    Step 2: AI 对话     →    Step 3: 风格档案
+┌──────────────┐        ┌──────────────┐        ┌──────────────┐
+│ 性别 / 身高   │        │ AI 逐步了解    │        │ 80 种风格     │
+│ 体重 / 职业   │ ────→  │ 风格偏好 / 雷区 │ ────→  │ 匹配 Top 3    │
+│ 城市 / 场景   │        │ 预算 / 舒适度  │        │ 详细报告      │
+└──────────────┘        └──────────────┘        └──────────────┘
+```
+
+### 📸 穿搭诊断 — 8 维 AI 评分
+
+| 维度 | 说明 |
+|------|------|
+| 🎨 **色彩搭配** | 整体配色协调性分析 |
+| 📐 **比例廓形** | 上下身比例、服装廓形匹配度 |
+| 🏷️ **风格一致性** | 单品风格是否统一 |
+| 👔 **单品匹配** | 各单品之间的搭配度 |
+| 🌟 **场合适配** | 是否符合目标场景 |
+| 🔄 **衣橱替换** | 问题单品 → 衣橱可替换选择 |
+| 📊 **综合评分** | 整体穿搭评分 |
+| 💡 **改良建议** | 具体可执行的改进方向 |
+
+### 🌤️ 今日穿搭推荐流程
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant FE as 前端
+    participant BE as 后端
+    participant Weather as Open-Meteo
+    participant AI as AI 服务
+
+    User->>FE: 点击"今天穿什么"
+    FE->>BE: 请求穿搭推荐
+    BE->>Weather: 获取实时天气
+    Weather-->>BE: 温度/湿度/天气状况
+    BE->>BE: 读取用户衣橱 + 风格记忆
+    BE->>AI: 生成 3 套穿搭方案
+    AI-->>BE: 方案 + 理由
+    BE-->>FE: 返回推荐结果
+    FE-->>User: 展示 3 套穿搭 + 搭配说明
+```
+
+---
+
+## 🛠️ 技术栈
+
+| 层级 | 技术 | 用途 |
+|------|------|------|
+| **Web 前端** | Next.js 14 + TypeScript + TailwindCSS | 响应式 SPA |
+| **后端 API** | NestJS 10 + TypeScript | RESTful API |
+| **数据库** | PostgreSQL + TypeORM | 用户数据持久化 |
+| **缓存** | Redis | 会话 / 限流 |
+| **向量检索** | Qdrant | 以图搜图 |
+| **AI 推理** | Claude / OpenAI / Qwen-VL | 穿搭分析 / 推荐 |
+| **包管理** | npm workspaces + Turborepo | Monorepo 编排 |
+
+---
+
+## 📦 项目结构
 
 ```text
 stylemate/
 ├── apps/
-│   └── web/                # Next.js Web 前端
+│   └── web/                    # Next.js Web 前端
+│       ├── src/
+│       │   ├── app/            # 页面路由
+│       │   ├── components/     # UI 组件
+│       │   └── lib/            # API 客户端 + 工具函数
+│       └── public/             # 静态资源
 ├── packages/
-│   └── shared/             # 共享类型定义
+│   └── shared/                 # 共享类型定义
 ├── services/
-│   └── api/                # NestJS 后端 API
-├── docs/                   # PRD 与下一步任务文档
-├── start.py                # 一键启动脚本（推荐）
-├── docker-compose.yml      # PostgreSQL 等开发基础设施
-└── turbo.json              # Turborepo 配置
+│   └── api/                    # NestJS 后端 API
+│       ├── src/
+│       │   ├── modules/        # 功能模块
+│       │   └── common/         # 公共守卫/工具
+│       └── Dockerfile
+├── docs/                       # 文档
+├── docker-compose.yml          # 开发环境
+├── docker-compose.prod.yml     # 生产环境
+├── nginx.conf                  # Nginx 配置
+└── start.py                    # 一键启动脚本
 ```
 
-## 快速开始
+---
 
-### 前置条件
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)（提供 PostgreSQL + Redis）
-- [Node.js](https://nodejs.org/) ≥ 18
-- Python ≥ 3.8（用于一键启动脚本）
-
-### 一键启动（推荐）
-
-首次使用需先安装依赖：
-
-```bash
-npm install
-```
-
-然后运行一键启动脚本：
-
-```bash
-python start.py
-```
-
-脚本自动完成以下步骤：
-1. 检查环境（Docker、Node.js、npm）
-2. 启动 PostgreSQL + Redis 容器
-3. 等待数据库就绪
-4. 启动前后端开发服务（Next.js + NestJS）
-
-按 `Ctrl+C` 停止服务，可选择是否同时停止数据库容器。
-
-常用参数：
-
-| 参数 | 说明 |
-|------|------|
-| `--no-docker` | 跳过容器启动/停止（数据库已在外部运行时使用） |
-| `--timeout 180` | 调整 PostgreSQL 就绪等待秒数（默认 60） |
-| `--no-db-wait` | 不等待 PostgreSQL 就绪 |
-| `--down-on-exit` | 退出时直接停止容器，不询问 |
-| `--no-down-on-exit` | 退出时不停容器，不询问 |
-
-> **Windows 提示**：按 `Ctrl+C` 时如出现 "Terminate batch job (Y/N)?" 提示，输入 `Y` 即可正常退出。
-
-### 手动启动
+## 📖 使用指南
 
 <details>
-<summary>如需逐步启动，展开查看手动步骤</summary>
+<summary><strong>🖥️ 手动启动（点击展开）</strong></summary>
 
-#### 1. 安装依赖
+### 1. 安装依赖
 
 ```bash
 npm install
 ```
 
-#### 2. 配置环境变量
-
-复制 `.env.example` 为 `.env`，按需填写：
+### 2. 配置环境变量
 
 ```bash
 cp .env.example .env
 ```
 
-AI 相关变量按实际 provider 选择配置：
+AI 相关变量按需配置（至少一个即可）：
 
 ```env
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-DASHSCOPE_API_KEY=
-AI_RATE_LIMIT_MAX_REQUESTS=10
-AI_RATE_LIMIT_WINDOW_MS=600000
+ANTHROPIC_API_KEY=sk-ant-xxx      # Claude（推荐）
+DASHSCOPE_API_KEY=sk-xxx          # 阿里云通义千问
+OPENAI_API_KEY=sk-xxx             # OpenAI
 ```
 
-#### 3. 启动开发服务
-
-数据库模块默认启用，需要先启动 PostgreSQL：
+### 3. 启动数据库
 
 ```bash
 docker compose up -d postgres redis
 ```
 
-然后启动前后端：
+### 4. 启动开发服务
 
 ```bash
 npm run dev
 ```
 
-如需无数据库模式（仅风格库/测评功能）：
-
-```bash
-# .env 中设置 ENABLE_DB=false
-npm run dev
-```
+> 无需数据库模式：在 `.env` 中设置 `ENABLE_DB=false` 即可。
 
 </details>
 
-### 访问地址
+<details>
+<summary><strong>🐳 生产部署（点击展开）</strong></summary>
 
-| 服务 | 地址 |
-|------|------|
-| Web 前端 | http://localhost:3000 |
-| API 文档 (Swagger) | http://localhost:4000/api/docs |
-| API 健康检查 | http://localhost:4000/api/v1/health |
+### 前置条件
 
-## 常用命令
+- 服务器安装 Docker + docker compose
+- 域名解析到服务器：`www.guanwei-stylemate.com` / `api.guanwei-stylemate.com`
+- SSL 证书放到 `ssl/` 目录
+
+### 部署
 
 ```bash
-npm run build   # 构建 Web 和 API
-npm run lint    # TypeScript 类型检查
-npm test        # 运行当前单元测试
-npm run dev     # 启动开发服务
-python start.py # 一键启动（推荐）
+# 1. 配置后端环境变量
+vim services/api/.env.prod
+
+# 2. 一键部署
+bash scripts/deploy.sh
 ```
 
-## 安全与隐私说明
+详细部署文档见 [docs/deploy-guide.md](docs/deploy-guide.md)。
 
-- 上传图片仅用于穿搭、比例、色彩和风格分析，不用于身份识别。
-- AI 分析可能会将图片发送给已配置的第三方 AI 服务。
-- 当前风格档案默认保存在本机浏览器 `localStorage`，可在诊断页清除。
-- 衣橱和用户相关接口上线前必须补齐鉴权与资源归属校验。
+</details>
 
-## 文档
+---
 
-- `docs/stylemate-prd.md`：完整产品需求文档。
-- `docs/mvp-next-steps.md`：MVP 下一步开发任务清单。
+## 🧪 测试
 
-##  许可证
+```bash
+npm test          # 运行所有测试
+npm run lint      # TypeScript 类型检查
+npm run build     # 生产构建
+```
 
-MIT
-   
- 
+---
+
+## 🤝 贡献指南
+
+欢迎贡献！请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+1. Fork 本仓库
+2. 创建特性分支：`git checkout -b feat/amazing-feature`
+3. 提交变更：`git commit -m 'feat: add amazing feature'`
+4. 推送分支：`git push origin feat/amazing-feature`
+5. 提交 Pull Request
+
+---
+
+## 📄 许可证
+
+[MIT](LICENSE) © 2024 [guanwei1117-ctrl](https://github.com/guanwei1117-ctrl)
+
+---
+
+<div align="center">
+  <sub>
+    ⭐ 如果 StyleMate 对你有帮助，欢迎 Star 支持！
+    <br/>
+    <a href="https://github.com/guanwei1117-ctrl/cleanfit/issues">报告 Bug</a>
+    ·
+    <a href="https://github.com/guanwei1117-ctrl/cleanfit/issues">功能建议</a>
+    ·
+    <a href=".github/FUNDING.yml">赞助</a>
+  </sub>
+</div>
