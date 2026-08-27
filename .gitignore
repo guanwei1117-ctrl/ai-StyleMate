@@ -52,6 +52,10 @@ claude_deepseek/
 # 项目级 agent 规则清单（如存在）
 AGENTS.md
 
+# === Python 缓存（start.py 自动生成）===
+__pycache__/
+*.pyc
+
 # === 日志与临时文件（非源码，无需上传）===
 *.log
 *.out
@@ -79,3 +83,8 @@ stop-public.ps1
 check-public.ps1
 netlify.toml
 docs/deploy-guide.md
+.env.production.example
+deploy/
+docs/stylemate-prd.md
+docs/mvp-next-steps.md
+docs/plans/
