@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, Suspense, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,16 +8,13 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  Camera,
-  Check,
   ChevronLeft,
   Search,
-  SlidersHorizontal,
   Sparkles,
   UserRound,
-  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useRequireAuth } from '@/lib/require-auth';
 import { syncProfileToServer } from '@/lib/profile-sync';
 import { syncPushLocal, SYNC_ENTRIES } from '@/lib/sync-api';
 import { deriveBodyShape } from '@/lib/body-analysis';
@@ -55,7 +52,6 @@ import styleImages from '@/data/style-images.json';
 import ResultView from '@/components/onboarding/result-view';
 import ChatStep from '@/components/onboarding/chat-step';
 import { OnboardingGuideDialog } from '@/components/onboarding/onboarding-guide-dialog';
-import { PhotoSlot } from '@/components/onboarding/photo-slot';
 import {
   SectionHeader,
   TagGroup,
@@ -78,7 +74,7 @@ import {
   clearStyleProfile,
   type StoredStyleProfile,
 } from '@/lib/style-profile-storage';
-import { ACCEPTED_IMAGE_MIME_TYPES, IMAGE_UPLOAD_SIZE_LABEL, validateImageFile } from '@/lib/image-upload-rules';
+// 照片上传功能暂未启用
 import { ONBOARDING_GUIDE_SECTIONS } from '@/lib/onboarding-guide';
 
 const FLOW = [
@@ -102,8 +98,7 @@ export default function OnboardingPage() {
 }
 
 function OnboardingContent() {
-  const faceInputRef = useRef<HTMLInputElement>(null);
-  const fullBodyInputRef = useRef<HTMLInputElement>(null);
+  const { requireAuth } = useRequireAuth();
   // 报告生成在途标记：runSubmit 防重入（快速连点只会触发一次分析）
   const submitInFlightRef = useRef(false);
   const [step, setStep] = useState(0);
@@ -115,9 +110,7 @@ function OnboardingContent() {
   const [aiAnalysis, setAiAnalysis] = useState<AiStyleProfileAnalysis | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'ai' | 'fallback'>('idle');
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [photoError, setPhotoError] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [measurementsOpen, setMeasurementsOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const isHistoryView = searchParams?.get('view') === 'history';
@@ -163,39 +156,6 @@ function OnboardingContent() {
     answers.priorities,
   ]);
 
-  const handlePhotoChange = (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const validation = validateImageFile(file);
-    if (!validation.ok) {
-      setPhotoError(validation.message);
-      event.target.value = '';
-      return;
-    }
-
-    setPhotoError(null);
-    const preview = URL.createObjectURL(file);
-    if (kind === 'face') {
-      if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
-      updateAnswers({ photo: file, photoPreview: preview });
-    } else {
-      if (answers.fullBodyPhotoPreview) URL.revokeObjectURL(answers.fullBodyPhotoPreview);
-      updateAnswers({ fullBodyPhoto: file, fullBodyPhotoPreview: preview });
-    }
-    event.target.value = '';
-  };
-
-  const handlePhotoRemove = (kind: 'face' | 'fullBody') => {
-    if (kind === 'face') {
-      if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
-      updateAnswers({ photo: null, photoPreview: null });
-    } else {
-      if (answers.fullBodyPhotoPreview) URL.revokeObjectURL(answers.fullBodyPhotoPreview);
-      updateAnswers({ fullBodyPhoto: null, fullBodyPhotoPreview: null });
-    }
-  };
-
   const filteredStyles = useMemo(() => {
     if (activeDimension === '全部') return STYLES;
     return STYLES.filter((style) => style.dimension === activeDimension);
@@ -211,8 +171,7 @@ function OnboardingContent() {
     if (step === 0) {
       return !!answers.gender && !!answers.height && !!answers.weight && !!answers.ageGroup;
     }
-    if (step === 1) return true; // 审美偏好改为选填
-    if (step === 2) return answers.userStatement.trim().length >= 20;
+    if (step === 1) return true; // 对话步骤始终可继续
     return false;
   }, [answers, step]);
 
@@ -296,11 +255,12 @@ function OnboardingContent() {
     [answers],
   );
 
-  const handleSubmit = () => runSubmit(answers);
+  const handleSubmit = () => {
+    if (!requireAuth('请先登录后再保存测评结果')) return;
+    runSubmit(answers);
+  };
 
   const handleRestart = () => {
-    if (answers.photoPreview) URL.revokeObjectURL(answers.photoPreview);
-    if (answers.fullBodyPhotoPreview) URL.revokeObjectURL(answers.fullBodyPhotoPreview);
     setAnswers(createDefaultAnswers());
     setResults([]);
     setBodyShape('unknown');
@@ -341,7 +301,7 @@ function OnboardingContent() {
 
       <OnboardingGuideDialog open={guideOpen} onClose={() => setGuideOpen(false)} />
 
-      <section className="mx-auto max-w-3xl px-6 pb-20 pt-28 lg:px-10">
+      <section className="mx-auto max-w-site px-6 pb-20 pt-28 lg:px-12">
         <div className="flex flex-col gap-8">
           {!isHistoryView && (
             <header className="text-center">
@@ -374,18 +334,26 @@ function OnboardingContent() {
                     生成于 {new Date(historyProfile.createdAt).toLocaleString('zh-CN')}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleClearHistory}
-                  className="border border-ink-900/15 bg-white/60 px-4 py-2 text-xs text-ink-500 transition hover:border-red-300 hover:text-red-700"
-                >
-                  清除档案
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/memory"
+                    className="border border-ink-900/15 bg-white/60 px-4 py-2 text-xs text-ink-500 transition hover:border-ink-900/30 hover:text-ink-700"
+                  >
+                    AI 记忆管理
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleClearHistory}
+                    className="border border-ink-900/15 bg-white/60 px-4 py-2 text-xs text-ink-500 transition hover:border-red-300 hover:text-red-700"
+                  >
+                    清除档案
+                  </button>
+                </div>
               </div>
               <motion.section
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="border border-ink-900/10 bg-[#fbfaf6] p-5 sm:p-8"
+                className="bg-[#fbfaf6]"
               >
                 <ResultView
                   results={historyProfile.results}
@@ -400,7 +368,44 @@ function OnboardingContent() {
           )}
 
           {!isHistoryView && (
-            <AnimatePresence mode="wait">
+            <>
+              {!isResultStep && (
+                <div className="flex items-center justify-center gap-0">
+                  {FLOW.map((f, i) => (
+                    <div key={f.id} className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => i < step ? setStep(i) : undefined}
+                        disabled={i > step}
+                        className={`flex items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
+                          i === step
+                            ? 'text-ink-900 font-semibold'
+                            : i < step
+                              ? 'text-ink-500 hover:text-ink-700 cursor-pointer'
+                              : 'text-ink-300 cursor-default'
+                        }`}
+                      >
+                        <span className={`flex size-6 items-center justify-center rounded-full text-[11px] font-medium transition-colors ${
+                          i === step
+                            ? 'bg-ink-900 text-creme-100'
+                            : i < step
+                              ? 'bg-[#e8ece8] text-ink-700'
+                              : 'bg-ink-100 text-ink-300'
+                        }`}>
+                          {i < step ? '✓' : i + 1}
+                        </span>
+                        <span className="hidden sm:inline">{f.label}</span>
+                      </button>
+                      {i < FLOW.length - 1 && (
+                        <span className={`mx-1 h-px w-8 transition-colors ${
+                          i < step ? 'bg-ink-400' : 'bg-ink-200'
+                        }`} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <AnimatePresence mode="wait">
               {!isResultStep ? (
                 <motion.section
                   key={step}
@@ -414,20 +419,12 @@ function OnboardingContent() {
                     <ProfileStep
                       answers={answers}
                       updateAnswers={updateAnswers}
-                      faceInputRef={faceInputRef}
-                      fullBodyInputRef={fullBodyInputRef}
-                      photoError={photoError}
-                      measurementsOpen={measurementsOpen}
-                      setMeasurementsOpen={setMeasurementsOpen}
-                      onPhotoChange={handlePhotoChange}
-                      onPhotoRemove={handlePhotoRemove}
                     />
                   )}
                   {step === 1 && (
                     <ChatStep answers={answers} onFinalize={finalizeFromChat} />
                   )}
 
-                  {step === 0 && (
                   <div className="flex items-center justify-between border-t border-ink-900/10 p-5 sm:p-7">
                     <button
                       onClick={() => setStep((current) => Math.max(0, current - 1))}
@@ -449,14 +446,13 @@ function OnboardingContent() {
                       <ArrowRight size={16} />
                     </button>
                   </div>
-                  )}
                 </motion.section>
               ) : (
                 <motion.section
                   key="result"
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="border border-ink-900/10 bg-[#fbfaf6] p-5 sm:p-8"
+                  className="bg-[#fbfaf6]"
                 >
                   <ResultView
                     results={results}
@@ -469,7 +465,7 @@ function OnboardingContent() {
                 </motion.section>
               )}
             </AnimatePresence>
-          )}
+          </>)}
         </div>
       </section>
     </main>
@@ -479,23 +475,9 @@ function OnboardingContent() {
 function ProfileStep({
   answers,
   updateAnswers,
-  faceInputRef,
-  fullBodyInputRef,
-  photoError,
-  measurementsOpen,
-  setMeasurementsOpen,
-  onPhotoChange,
-  onPhotoRemove,
 }: {
   answers: OnboardingAnswers;
   updateAnswers: (patch: Partial<OnboardingAnswers>) => void;
-  faceInputRef: React.RefObject<HTMLInputElement>;
-  fullBodyInputRef: React.RefObject<HTMLInputElement>;
-  photoError: string | null;
-  measurementsOpen: boolean;
-  setMeasurementsOpen: (open: boolean) => void;
-  onPhotoChange: (kind: 'face' | 'fullBody', event: ChangeEvent<HTMLInputElement>) => void;
-  onPhotoRemove: (kind: 'face' | 'fullBody') => void;
 }) {
   return (
     <>
@@ -505,36 +487,7 @@ function ProfileStep({
         title="基础"
         copy="必填：性别、身高、体重、年龄。"
       />
-      {false && (<div className="mx-6 mt-6 border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800 sm:mx-8">
-        照片选填，只用于穿搭分析。
-      </div>)}
       <div className="grid gap-8 p-6 sm:p-8">
-        {false && (<div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {false && (<PhotoSlot
-              label="正脸照"
-              desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
-              preview={answers.photoPreview}
-              onClick={() => faceInputRef.current?.click()}
-              onRemove={() => onPhotoRemove('face')}
-            />)}
-            {false && (<PhotoSlot
-              label="全身照"
-              desc={`选填，不超过 ${IMAGE_UPLOAD_SIZE_LABEL}。`}
-              preview={answers.fullBodyPhotoPreview}
-              onClick={() => fullBodyInputRef.current?.click()}
-              onRemove={() => onPhotoRemove('fullBody')}
-            />)}
-          </div>
-          {photoError && (
-            <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {photoError}
-            </p>
-          )}
-          {false && (<input ref={faceInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('face', event)} className="hidden" />)}
-          {false && (<input ref={fullBodyInputRef} type="file" accept={ACCEPTED_IMAGE_MIME_TYPES} onChange={(event) => onPhotoChange('fullBody', event)} className="hidden" />)}
-        </div>)}
-
         <div className="space-y-7">
           <FieldGroup title="性别表达">
             <div className="grid grid-cols-3 gap-2">
@@ -623,24 +576,6 @@ function ProfileStep({
               className="mt-3 w-full border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
             />
           </FieldGroup>
-
-          {false && (<div className="border border-ink-900/10 bg-white/40">
-            <button
-              type="button"
-              onClick={() => setMeasurementsOpen(!measurementsOpen)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-ink-800"
-            >
-              <span>三围 <span className="ml-2 text-xs font-normal text-ink-300">选填，填写后体型更准</span></span>
-              <span className="text-xs text-ink-400">{measurementsOpen ? '收起' : '填写'}</span>
-            </button>
-            {measurementsOpen && (
-              <div className="grid grid-cols-3 gap-3 border-t border-ink-900/10 p-4">
-                <NumberInput label="胸围" unit="cm" value={answers.bust ?? ''} placeholder="88" onChange={(value) => updateAnswers({ bust: value ? Number(value) : null })} />
-                <NumberInput label="腰围" unit="cm" value={answers.waist ?? ''} placeholder="68" onChange={(value) => updateAnswers({ waist: value ? Number(value) : null })} />
-                <NumberInput label="臀围" unit="cm" value={answers.hip ?? ''} placeholder="92" onChange={(value) => updateAnswers({ hip: value ? Number(value) : null })} />
-              </div>
-            )}
-          </div>)}
         </div>
       </div>
     </>

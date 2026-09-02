@@ -15,7 +15,6 @@ const NAV_LINKS: NavItem[] = [
   { label: '我的档案', href: '/onboarding?view=history' },
   { label: '衣橱', href: '/wardrobe' },
   { label: '社区', href: '/ootd' },
-  { label: 'AI 记忆', href: '/memory' },
   { label: '关于', dialog: true },
 ];
 
@@ -67,7 +66,7 @@ export default function Navigation() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.filter(item => !('href' in item && item.href === '/memory')).map((item) =>
+            {NAV_LINKS.map((item) =>
               isDialogItem(item) ? (
                 <button
                   key={item.label}
@@ -119,7 +118,7 @@ export default function Navigation() {
             className="fixed inset-0 z-40 bg-creme-100/95 backdrop-blur-xl pt-20"
           >
             <div className="flex flex-col items-center justify-center h-full gap-8 -mt-16">
-              {NAV_LINKS.filter(item => !('href' in item && item.href === '/memory')).map((item, i) => {
+              {NAV_LINKS.map((item, i) => {
                 const handle = () => {
                   setMobileOpen(false);
                   if (isDialogItem(item)) setAboutOpen(true);

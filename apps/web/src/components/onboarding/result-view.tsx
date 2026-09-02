@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -7,9 +10,7 @@ import type { OnboardingAnswers } from '@/lib/onboarding-types';
 import type { BodyShape } from '@/lib/onboarding-types';
 import { generateExplanation } from '@/lib/style-explain';
 import type { AiStyleProfileAnalysis } from '@/lib/style-profile-api';
-import { BodyExplainCard } from './explain-sections';
-import { AvoidanceZone } from './explain-sections';
-import { MultiDimensionPanel } from './explain-sections';
+import { BodyFitCard, AvoidanceZone, StyleRanking } from './explain-sections';
 
 interface ResultViewProps {
   results: StyleMatchResult[];
@@ -23,231 +24,224 @@ interface ResultViewProps {
 export default function ResultView({ results, answers, bodyShape, aiAnalysis, analysisError, onRestart }: ResultViewProps) {
   const top1 = results[0];
   const explanation = generateExplanation(results, answers, bodyShape);
+  const [showAiDetail, setShowAiDetail] = useState(false);
+
+  // 锚点导航
+  const anchors = [
+    { id: 'body-fit', label: '身形分析' },
+    { id: 'avoidance', label: '避雷建议' },
+    { id: 'style-rank', label: '风格榜单' },
+  ];
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-10">
-      <div className="grid gap-6 border-b border-ink-900/10 pb-9 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-        <div>
-          <p className="mb-4 text-xs tracking-[0.28em] text-ink-400">STYLE PROFILE REPORT</p>
-          <h1 className="font-display text-[clamp(2.7rem,6vw,6rem)] leading-[0.9] text-ink-900">
-            你的风格
-            <br />
-            档案已生成
+    <div className="w-full">
+      {/* ===== 顶部标题区：横向横排，高度大幅压缩 ===== */}
+      <div className="flex items-center justify-between gap-6 pb-4 mb-6 border-b border-ink-900/10">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1">
+            <p className="text-[10px] tracking-[0.28em] text-ink-400 shrink-0">STYLE PROFILE REPORT</p>
+            {/* 已保存档案标签 —— 和标题行合并 */}
+            <span className="inline-flex items-center gap-1 text-[10px] text-ink-400 bg-creme-200/70 px-2 py-0.5 rounded-full">
+              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              已保存
+            </span>
+          </div>
+          <h1 className="font-display text-[clamp(1.75rem,3vw,2.5rem)] leading-tight text-ink-900 text-balance">
+            你的风格档案已生成
           </h1>
-          <p className="mt-6 max-w-2xl text-sm leading-7 text-ink-500">
+          <p className="mt-0.5 text-xs text-ink-400">
             先看核心结论，再看为什么适合、怎么穿、哪些地方需要调整。
           </p>
-        </div>
-        {top1 && (
-          <Link
-            href={`/styles/${top1.styleId}`}
-            className="block border border-ink-900/10 bg-[#e8ece8] p-6 transition-all hover:bg-[#dde2dd] group"
-          >
-            <p className="text-xs tracking-[0.24em] text-ink-500">CORE STYLE</p>
-            <div className="mt-6 flex items-end justify-between gap-6">
-              <div>
-                <h2 className="font-display text-4xl leading-none group-hover:text-ink-700 transition-colors">
-                  {top1.styleName}
-                </h2>
-                <p className="mt-3 text-sm text-ink-500">
-                  {CATEGORY_LABELS[top1.category as keyof typeof CATEGORY_LABELS] || top1.category}
-                </p>
+          {/* AI 状态 —— 折叠成一行小字 */}
+          <div className="mt-1.5">
+            <button
+              onClick={() => setShowAiDetail(!showAiDetail)}
+              className="text-[11px] text-ink-400 hover:text-ink-600 transition-colors flex items-center gap-1"
+            >
+              <span className={cn(
+                'inline-block w-1.5 h-1.5 rounded-full',
+                aiAnalysis ? 'bg-green-400' : 'bg-ink-300'
+              )} />
+              {aiAnalysis ? 'AI 深度分析已完成' : '本地规则回落报告'}
+              <svg className={cn('w-3 h-3 transition-transform', showAiDetail && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showAiDetail && (
+              <div className="mt-2 p-3 bg-creme-100/80 rounded-xl border border-creme-200 text-xs text-ink-500 leading-relaxed space-y-2">
+                {aiAnalysis ? (
+                  <>
+                    <p>已调用 {aiAnalysis.providerModel}，结合照片、自述和风格库候选完成综合判断。</p>
+                    <p className="text-ink-600">{aiAnalysis.summary}</p>
+                    {analysisError && (
+                      <p className="text-amber-700">AI 调用未全部成功：{analysisError}</p>
+                    )}
+                  </>
+                ) : (
+                  <p>
+                    {analysisError
+                      ? '未完成 AI 深度视觉/语言分析，已使用本地规则生成报告，可稍后配置 AI 后重新测评。'
+                      : '当前结果来自基础画像、自述关键词和风格库规则的混合匹配。'}
+                  </p>
+                )}
               </div>
-              <ScoreBadge score={top1.score} size="lg" />
-            </div>
-            <p className="mt-3 text-xs text-ink-400 group-hover:text-ink-600 transition-colors">
-              查看风格详情 →
-            </p>
-          </Link>
-        )}
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 border border-ink-900/10 bg-[#e8ece8] p-5 md:grid-cols-[0.9fr_1.1fr]">
-        <div>
-          <p className="mb-2 text-xs tracking-[0.22em] text-ink-500">AI STATUS</p>
-          <h3 className="font-display text-3xl leading-none text-ink-900">
-            {aiAnalysis ? 'AI 深度分析报告' : '本地规则回落报告'}
-          </h3>
-          <p className="mt-3 text-sm leading-6 text-ink-500">
-            {aiAnalysis
-              ? `已调用 ${aiAnalysis.providerModel}，结合照片、自述和风格库候选完成综合判断。`
-              : '当前未完成 AI 深度视觉/语言分析，结果来自基础画像、自述关键词和风格库规则的混合匹配。'}
-          </p>
-          {analysisError && (
-            <p className="mt-3 border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-              AI 调用未成功：{analysisError}
-            </p>
+      {/* ===== 12列栅格主体 ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* ===== 左栏：col-span-8 ===== */}
+        <div className="lg:col-span-8 space-y-5">
+          {/* 身形适配分析 */}
+          <BodyFitCard explain={explanation.bodyExplain} score={explanation.multiDimension} tone="nice" />
+
+          {/* 避雷专区 */}
+          <AvoidanceZone advice={explanation.avoidanceAdvice} tone="nice" />
+
+          {/* 风格适配榜单 */}
+          <StyleRanking score={explanation.multiDimension} tone="nice" />
+
+          {/* 更多风格探索 */}
+          {results.length > 1 && (
+            <section className="scroll-mt-24">
+              <div className="p-5 bg-white rounded-2xl border border-creme-200 shadow-card">
+                <h2 className="text-base font-display text-ink-900 mb-3 flex items-center gap-2">
+                  <span>🎯</span> 更多风格探索
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {results.slice(1).map((r) => (
+                    <Link
+                      key={r.styleId}
+                      href={`/styles/${r.styleId}`}
+                      className="block p-3 bg-creme-50 rounded-xl border border-creme-200 transition-all hover:border-ink-300 hover:shadow-sm group"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="min-w-0">
+                          <span className="inline-block px-2 py-0.5 bg-creme-200 text-ink-500 text-[10px] rounded-full mb-1">
+                            {CATEGORY_LABELS[r.category as keyof typeof CATEGORY_LABELS] || r.category}
+                          </span>
+                          <h4 className="text-sm font-medium text-ink-800 group-hover:text-ink-900 transition-colors truncate">
+                            {r.styleName}
+                          </h4>
+                        </div>
+                        <span className="text-xs font-semibold text-ink-600 shrink-0 ml-2">
+                          {r.score}<span className="font-normal text-ink-300">分</span>
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5 mb-1.5">
+                        <PillarDot label="审美" value={r.pillars.aesthetic} max={50} />
+                        <PillarDot label="现实" value={r.pillars.realistic} max={30} />
+                        <PillarDot label="偏好" value={r.pillars.behavioral} max={20} />
+                      </div>
+                      <p className="text-[11px] text-ink-400 line-clamp-1 leading-relaxed">
+                        {r.matchReasons.slice(0, 1).join('；')}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </section>
           )}
         </div>
-        {aiAnalysis ? (
-          <div className="space-y-3 border border-ink-900/10 bg-[#fbfaf6]/75 p-4">
-            <p className="text-xs tracking-[0.18em] text-ink-400">AI 核心结论</p>
-            <p className="text-sm leading-7 text-ink-700">{aiAnalysis.summary}</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <AiMiniBlock title="正脸视觉" copy={aiAnalysis.visualAnalysis.face} />
-              <AiMiniBlock title="全身比例" copy={aiAnalysis.visualAnalysis.body} />
-            </div>
-          </div>
-        ) : (
-          <div className="border border-ink-900/10 bg-[#fbfaf6]/75 p-4">
-            <p className="text-sm leading-7 text-ink-600">
-              {analysisError
-                ? '已使用本地规则生成报告，可稍后配置 AI 后重新测评。'
-                : '已使用本地规则生成报告。'}
-            </p>
-          </div>
-        )}
-      </div>
 
-      {aiAnalysis && (
-        <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
-          <div className="border border-ink-900/10 bg-white/45 p-5">
-            <p className="mb-3 text-xs tracking-[0.22em] text-ink-400">AI INTENT</p>
-            <p className="text-sm leading-7 text-ink-600">{aiAnalysis.intentAnalysis.cleanedStatement}</p>
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {[
-                ...aiAnalysis.intentAnalysis.likedKeywords,
-                ...aiAnalysis.intentAnalysis.desiredImpression,
-                ...aiAnalysis.intentAnalysis.scenes,
-                ...aiAnalysis.intentAnalysis.constraints,
-              ].slice(0, 12).map((item) => (
-                <span key={item} className="bg-[#e8ece8] px-2.5 py-1 text-xs text-ink-500">
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="border border-ink-900/10 bg-white/45 p-5">
-            <p className="mb-3 text-xs tracking-[0.22em] text-ink-400">AI NEXT ACTIONS</p>
-            <ul className="space-y-2">
-              {[...aiAnalysis.avoidanceAdvice, ...aiAnalysis.nextActions].slice(0, 6).map((item) => (
-                <li key={item} className="text-sm leading-6 text-ink-600">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* ============ 体型解读（NEW）============ */}
-      <BodyExplainCard explain={explanation.bodyExplain} tone="nice" />
-
-      {/* ============ 多维评分（NEW）============ */}
-      <MultiDimensionPanel score={explanation.multiDimension} tone="nice" />
-
-      {/* ============ 避雷专区（NEW）============ */}
-      <AvoidanceZone advice={explanation.avoidanceAdvice} tone="nice" />
-
-      {/* ============ 最佳匹配 ============ */}
-      <div>
-        <h2 className="text-xs tracking-[0.24em] text-ink-400 mb-4">BEST MATCH</h2>
-
-        {top1 && (
-          <Link
-            href={`/styles/${top1.styleId}`}
-            className="block bg-ink-900 p-6 text-creme-100 transition-all hover:bg-ink-800 sm:p-8 group"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <span className="inline-block px-2.5 py-1 bg-creme-100/15 text-creme-200 text-xs rounded-full mb-2">
-                  {CATEGORY_LABELS[top1.category as keyof typeof CATEGORY_LABELS] || top1.category}
-                </span>
-                <h3 className="text-2xl font-display">{top1.styleName}</h3>
-              </div>
-              <div className="text-right">
-                <ScoreBadge score={top1.score} size="lg" />
-              </div>
-            </div>
-
-            {/* 三支柱汇总 */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
-              <PillarBar label="审美适配" value={top1.pillars.aesthetic} max={50} />
-              <PillarBar label="现实约束" value={top1.pillars.realistic} max={30} />
-              <PillarBar label="行为偏好" value={top1.pillars.behavioral} max={20} />
-            </div>
-
-            {/* 得分拆解 — 三组 */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {/* 审美适配 */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-creme-400 mb-1">审美适配</p>
-                <MiniBar label="体型" value={top1.matchBreakdown.bodyShape} max={20} />
-                <MiniBar label="偏好" value={top1.matchBreakdown.preference} max={25} />
-                <MiniBar label="肤色" value={top1.matchBreakdown.skinTone} max={5} />
-              </div>
-              {/* 现实约束 */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-creme-400 mb-1">现实约束</p>
-                <MiniBar label="预算" value={top1.matchBreakdown.budget} max={12} />
-                <MiniBar label="年龄" value={top1.matchBreakdown.ageFit} max={8} />
-                <MiniBar label="场景" value={top1.matchBreakdown.scene} max={10} />
-              </div>
-              {/* 行为偏好 */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-creme-400 mb-1">行为偏好</p>
-                <MiniBar label="优先级" value={top1.matchBreakdown.priority} max={10} />
-                <MiniBar label="目标" value={top1.matchBreakdown.goal} max={5} />
-                <MiniBar label="接受度" value={top1.matchBreakdown.openness} max={5} />
-              </div>
-            </div>
-
-            {/* 推荐理由 */}
-            <ul className="space-y-1">
-              {top1.matchReasons.map((r, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm text-creme-300 font-light">
-                  <span className="w-1.5 h-1.5 rounded-full bg-creme-300 shrink-0" />
-                  {r}
-                </li>
-              ))}
-            </ul>
-
-            <p className="mt-4 text-xs text-creme-400 group-hover:text-creme-300 transition-colors">
-              查看完整风格档案 →
-            </p>
-          </Link>
-        )}
-      </div>
-
-      {/* ============ 更多推荐 ============ */}
-      {results.length > 1 && (
-        <div>
-          <h2 className="text-xs tracking-[0.24em] text-ink-400 mb-4">SECONDARY STYLES</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {results.slice(1).map((r) => (
-              <Link
-                key={r.styleId}
-                href={`/styles/${r.styleId}`}
-                className="block border border-ink-900/10 bg-white/55 p-5 transition-all hover:border-ink-900/35 group"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <span className="inline-block px-2 py-0.5 bg-creme-200 text-ink-500 text-[10px] rounded-full mb-1.5">
-                      {CATEGORY_LABELS[r.category as keyof typeof CATEGORY_LABELS] || r.category}
+        {/* ===== 右栏：col-span-4 固定悬浮 ===== */}
+        <aside className="hidden lg:block lg:col-span-4">
+          <div className="sticky top-28 space-y-4">
+            {/* 核心风格总览 —— 放大黑色卡片 */}
+            {top1 && (
+              <div className="p-5 bg-ink-900 rounded-2xl text-creme-100">
+                <p className="text-[10px] tracking-[0.24em] text-creme-400 mb-3">CORE STYLE</p>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="inline-block px-2 py-0.5 bg-creme-100/15 text-creme-200 text-[10px] rounded-full mb-1.5">
+                      {CATEGORY_LABELS[top1.category as keyof typeof CATEGORY_LABELS] || top1.category}
                     </span>
-                    <h4 className="font-semibold text-ink-800 group-hover:text-ink-900 transition-colors">
-                      {r.styleName}
-                    </h4>
+                    <h3 className="font-display text-2xl leading-tight">{top1.styleName}</h3>
                   </div>
-                  <ScoreBadge score={r.score} size="sm" />
+                  <ScoreBadge score={top1.score} size="lg" />
                 </div>
-                {/* 小型三支柱条 */}
-                <div className="flex gap-1.5 mb-2">
-                  <PillarDot label="审美" value={r.pillars.aesthetic} max={50} />
-                  <PillarDot label="现实" value={r.pillars.realistic} max={30} />
-                  <PillarDot label="偏好" value={r.pillars.behavioral} max={20} />
-                </div>
-                <p className="text-xs text-ink-500 line-clamp-2">
-                  {r.matchReasons.join('；')}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* ============ 操作区 ============ */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center pt-6 border-t border-ink-900/10">
+                {/* 三支柱 */}
+                <div className="space-y-2.5 mb-4">
+                  <SidePillarBar label="审美适配" value={top1.pillars.aesthetic} max={50} />
+                  <SidePillarBar label="现实约束" value={top1.pillars.realistic} max={30} />
+                  <SidePillarBar label="行为偏好" value={top1.pillars.behavioral} max={20} />
+                </div>
+
+                {/* 维度拆解（默认折叠） */}
+                <details className="group mb-4">
+                  <summary className="text-[11px] text-creme-400 cursor-pointer hover:text-creme-200 transition-colors flex items-center gap-1">
+                    <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    查看完整维度
+                  </summary>
+                  <div className="mt-2 space-y-2 pt-2 border-t border-creme-100/15">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-creme-400">审美适配</p>
+                      <MiniSideBar label="体型" value={top1.matchBreakdown.bodyShape} max={20} />
+                      <MiniSideBar label="偏好" value={top1.matchBreakdown.preference} max={25} />
+                      <MiniSideBar label="肤色" value={top1.matchBreakdown.skinTone} max={5} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-creme-400">现实约束</p>
+                      <MiniSideBar label="预算" value={top1.matchBreakdown.budget} max={12} />
+                      <MiniSideBar label="年龄" value={top1.matchBreakdown.ageFit} max={8} />
+                      <MiniSideBar label="场景" value={top1.matchBreakdown.scene} max={10} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-creme-400">行为偏好</p>
+                      <MiniSideBar label="优先级" value={top1.matchBreakdown.priority} max={10} />
+                      <MiniSideBar label="目标" value={top1.matchBreakdown.goal} max={5} />
+                      <MiniSideBar label="接受度" value={top1.matchBreakdown.openness} max={5} />
+                    </div>
+                  </div>
+                </details>
+
+                <Link
+                  href={`/styles/${top1.styleId}`}
+                  className="block text-center text-xs text-creme-400 hover:text-creme-200 transition-colors py-2 border-t border-creme-100/15 mb-4"
+                >
+                  查看完整风格档案 →
+                </Link>
+
+                {/* 锚点导航 */}
+                <nav className="space-y-1 mb-4">
+                  <p className="text-[10px] tracking-[0.2em] text-creme-400">快速导航</p>
+                  {anchors.map((a) => (
+                    <a
+                      key={a.id}
+                      href={`#${a.id}`}
+                      className="block text-xs text-creme-300 hover:text-creme-100 transition-colors py-1.5 px-2 rounded-lg hover:bg-creme-100/10"
+                    >
+                      {a.label}
+                    </a>
+                  ))}
+                </nav>
+
+                {/* 固定操作按钮 */}
+                <div className="space-y-2 pt-3 border-t border-creme-100/15">
+                  <Link href="/wardrobe" className="block">
+                    <Button variant="default" size="sm" className="w-full text-xs">
+                      去衣柜搭一套看看 →
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="sm" className="w-full text-xs text-creme-300 hover:text-creme-100 hover:bg-creme-100/10" onClick={onRestart}>
+                    重新测试
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      {/* ===== 移动端底部操作区（lg 隐藏） ===== */}
+      <div className="lg:hidden flex flex-col sm:flex-row gap-3 justify-center pt-6 mt-6 border-t border-ink-900/10">
         <Link href="/wardrobe">
           <Button variant="default" size="lg">
             去衣柜搭一套看看 →
@@ -282,27 +276,37 @@ function ScoreBadge({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' 
   );
 }
 
-function AiMiniBlock({ title, copy }: { title: string; copy: string }) {
+/** 侧边栏三支柱条 */
+function SidePillarBar({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
   return (
-    <div className="bg-white/60 p-3">
-      <p className="mb-1 text-xs text-ink-400">{title}</p>
-      <p className="text-xs leading-5 text-ink-600">{copy}</p>
+    <div>
+      <div className="flex justify-between text-[10px] mb-0.5">
+        <span className="text-creme-300">{label}</span>
+        <span className="text-creme-200">{value}/{max}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-creme-100/15 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-creme-200 to-creme-100 transition-all duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }
 
-/** 三支柱大条 — 用于最佳匹配 */
-function PillarBar({ label, value, max }: { label: string; value: number; max: number }) {
+/** 侧边栏细分条 */
+function MiniSideBar({ label, value, max }: { label: string; value: number; max: number }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
-    <div className="text-center">
-      <div className="flex justify-between text-[10px] mb-1">
+    <div>
+      <div className="flex justify-between text-[10px] mb-0.5">
         <span className="text-creme-300">{label}</span>
         <span className="text-creme-200">{value}/{max}</span>
       </div>
-      <div className="h-2 rounded-full bg-creme-100/15 overflow-hidden">
+      <div className="h-1 rounded-full bg-creme-100/15 overflow-hidden">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-creme-200 to-creme-100 transition-all duration-700"
+          className="h-full rounded-full bg-creme-200 transition-all duration-700"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -322,24 +326,6 @@ function PillarDot({ label, value, max }: { label: string; value: number; max: n
       </div>
       <div className="h-1 rounded-full bg-creme-200 overflow-hidden">
         <div className={cn('h-full rounded-full', tone)} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function MiniBar({ label, value, max }: { label: string; value: number; max: number }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  return (
-    <div>
-      <div className="flex justify-between text-[10px] mb-0.5">
-        <span className="text-creme-300">{label}</span>
-        <span className="text-creme-200">{value}/{max}</span>
-      </div>
-      <div className="h-1 rounded-full bg-creme-100/15 overflow-hidden">
-        <div
-          className="h-full rounded-full bg-creme-200 transition-all duration-700"
-          style={{ width: `${pct}%` }}
-        />
       </div>
     </div>
   );

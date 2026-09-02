@@ -36,6 +36,26 @@ export class OotdPost {
   @Column({ name: 'score_json', type: 'text', nullable: true })
   scoreJson?: string;
 
+  /** 审核状态：pending / approved / rejected */
+  @Column({ type: 'varchar', length: 20, default: 'pending' })
+  status: string;
+
+  /** 风格标签（JSON 数组字符串） */
+  @Column({ name: 'style_tags', type: 'text', nullable: true })
+  styleTags?: string;
+
+  /** 审核人 userId */
+  @Column({ name: 'reviewed_by', type: 'varchar', nullable: true })
+  reviewedBy?: string;
+
+  /** 审核时间 */
+  @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })
+  reviewedAt?: Date;
+
+  /** 拒绝原因 */
+  @Column({ name: 'reject_reason', type: 'text', nullable: true })
+  rejectReason?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

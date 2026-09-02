@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, X, Plus } from 'lucide-react';
+import { Search, X, Plus, Shirt } from 'lucide-react';
 import WardrobeUploader from '@/components/wardrobe/wardrobe-uploader';
 import ManualAddDialog from '@/components/wardrobe/manual-add-dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   fetchWardrobeItems,
 } from '@/lib/wardrobe-api';
@@ -14,6 +15,7 @@ import {
   CATEGORY_LABELS,
   SUBCATEGORIES,
 } from '@/lib/wardrobe-types';
+import { useRequireAuth } from '@/lib/require-auth';
 
 type Filter = 'all' | WardrobeCategory;
 
@@ -29,11 +31,8 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'accessory', label: CATEGORY_LABELS.accessory },
 ];
 
-const ITEM_CATEGORY_EMOJI: Record<string, string> = {
-  top: '👕', outerwear: '🧥', bottom: '👖', dress: '👗', shoes: '👟', bag: '👜', hat: '🎩', accessory: '💍',
-};
-
 export default function WardrobePage() {
+  const { requireAuth } = useRequireAuth();
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,9 +88,9 @@ export default function WardrobePage() {
     items.filter((i) => i.category === cat).length;
 
   return (
-    <main className="min-h-screen bg-[#f4f1ea] pb-40">
+    <main className="min-h-screen bg-creme-200 pb-16">
       {/* Header */}
-      <div className="sticky top-0 z-30 border-b border-ink-900/10 bg-[#f4f1ea]/85 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 border-b border-ink-900/10 bg-creme-200/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
           <Link
             href="/"
@@ -116,13 +115,16 @@ export default function WardrobePage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setManualOpen(true)}
+              onClick={() => {
+                if (!requireAuth('请先登录后再管理衣橱')) return;
+                setManualOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 rounded-full border border-ink-900/15 px-4 py-2.5 text-sm text-ink-700 hover:border-ink-900/40 transition-colors"
             >
               <Plus size={16} />
               手动录入
             </button>
-            <WardrobeUploader onUploaded={load} />
+            <WardrobeUploader onUploaded={load} requireAuth={requireAuth} />
           </div>
         </div>
 
@@ -141,13 +143,12 @@ export default function WardrobePage() {
                   key={f.key}
                   type="button"
                   onClick={() => { setFilter(f.key); setSubFilter(null); }}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-all duration-200 ${
                     active
                       ? 'bg-ink-900 text-creme-100'
                       : 'border border-ink-900/10 bg-white text-ink-600 hover:border-ink-900/30'
                   }`}
                 >
-                  <span className="text-xs">{ITEM_CATEGORY_EMOJI[f.key]}</span>
                   {f.label}
                   <span className={`text-xs ${active ? 'text-creme-200' : 'text-ink-300'}`}>
                     {count}
@@ -163,7 +164,7 @@ export default function WardrobePage() {
               <button
                 type="button"
                 onClick={() => setSubFilter(null)}
-                className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                className={`rounded-full px-2.5 py-1 text-xs transition-all duration-200 ${
                   subFilter === null ? 'bg-ink-900 text-creme-100' : 'bg-white border border-ink-900/10 text-ink-500 hover:border-ink-900/30'
                 }`}
               >
@@ -174,7 +175,7 @@ export default function WardrobePage() {
                   key={sub}
                   type="button"
                   onClick={() => setSubFilter(sub)}
-                  className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                  className={`rounded-full px-2.5 py-1 text-xs transition-all duration-200 ${
                     subFilter === sub ? 'bg-ink-900 text-creme-100' : 'bg-white border border-ink-900/10 text-ink-500 hover:border-ink-900/30'
                   }`}
                 >
@@ -193,29 +194,19 @@ export default function WardrobePage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="搜索颜色、材质、风格标签…"
-                className="w-full rounded-xl border border-ink-900/10 bg-white pl-9 pr-8 py-2.5 text-sm outline-none focus:border-ink-900/30 transition-colors"
+                className="w-full rounded-full border border-ink-900/10 bg-white pl-9 pr-8 py-2.5 text-sm outline-none transition-all duration-200 focus:border-ink-900/30"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-500"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-500 transition-colors duration-200"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm transition-colors ${
-                filter !== 'all'
-                  ? 'border-ink-900/30 bg-ink-50 text-ink-900'
-                  : 'border-ink-900/10 bg-white text-ink-500 hover:border-ink-900/30'
-              }`}
-            >
-              <SlidersHorizontal size={16} />
-              筛选
-            </button>
+            
           </div>
 
           {/* 激活的筛选标签 */}
@@ -251,14 +242,34 @@ export default function WardrobePage() {
             </button>
           </div>
         ) : filteredItems.length === 0 ? (
-          <EmptyState hasItems={items.length > 0} />
+          <EmptyState
+            icon={<Shirt size={28} strokeWidth={1.5} />}
+            title={items.length > 0 ? '没有匹配的衣物' : '衣橱还是空的'}
+            description={
+              items.length > 0
+                ? '试试调整筛选条件或搜索关键词'
+                : '拍照上传第一件衣服，AI 会自动识别品类、颜色和风格标签'
+            }
+            action={
+              items.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setManualOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-creme-50 transition-all duration-200 hover:bg-ink-800 active:scale-[0.98]"
+                >
+                  <Plus size={15} />
+                  手动录入第一件
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
             {filteredItems.map((item) => (
               <Link
                 key={item.id}
                 href={`/wardrobe/items/${item.id}`}
-                className="group rounded-xl border border-ink-900/10 bg-white overflow-hidden hover:shadow-md transition-all"
+                className="group rounded-xl border border-ink-900/10 bg-white overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
               >
                 {/* 照片区域 */}
                 <div className="aspect-square bg-ink-50 relative overflow-hidden">
@@ -269,8 +280,8 @@ export default function WardrobePage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="flex items-center justify-center w-full h-full text-4xl">
-                      {ITEM_CATEGORY_EMOJI[item.category] || '👔'}
+                    <div className="flex items-center justify-center w-full h-full">
+                      <Shirt size={32} strokeWidth={1.5} className="text-ink-200" />
                     </div>
                   )}
                 </div>
@@ -296,22 +307,5 @@ export default function WardrobePage() {
 
       <ManualAddDialog open={manualOpen} onClose={() => setManualOpen(false)} onAdded={load} />
     </main>
-  );
-}
-
-/** 空状态 */
-function EmptyState({ hasItems }: { hasItems: boolean }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="text-6xl mb-4">👔</div>
-      <h3 className="text-xl font-semibold text-ink-900">
-        {hasItems ? '没有匹配的衣物' : '衣橱还是空的'}
-      </h3>
-      <p className="mt-2 text-sm text-ink-500 max-w-xs">
-        {hasItems
-          ? '试试调整筛选条件或搜索关键词'
-          : '点击上方「添加衣物」，拍照上传第一件衣服吧'}
-      </p>
-    </div>
   );
 }

@@ -41,6 +41,9 @@ export class User {
   @Column({ type: 'decimal', precision: 5, scale: 1, nullable: true })
   weight: number;
 
+  @Column({ type: 'varchar', length: 50, default: 'user' })
+  role: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

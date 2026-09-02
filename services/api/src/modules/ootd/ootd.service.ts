@@ -20,6 +20,9 @@ export interface OotdPostView {
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
+  status: string;
+  styleTags?: string;
+  rejectReason?: string;
 }
 
 @Injectable()
@@ -44,6 +47,7 @@ export class OotdService {
     const skip = (Math.max(page, 1) - 1) * take;
 
     const [posts, total] = await this.postRepo.findAndCount({
+      where: { status: 'approved' },
       order: { createdAt: 'DESC' },
       skip,
       take,
@@ -69,6 +73,8 @@ export class OotdService {
         likeCount,
         commentCount,
         likedByMe: !!myLike,
+        status: post.status,
+        styleTags: post.styleTags,
       });
     }
 
@@ -77,7 +83,7 @@ export class OotdService {
 
   async create(
     userId: string,
-    data: { imageData: string; caption?: string; scoreAvg?: number; scoreJson?: string },
+    data: { imageData: string; caption?: string; scoreAvg?: number; scoreJson?: string; styleTags?: string },
   ): Promise<OotdPost> {
     if (!data.imageData || !data.imageData.startsWith('data:image/')) {
       throw new BadRequestException('图片数据无效');
@@ -95,6 +101,8 @@ export class OotdService {
       caption: data.caption,
       scoreAvg: data.scoreAvg,
       scoreJson: data.scoreJson,
+      styleTags: data.styleTags,
+      status: 'pending',
     });
     const saved = await this.postRepo.save(post);
     this.logger.log(`OOTD 发布 | userId: ${userId} | postId: ${saved.id}`);
@@ -144,5 +152,60 @@ export class OotdService {
     }
     const comment = this.commentRepo.create({ postId, userId, content: trimmed });
     return this.commentRepo.save(comment);
+  }
+
+  /** 管理员：按状态查询帖子列表 */
+  async adminList(
+    status: string,
+    page = 1,
+    pageSize = 20,
+  ): Promise<{ items: OotdPostView[]; total: number; hasMore: boolean }> {
+    const take = Math.min(Math.max(pageSize, 1), 50);
+    const skip = (Math.max(page, 1) - 1) * take;
+
+    const where = status && status !== 'all' ? { status } : {};
+    const [posts, total] = await this.postRepo.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip,
+      take,
+    });
+
+    const items: OotdPostView[] = posts.map((post) => ({
+      id: post.id,
+      userId: post.userId,
+      imageData: post.imageData,
+      caption: post.caption,
+      scoreAvg: post.scoreAvg,
+      scoreJson: post.scoreJson,
+      createdAt: post.createdAt,
+      likeCount: 0,
+      commentCount: 0,
+      likedByMe: false,
+      status: post.status,
+      styleTags: post.styleTags,
+      rejectReason: post.rejectReason,
+    }));
+
+    return { items, total, hasMore: skip + take < total };
+  }
+
+  /** 管理员：审核帖子 */
+  async reviewPost(
+    postId: string,
+    reviewerId: string,
+    action: 'approved' | 'rejected',
+    rejectReason?: string,
+  ): Promise<OotdPost> {
+    const post = await this.postRepo.findOne({ where: { id: postId } });
+    if (!post) throw new NotFoundException('帖子不存在');
+
+    post.status = action;
+    post.reviewedBy = reviewerId;
+    post.reviewedAt = new Date();
+    if (action === 'rejected') {
+      post.rejectReason = rejectReason || undefined;
+    }
+    return this.postRepo.save(post);
   }
 }

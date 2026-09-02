@@ -16,6 +16,7 @@ import {
   type ScoringHistoryRecord,
 } from '@/lib/scoring-history';
 import type { EvaluateOutfitResponse } from '@/lib/scoring-types';
+import { useRequireAuth } from '@/lib/require-auth';
 
 const OCCASION_OPTIONS = [
   { value: '', label: '不限' },
@@ -28,6 +29,7 @@ const OCCASION_OPTIONS = [
 ];
 
 export default function ScoreOutfitPage() {
+  const { requireAuth } = useRequireAuth();
   const [imageBase64, setImageBase64] = useState('');
   const [occasion, setOccasion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,6 +50,7 @@ export default function ScoreOutfitPage() {
   }, []);
 
   const handleSubmit = async () => {
+    if (!requireAuth('请先登录后再使用穿搭诊断')) return;
     if (!imageBase64) {
       setError('请先上传穿搭照片');
       return;

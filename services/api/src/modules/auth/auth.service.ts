@@ -40,7 +40,7 @@ export class AuthService {
       }
     }
 
-    return this.issueToken(user.id);
+    return this.issueToken(user);
   }
 
   /** 登录：phone + password → JWT。可选 legacyUserId 迁移旧数据 */
@@ -69,20 +69,22 @@ export class AuthService {
       }
     }
 
-    return this.issueToken(user.id);
+    return this.issueToken(user);
   }
 
   /** 验证 JWT payload */
-  async validateUser(payload: { sub: string }): Promise<{ id: string }> {
+  async validateUser(payload: { sub: string }): Promise<{ id: string; role: string; phone: string }> {
     const user = await this.userService.findById(payload.sub);
     if (!user) throw new UnauthorizedException('用户不存在');
-    return { id: user.id };
+    return { id: user.id, role: user.role, phone: user.phone };
   }
 
-  private issueToken(userId: string) {
+  private issueToken(user: { id: string; role: string; phone: string }) {
     return {
-      accessToken: this.jwtService.sign({ sub: userId }),
-      userId,
+      accessToken: this.jwtService.sign({ sub: user.id }),
+      userId: user.id,
+      role: user.role,
+      phone: user.phone,
     };
   }
 

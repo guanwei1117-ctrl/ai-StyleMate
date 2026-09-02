@@ -33,6 +33,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/admin/dashboard', label: '仪表盘' },
+    { href: '/admin/ootd', label: '帖子审核' },
+    { href: '/admin/tags', label: '标签管理' },
     { href: '/admin/suggestions', label: '用户建议' },
   ];
 

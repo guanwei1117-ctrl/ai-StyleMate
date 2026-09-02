@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { generateTodayOutfit } from '@/lib/today-outfit-api';
 import { submitFeedback } from '@/lib/feedback-api';
 import type { TodayOutfitResponse, OutfitPlan } from '@/lib/today-outfit-types';
+import { useRequireAuth } from '@/lib/require-auth';
 
 export default function DailyRecommendPage() {
+  const { requireAuth } = useRequireAuth();
   const [city, setCity] = useState('上海');
   const [occasion, setOccasion] = useState('commute');
   const [styleGoal, setStyleGoal] = useState('comfortable');
@@ -20,6 +22,7 @@ export default function DailyRecommendPage() {
   const [submitting, setSubmitting] = useState<Record<number, boolean>>({});
 
   async function handleGenerate() {
+    if (!requireAuth('请先登录后再使用每日推荐')) return;
     setLoading(true);
     setError('');
     setResult(null);
@@ -79,20 +82,14 @@ export default function DailyRecommendPage() {
                 onChange={(e) => setOccasion(e.target.value)}
                 className="rounded-lg border border-ink/20 px-3 py-2"
               >
-                {[
-                  'commute',
-                  'work',
-                  'date',
-                  'client',
-                  'shopping',
-                  'travel',
-                  'party',
-                  'casual',
-                ].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
+                <option value="commute">通勤</option>
+                <option value="work">上班</option>
+                <option value="date">约会</option>
+                <option value="client">见客户</option>
+                <option value="shopping">逛街</option>
+                <option value="travel">出游</option>
+                <option value="party">派对</option>
+                <option value="casual">日常休闲</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
@@ -102,18 +99,12 @@ export default function DailyRecommendPage() {
                   onChange={(e) => setStyleGoal(e.target.value)}
                   className="rounded-lg border border-ink/20 px-3 py-2"
                 >
-                {[
-                  'comfortable',
-                  'slimming',
-                  'taller',
-                  'polished',
-                  'lowkey',
-                  'photogenic',
-                ].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
+                <option value="comfortable">舒适自在</option>
+                <option value="slimming">显瘦</option>
+                <option value="taller">显高</option>
+                <option value="polished">精致得体</option>
+                <option value="lowkey">低调简约</option>
+                <option value="photogenic">上镜出片</option>
               </select>
             </label>
           </div>

@@ -48,7 +48,7 @@ export class OotdController {
   @Post()
   @ApiOperation({ summary: '发布 OOTD（需登录）' })
   async create(
-    @Body() body: { imageData: string; caption?: string; scoreAvg?: number; scoreJson?: string },
+    @Body() body: { imageData: string; caption?: string; scoreAvg?: number; scoreJson?: string; styleTags?: string },
     @Req() req: Request,
   ) {
     const userId = this.requireUser(req);

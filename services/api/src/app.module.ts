@@ -27,6 +27,7 @@ if (dbEnabled) {
   const { SyncModule } = require('./modules/sync/sync.module');
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { OotdModule } = require('./modules/ootd/ootd.module');
+  const { AdminModule } = require('./modules/admin/admin.module');
 
   dbModules.push(
     TypeOrmModule.forRoot({
@@ -47,6 +48,7 @@ if (dbEnabled) {
     AuthModule,
     SyncModule,
     OotdModule,
+    AdminModule,
   );
 }
 

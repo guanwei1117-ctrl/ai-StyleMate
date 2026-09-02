@@ -4,20 +4,24 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all duration-200 focus-visible:outline-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm',
-        destructive: 'bg-red-500 text-white hover:bg-red-600',
-        outline: 'border border-gray-200 bg-white hover:bg-gray-50 text-gray-900',
-        secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
-        ghost: 'hover:bg-gray-100 text-gray-700',
+        // 主行动：墨色实心（编辑风）
+        default: 'bg-ink-900 text-creme-50 hover:bg-ink-700 shadow-sm hover:shadow-md',
+        // 功能强调：雾霾蓝（链接/选中态以外的次主行动）
+        accent: 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:shadow-md',
+        destructive: 'bg-red-600 text-white hover:bg-red-700',
+        outline:
+          'border border-ink-200 bg-transparent text-ink-900 hover:border-ink-900 hover:bg-ink-900/5',
+        secondary: 'bg-ink-100 text-ink-900 hover:bg-ink-200',
+        ghost: 'text-ink-600 hover:bg-ink-900/5 hover:text-ink-900',
         link: 'text-primary-600 underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-10 px-5 py-2',
-        sm: 'h-8 px-3 text-xs',
+        default: 'h-10 px-5',
+        sm: 'h-8 px-3.5 text-xs',
         lg: 'h-12 px-8 text-base',
         icon: 'h-10 w-10',
       },

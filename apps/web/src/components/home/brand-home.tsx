@@ -172,7 +172,7 @@ export default function BrandHome() {
               const Icon = item.icon;
               return (
                 <motion.div key={item.title} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.06 }}>
-                  <Link href={item.href} className="group block h-full rounded-[2rem] border border-[#eadfce] bg-[#fffdf8] p-6 shadow-[0_14px_40px_rgba(83,65,45,0.07)] transition hover:-translate-y-1 hover:border-[#cdd9c4]">
+                  <Link href={item.href} className="group block h-full rounded-[2rem] border border-[#eadfce] bg-[#fffdf8] p-6 shadow-[0_14px_40px_rgba(83,65,45,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#cdd9c4] hover:shadow-lift">
                     <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-full bg-[#edf3e9] text-[#6d8065]">
                       <Icon size={20} />
                     </div>

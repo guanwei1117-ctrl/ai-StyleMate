@@ -82,6 +82,67 @@ export interface SuggestionList {
   pageSize: number;
 }
 
+export interface OotdPostItem {
+  id: string;
+  userId: string;
+  imageData: string;
+  caption?: string;
+  scoreAvg?: number;
+  scoreJson?: string;
+  createdAt: string;
+  status: string;
+  styleTags?: string;
+  rejectReason?: string;
+}
+
+export interface OotdPostList {
+  items: OotdPostItem[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface StyleTag {
+  name: string;
+  label: string;
+}
+
+async function patchJson<T>(path: string, body?: any): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: '请求失败' }));
+    throw new Error(err.message || `请求失败 (${res.status})`);
+  }
+  return res.json();
+}
+
+async function postJson<T>(path: string, body: any): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: '请求失败' }));
+    throw new Error(err.message || `请求失败 (${res.status})`);
+  }
+  return res.json();
+}
+
+async function del(path: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: '删除失败' }));
+    throw new Error(err.message || `删除失败 (${res.status})`);
+  }
+}
+
 export const adminApi = {
   overview: () => fetchJson<OverviewData>('/admin/overview'),
   usersTrend: (days = 30) => fetchJson<UsersTrendItem[]>(`/admin/users-trend?days=${days}`),
@@ -99,4 +160,15 @@ export const adminApi = {
     });
     if (!res.ok) throw new Error('标记失败');
   },
+  // 帖子审核
+  ootdPosts: (status = 'pending', page = 1, pageSize = 20) =>
+    fetchJson<OotdPostList>(`/admin/ootd/posts?status=${status}&page=${page}&pageSize=${pageSize}`),
+  reviewOotdPost: (postId: string, action: 'approved' | 'rejected', rejectReason?: string) =>
+    patchJson<OotdPostItem>(`/admin/ootd/posts/${postId}/review`, { action, rejectReason }),
+  // 风格标签
+  getTags: () => fetchJson<StyleTag[]>('/admin/tags'),
+  createTag: (name: string, label: string) => postJson<StyleTag[]>('/admin/tags', { name, label }),
+  updateTag: (oldName: string, newName?: string, newLabel?: string) =>
+    patchJson<StyleTag[]>(`/admin/tags/${encodeURIComponent(oldName)}`, { name: newName, label: newLabel }),
+  deleteTag: (name: string) => del(`/admin/tags/${encodeURIComponent(name)}`),
 };

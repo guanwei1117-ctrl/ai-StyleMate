@@ -57,10 +57,10 @@ export function SuggestionFab() {
             <path
               d="M12 2C8 2 5 5 5 9c0 2.5 1.5 4.5 3 5.5V18h8v-3.5c1.5-1 3-3 3-5.5 0-4-3-7-7-7z"
               stroke="currentColor"
-              strokeWidth="1.8"
+              strokeWidth="2"
               strokeLinejoin="round"
             />
-            <path d="M9 21h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M9 21h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         )}
       </button>

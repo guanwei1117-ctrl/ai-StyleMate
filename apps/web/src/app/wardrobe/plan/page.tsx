@@ -18,7 +18,7 @@ const WEEKDAYS = ['一','二','三','四','五','六','日'];
 // 垂直展示顺序
 const DISPLAY_ORDER = ['hat','top','bottom','outerwear','shoes','bag','accessory'] as const;
 const DISPLAY_LABELS: Record<string, string> = { hat:'帽子', top:'上衣', bottom:'裤子', outerwear:'外套', shoes:'鞋', bag:'背包', accessory:'配饰' };
-const DISPLAY_EMOJI: Record<string, string> = { hat:'🎩', top:'👕', bottom:'👖', outerwear:'🧥', shoes:'👟', bag:'🎒', accessory:'💍' };
+const DISPLAY_CHAR: Record<string, string> = { hat:'帽', top:'衣', bottom:'裤', outerwear:'外', shoes:'鞋', bag:'包', accessory:'配' };
 // 用于品类筛选器
 const CAT_OPTIONS = [
   { key:'hat', cat:'hat', label:'帽子' }, { key:'top', cat:'top', label:'上衣' },
@@ -142,8 +142,8 @@ export default function PlanPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f1ea] pb-24">
-      <div className="sticky top-0 z-30 border-b border-ink-900/10 bg-[#f4f1ea]/85 backdrop-blur-xl">
+    <main className="min-h-screen bg-creme-200 pb-24">
+      <div className="sticky top-0 z-30 border-b border-ink-900/10 bg-creme-200/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
           <Link href="/" className="text-sm text-ink-500 hover:text-ink-900">← 返回首页</Link>
           <p className="font-display text-lg tracking-wide">STYLEMATE</p>
@@ -197,7 +197,7 @@ export default function PlanPage() {
                               const photoUrl = s.imageUrl || (s.itemId ? itemPhotoMap.get(s.itemId) : undefined);
                               return (
                                 <div key={slotKey} className="flex items-center gap-1.5 bg-white rounded-lg p-1 group">
-                                  <span className="text-xs shrink-0">{DISPLAY_EMOJI[slotKey]}</span>
+                                  <span className="flex size-4 shrink-0 items-center justify-center rounded bg-ink-50 text-[9px] font-medium text-ink-500">{DISPLAY_CHAR[slotKey]}</span>
                                   {photoUrl ? <img src={photoUrl} alt="" className="size-8 object-cover rounded"/>:<Shirt size={12} className="text-gray-300 shrink-0"/>}
                                   <span className="text-[9px] lg:text-[10px] text-ink-700 truncate flex-1">{s.description}</span>
                                   <button type="button" onClick={()=>removeSlot(dateStr,slotKey)} aria-label="移除" className="shrink-0 opacity-0 group-hover:opacity-100 text-ink-300 hover:text-red-500"><X size={10}/></button>

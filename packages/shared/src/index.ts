@@ -425,6 +425,53 @@ export interface StyleCard {
   keyItems: string[];
   colorPalette: string[];
   imageUrl?: string;
+  /** 风格内核简介（2-4行，必填） */
+  summary: string;
+  /** 核心单品简短描述（与 keyItems 一一对应，选填） */
+  keyItemDescriptions?: string[];
+  /** 廓形逻辑简短说明（选填） */
+  silhouetteDescription?: string;
+  /** 色彩简短解读（选填） */
+  colorDescription?: string;
+  /** 风格专属建议（选填） */
+  styleSpecificAdvice?: {
+    suitableFor: string;
+    cautionPoints: string;
+    sceneAdvice: string;
+  };
+  /** 季节穿搭（选填） */
+  seasonalLooks?: {
+    season: 'spring_summer' | 'autumn_winter';
+    title: string;
+    description: string;
+    items: string[];
+  }[];
+  /** 品牌推荐（选填） */
+  brandRecommendations?: {
+    tier: 'premium' | 'mid' | 'budget';
+    brandName: string;
+    priceRange: string;
+    reason: string;
+  }[];
+  /** 颜色搭配指南（选填） */
+  colorGuidance?: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    ratio: string;
+  };
+  /** 身材适配建议（选填） */
+  bodyFitTips?: {
+    pearShape?: string;
+    appleShape?: string;
+    hourglass?: string;
+    rectangle?: string;
+    invertedTriangle?: string;
+  };
+  /** 相似风格 styleId 数组（选填） */
+  similarStyles?: string[];
+  /** 进阶风格 styleId 数组（选填） */
+  nextStyles?: string[];
 }
 
 /** 后端风格分类 */

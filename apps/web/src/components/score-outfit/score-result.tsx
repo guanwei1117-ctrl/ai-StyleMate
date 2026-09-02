@@ -14,12 +14,13 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
-import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle, Share2, Loader2, Users } from "lucide-react";
+import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle, Share2, Loader2, Users, CheckCircle, X } from "lucide-react";
 import { buildScoringSummaryText } from "@/lib/scoring-summary";
 import { renderShareCardImage } from "@/lib/scoring-share-card";
 import { fetchWardrobeItems } from "@/lib/wardrobe-api";
 import { CATEGORY_LABELS, WardrobeItem } from "@/lib/wardrobe-types";
 import { publishOotd, blobToDataUrl } from "@/lib/ootd-api";
+import { adminApi, type StyleTag } from "@/lib/admin-api";
 import { isAuthenticated } from "@/lib/auth";
 import type { StructuredOutfitResult } from "@stylemate/shared";
 
@@ -37,6 +38,11 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
   const [sharing, setSharing] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [publishModal, setPublishModal] = useState(false);
+  const [publishDone, setPublishDone] = useState(false);
+  const [tags, setTags] = useState<StyleTag[]>([]);
+  const [selectedTag, setSelectedTag] = useState("");
+  const [tagLoading, setTagLoading] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   const handleCopySummary = async () => {
@@ -85,15 +91,31 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
     }
   };
 
-  // 发布到 OOTD 社区：生成分享卡 → 上传 → 跳转社区
+  // 发布到 OOTD 社区：打开标签选择弹窗
   const handlePublishOotd = async () => {
     if (!isAuthenticated()) {
       setShareMessage("请先登录后再发布到社区");
       router.push('/auth');
       return;
     }
+    // 拉取标签列表
+    setTagLoading(true);
+    try {
+      const tagList = await adminApi.getTags();
+      setTags(tagList);
+    } catch {
+      setTags([]);
+    } finally {
+      setTagLoading(false);
+    }
+    setSelectedTag("");
+    setPublishDone(false);
+    setPublishModal(true);
+  };
+
+  // 确认发布
+  const handleConfirmPublish = async () => {
     setPublishing(true);
-    setShareMessage("");
     try {
       const blob = await renderShareCardImage(result, thumbnail);
       const imageData = await blobToDataUrl(blob);
@@ -107,10 +129,12 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
         scoreJson: JSON.stringify(
           result.dimensions.map((d) => ({ label: d.label, score: d.score })),
         ),
+        styleTags: selectedTag || undefined,
       });
-      router.push('/ootd');
+      setPublishDone(true);
     } catch (err) {
       setShareMessage(err instanceof Error ? err.message : '发布失败，请重试');
+      setPublishModal(false);
     } finally {
       setPublishing(false);
     }
@@ -296,6 +320,85 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
         <RotateCcw size={16} />
         重新评分
       </motion.button>
+
+      {/* 发布弹窗：标签选择 + 发布后反馈 */}
+      {publishModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { if (!publishing) setPublishModal(false); }}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            {publishDone ? (
+              /* 发布成功反馈 */
+              <div className="text-center py-4">
+                <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
+                <h3 className="font-display text-lg text-ink-900 mb-2">已提交审核</h3>
+                <p className="text-sm text-ink-500 mb-6">审核通过后将在社区展示，请耐心等待</p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => { setPublishModal(false); router.push('/ootd'); }}
+                    className="px-5 py-2.5 text-sm font-medium bg-ink-900 text-creme-100 rounded-full hover:bg-ink-800"
+                  >
+                    查看社区
+                  </button>
+                  <button
+                    onClick={() => setPublishModal(false)}
+                    className="px-5 py-2.5 text-sm font-medium border border-ink-900/15 text-ink-600 rounded-full hover:border-ink-900/40"
+                  >
+                    返回诊断
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* 标签选择 */
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display text-base text-ink-900">发布到社区</h3>
+                  <button onClick={() => setPublishModal(false)} className="text-ink-400 hover:text-ink-600">
+                    <X size={18} />
+                  </button>
+                </div>
+                <p className="text-sm text-ink-500 mb-4">选择这个穿搭的风格标签，方便其他用户发现</p>
+                {tagLoading ? (
+                  <div className="flex items-center justify-center py-8 text-ink-400">
+                    <Loader2 size={20} className="animate-spin" />
+                    <span className="ml-2 text-sm">加载标签...</span>
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto space-y-1 mb-5">
+                    {tags.map((tag) => (
+                      <button
+                        key={tag.name}
+                        onClick={() => setSelectedTag(tag.name)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                          selectedTag === tag.name
+                            ? 'bg-ink-900 text-creme-100'
+                            : 'bg-creme-100 text-ink-600 hover:bg-creme-200'
+                        }`}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleConfirmPublish}
+                    disabled={publishing || !selectedTag}
+                    className="flex-1 py-2.5 text-sm font-medium bg-ink-900 text-creme-100 rounded-full hover:bg-ink-800 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {publishing ? <Loader2 size={15} className="animate-spin" /> : null}
+                    {publishing ? '发布中...' : '发布'}
+                  </button>
+                  <button
+                    onClick={() => setPublishModal(false)}
+                    className="px-5 py-2.5 text-sm font-medium border border-ink-900/15 text-ink-600 rounded-full hover:border-ink-900/40"
+                  >
+                    取消
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -85,7 +85,7 @@ export async function register(
     throw new Error(err.message || '注册失败');
   }
   const data = await res.json();
-  const user: AuthUser = { userId: data.userId, phone, nickname };
+  const user: AuthUser = { userId: data.userId, phone, nickname, role: data.role };
   saveAuth(data.accessToken, user);
   return user;
 }
@@ -102,7 +102,7 @@ export async function login(phone: string, password: string): Promise<AuthUser> 
     throw new Error(err.message || '登录失败');
   }
   const data = await res.json();
-  const user: AuthUser = { userId: data.userId, phone };
+  const user: AuthUser = { userId: data.userId, phone, role: data.role };
   saveAuth(data.accessToken, user);
   return user;
 }

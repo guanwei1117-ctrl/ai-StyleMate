@@ -8,11 +8,13 @@ import { Feedback } from '../feedback/feedback.entity';
 import { Suggestion } from '../suggestion/suggestion.entity';
 import { LlmCallLog } from '../llm/entities/llm-call-log.entity';
 import { AuthModule } from '../auth/auth.module';
+import { OotdModule } from '../ootd/ootd.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Feedback, Suggestion, LlmCallLog]),
     AuthModule,
+    OotdModule,
   ],
   controllers: [AdminController],
   providers: [AdminService, RolesGuard],

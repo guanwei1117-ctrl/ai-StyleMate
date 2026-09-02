@@ -63,6 +63,7 @@ export async function publishOotd(params: {
   caption?: string;
   scoreAvg?: number;
   scoreJson?: string;
+  styleTags?: string;
 }): Promise<OotdPostView> {
   const res = await fetch(`${API_BASE}/ootd`, {
     method: 'POST',

@@ -1,10 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { Feedback } from '../feedback/feedback.entity';
 import { Suggestion } from '../suggestion/suggestion.entity';
 import { LlmCallLog } from '../llm/entities/llm-call-log.entity';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class AdminService {
@@ -188,5 +190,55 @@ export class AdminService {
       avgElapsed,
       providers,
     };
+  }
+
+  // ========== 风格标签管理 ==========
+
+  private tagsFilePath = path.resolve(__dirname, '../../../data/style-tags.json');
+
+  private readTags(): { name: string; label: string }[] {
+    try {
+      const raw = fs.readFileSync(this.tagsFilePath, 'utf-8');
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  private writeTags(tags: { name: string; label: string }[]): void {
+    fs.writeFileSync(this.tagsFilePath, JSON.stringify(tags, null, 2), 'utf-8');
+  }
+
+  getTags(): { name: string; label: string }[] {
+    return this.readTags();
+  }
+
+  createTag(name: string, label: string): { name: string; label: string }[] {
+    const tags = this.readTags();
+    if (tags.some((t) => t.name === name)) {
+      throw new ConflictException('标签名称已存在');
+    }
+    tags.push({ name, label });
+    this.writeTags(tags);
+    return tags;
+  }
+
+  updateTag(oldName: string, newName?: string, newLabel?: string): { name: string; label: string }[] {
+    const tags = this.readTags();
+    const tag = tags.find((t) => t.name === oldName);
+    if (!tag) throw new NotFoundException('标签不存在');
+    if (newName) tag.name = newName;
+    if (newLabel) tag.label = newLabel;
+    this.writeTags(tags);
+    return tags;
+  }
+
+  deleteTag(name: string): { name: string; label: string }[] {
+    const tags = this.readTags();
+    const idx = tags.findIndex((t) => t.name === name);
+    if (idx === -1) throw new NotFoundException('标签不存在');
+    tags.splice(idx, 1);
+    this.writeTags(tags);
+    return tags;
   }
 }

@@ -56,6 +56,27 @@ const config: Config = {
           dark: '#9BA0A6',
           pale: '#EBEDEF',
         },
+        // === 语义角色 ===
+        // 唯一功能强调色（链接/选中态/高亮），雾霾蓝桥接 Hero 深青蓝与暖白内页
+        primary: {
+          DEFAULT: '#7B93A0',
+          50: '#F0F4F6',
+          100: '#D9E2E7',
+          200: '#C3D0D8',
+          300: '#A3B5BF',
+          400: '#8FA4AF',
+          500: '#7B93A0',
+          600: '#5A727F',
+          700: '#4A5F6A',
+          800: '#3D4F58',
+          900: '#324148',
+        },
+        // 警示/提示专用（不再作为强调色滥用）
+        warning: {
+          DEFAULT: '#B45309',
+          light: '#D97706',
+          pale: '#FEF3E2',
+        },
       },
       fontFamily: {
         display: ['Playfair Display', 'Georgia', 'serif'],
@@ -65,8 +86,23 @@ const config: Config = {
       fontSize: {
         'hero': ['clamp(3rem, 8vw, 7rem)', { lineHeight: '1.05', letterSpacing: '-0.02em' }],
         'hero-sub': ['clamp(1.75rem, 4vw, 3.5rem)', { lineHeight: '1.15', letterSpacing: '-0.01em' }],
-        'display': ['clamp(2.25rem, 5vw, 4.5rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-        'section': ['clamp(1.75rem, 3vw, 2.75rem)', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        // === 统一排版层级 H1-H3 ===
+        'display': ['clamp(2.25rem, 5vw, 4.5rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],   // H1 页面主标题
+        'section': ['clamp(1.75rem, 3vw, 2.75rem)', { lineHeight: '1.2', letterSpacing: '-0.01em' }],   // H2 区块标题
+        'sub': ['clamp(1.25rem, 2vw, 1.5rem)', { lineHeight: '1.35', letterSpacing: '0' }],             // H3 卡片/小组标题
+        'caption': ['0.75rem', { lineHeight: '1.4', letterSpacing: '0.04em' }],                         // 辅助说明
+      },
+      maxWidth: {
+        'site': '1440px',
+        'reading': '65ch',
+      },
+      boxShadow: {
+        // 暖调染色阴影，替代通用黑阴影
+        'card': '0 1px 2px rgba(26, 20, 12, 0.04), 0 4px 16px rgba(26, 20, 12, 0.05)',
+        'lift': '0 2px 4px rgba(26, 20, 12, 0.06), 0 12px 32px rgba(26, 20, 12, 0.10)',
+      },
+      transitionDuration: {
+        DEFAULT: '200ms',
       },
       spacing: {
         '18': '4.5rem',

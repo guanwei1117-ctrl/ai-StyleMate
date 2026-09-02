@@ -3,14 +3,19 @@
 import { useRef, useState } from 'react';
 import { Loader2, Upload, Check, X as XIcon } from 'lucide-react';
 
-interface Props { onUploaded: () => void; }
+interface Props { onUploaded: () => void; requireAuth?: (msg?: string) => boolean; }
 
-export default function WardrobeUploader({ onUploaded }: Props) {
+export default function WardrobeUploader({ onUploaded, requireAuth }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
+
+  const handleClick = () => {
+    if (requireAuth && !requireAuth('请先登录后再上传衣物')) return;
+    inputRef.current?.click();
+  };
 
   const processFile = async (file: File): Promise<void> => {
     if (!file.type.startsWith('image/')) throw new Error(`"${file.name}" 不是图片文件`);
@@ -54,7 +59,7 @@ export default function WardrobeUploader({ onUploaded }: Props) {
         onChange={(e) => { if (e.target.files) handleFiles(e.target.files); }} />
 
       <button type="button" disabled={uploading}
-        onClick={() => inputRef.current?.click()}
+        onClick={handleClick}
         className="inline-flex items-center gap-2 rounded-full bg-ink-900 px-6 py-2.5 font-medium text-creme-100 transition-colors hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-60">
         {uploading ? (
           <><Loader2 size={18} className="animate-spin" />识别中 {progress.current}/{progress.total}</>

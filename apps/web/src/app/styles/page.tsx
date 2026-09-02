@@ -1,11 +1,16 @@
 'use client';
 
-import { Search, X } from 'lucide-react';
+import { Search, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import Navigation from '@/components/home/navigation';
 import Footer from '@/components/home/footer';
+import { AiWatermark } from '@/components/ui/ai-watermark';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
+import { Tag } from '@/components/ui/tag';
 import {
   CATEGORY_LABELS,
   DIMENSIONS,
@@ -31,41 +36,39 @@ function StyleCardView({ style, index }: { style: StyleCard; index: number }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96 }}
         transition={{ duration: 0.42, delay: index * 0.015, ease: [0.25, 0.1, 0.25, 1] }}
-        className="overflow-hidden border border-ink-900/10 bg-[#fbfaf6] transition hover:border-ink-900/35"
+        className="overflow-hidden rounded-2xl bg-white shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
       >
-        <div className="relative aspect-[4/3] bg-[#ebe7df]">
+        <div className="relative aspect-[4/3] bg-creme-300">
           {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={style.name}
-              className="h-full w-full object-contain transition duration-700 group-hover:scale-[1.03]"
-              loading="lazy"
-            />
+            <>
+              <img
+                src={imageUrl}
+                alt={style.name}
+                className="h-full w-full object-contain transition duration-700 group-hover:scale-[1.03]"
+                loading="lazy"
+              />
+              <AiWatermark />
+            </>
           ) : (
             <div className="flex h-full items-center justify-center text-xs tracking-[0.2em] text-ink-300">
               IMAGE SLOT
             </div>
           )}
-          <div className="absolute left-4 top-4 bg-[#fbfaf6]/90 px-3 py-1 text-[10px] tracking-[0.18em] text-ink-500 backdrop-blur">
+          <Tag variant="badge" className="absolute left-3 top-3">
             {DIMENSION_LABELS[style.dimension]}
-          </div>
-        </div>
-        <div className="flex h-1.5">
-          {style.colorPalette.map((color) => (
-            <span key={color} className="flex-1" style={{ backgroundColor: color }} />
-          ))}
+          </Tag>
         </div>
         <div className="p-5">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <h3 className="font-display text-3xl leading-none text-ink-900">{style.name}</h3>
-            <span className="shrink-0 border border-ink-900/10 px-2 py-1 text-[10px] tracking-[0.14em] text-ink-400">
+          <div className="mb-3 flex items-start justify-between gap-4">
+            <h3 className="font-display text-2xl leading-tight text-ink-900">{style.name}</h3>
+            <Tag className="mt-0.5 shrink-0">
               {CATEGORY_LABELS[style.category] || style.category}
-            </span>
+            </Tag>
           </div>
           <p className="line-clamp-2 text-sm leading-6 text-ink-500">{style.description}</p>
-          <div className="mt-5 flex flex-wrap gap-1.5">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {style.keyItems.slice(0, 3).map((item) => (
-              <span key={item} className="bg-[#f4f1ea] px-2.5 py-1 text-[11px] text-ink-500">
+              <span key={item} className="rounded-md bg-creme-200 px-2.5 py-1 text-[11px] text-ink-500">
                 {item}
               </span>
             ))}
@@ -110,63 +113,65 @@ export default function StylesPage() {
   return (
     <>
       <Navigation />
-      <main className="min-h-screen bg-[#f4f1ea] pt-28 pb-24 text-ink-900">
+      <main className="min-h-screen bg-creme-200 pt-28 pb-24 text-ink-900">
         <section className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="mb-14 grid gap-8 border-b border-ink-900/10 pb-12 lg:grid-cols-[1fr_0.9fr] lg:items-end">
+          <div className="mb-12 grid gap-8 border-b border-ink-900/10 pb-10 lg:grid-cols-[3fr_2fr] lg:items-end">
             <div>
-              <p className="mb-5 text-xs tracking-[0.3em] text-ink-400">STYLE ATLAS</p>
-              <h1 className="font-display text-[clamp(3.4rem,8vw,8rem)] leading-[0.86]">
-                风格
-                <br />
-                档案库
+              <p className="mb-4 text-xs tracking-[0.3em] text-ink-400">STYLE ATLAS</p>
+              <h1 className="text-balance font-display text-display text-ink-900">
+                风格档案库
               </h1>
             </div>
             <div>
-              <p className="mb-4 text-xl leading-7 text-amber-600">
+              <p className="max-w-xl text-sm leading-7 text-ink-500">
+                共收录 <b className="font-display text-xl font-semibold text-ink-900">{STYLES.length}</b> 种穿搭风格，
+                按地域文化、视觉元素、场景圈层、人物原型 <b className="font-display text-xl font-semibold text-ink-900">4</b> 个维度组织。
+                每个风格都能继续展开为单品、配色、版型和适配建议。
+              </p>
+              <p className="mt-5 flex items-start gap-2 text-xs leading-6 text-ink-400">
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
                 目前风格照片均由 AI 生成，后续会上线网络穿搭图库；你也可以上传自己的穿搭，审核通过后有机会展示在风格首页。
               </p>
-              <p className="max-w-xl text-sm leading-7 text-ink-500">
-                80 种穿搭风格按地域文化、视觉元素、场景圈层和人物原型组织。每个风格都能继续展开为单品、配色、版型和适配建议。
-              </p>
-              <div className="mt-7 flex gap-6 text-sm">
-                <span><b className="font-display text-3xl">{STYLES.length}</b> styles</span>
-                <span><b className="font-display text-3xl">4</b> dimensions</span>
-              </div>
             </div>
           </div>
 
-          <div className="mb-10 grid gap-4 lg:grid-cols-[1fr_420px] lg:items-center">
+          <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
-              {(['全部', ...DIMENSIONS] as const).map((dimension) => (
-                <button
-                  key={dimension}
-                  onClick={() => setActiveDimension(dimension)}
-                  className={`border px-4 py-2 text-xs tracking-[0.14em] transition ${
-                    activeDimension === dimension
-                      ? 'border-ink-900 bg-ink-900 text-creme-100'
-                      : 'border-ink-900/10 bg-white/45 text-ink-500 hover:border-ink-900/35 hover:text-ink-900'
-                  }`}
-                >
-                  {dimension === '全部' ? '全部风格' : DIMENSION_LABELS[dimension]}
-                  <span className="ml-2 opacity-55">{dimensionCounts[dimension]}</span>
-                </button>
-              ))}
+              {(['全部', ...DIMENSIONS] as const).map((dimension) => {
+                const active = activeDimension === dimension;
+                return (
+                  <button
+                    key={dimension}
+                    onClick={() => setActiveDimension(dimension)}
+                    className={`inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? 'border-ink-900 bg-ink-900 text-creme-50 shadow-sm'
+                        : 'border-ink-200 bg-white text-ink-500 hover:border-ink-400 hover:text-ink-900'
+                    }`}
+                  >
+                    {dimension === '全部' ? '全部风格' : DIMENSION_LABELS[dimension]}
+                    <span className={`text-xs ${active ? 'text-creme-200' : 'text-ink-300'}`}>
+                      {dimensionCounts[dimension]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-300" />
-              <input
+            <div className="relative w-full lg:w-[380px] lg:shrink-0">
+              <Search className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-ink-300" />
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="搜索风格、单品、廓形关键词"
-                className="w-full border border-ink-900/10 bg-[#fbfaf6] py-3 pl-11 pr-11 text-sm text-ink-700 outline-none transition placeholder:text-ink-300 focus:border-ink-900/40"
+                className="pl-11 pr-11"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
                   aria-label="清除搜索"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-700"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-300 transition-colors hover:text-ink-700"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -183,9 +188,26 @@ export default function StylesPage() {
           </motion.div>
 
           {filteredStyles.length === 0 && (
-            <div className="py-24 text-center text-sm text-ink-400">
-              {searchQuery ? `没有找到与 "${searchQuery}" 相关的风格` : '该分类暂无风格'}
-            </div>
+            <EmptyState
+              icon={<Search className="h-6 w-6" />}
+              title="没有找到相关风格"
+              description={
+                searchQuery
+                  ? `没有与「${searchQuery}」匹配的结果，试试换个关键词或清除筛选。`
+                  : '该维度下暂时没有收录风格，切换到其他维度看看。'
+              }
+              action={
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setActiveDimension('全部');
+                  }}
+                >
+                  清除筛选条件
+                </Button>
+              }
+            />
           )}
         </section>
       </main>
