@@ -84,7 +84,7 @@ export class RecommendationService {
     try {
       memoryContext = await this.memoryService.buildAIContext(req.userId, 'today_outfit');
       this.logger.log(
-        `已加载用户记忆 | userId: ${req.userId} | 记忆摘要: ${memoryContext.memorySummary ? '有' : '无'} | 反馈: ${memoryContext.recentFeedbackSummary ? '有' : '无'}`,
+        `已加载用户记忆 | userId: ${req.userId} | 记忆摘要: ${memoryContext.snapshot?.summary ? '有' : '无'}`,
       );
     } catch (err) {
       this.logger.warn(`读取用户记忆失败（不影响主流程）: ${err instanceof Error ? err.message : String(err)}`);
@@ -157,7 +157,7 @@ export class RecommendationService {
     try {
       memoryContext = await this.memoryService.buildAIContext(userId, 'item_styling');
       this.logger.log(
-        `单品搭配已加载用户记忆 | userId: ${userId} | 记忆摘要: ${memoryContext.memorySummary ? '有' : '无'}`,
+        `单品搭配已加载用户记忆 | userId: ${userId} | 记忆摘要: ${memoryContext.snapshot?.summary ? '有' : '无'}`,
       );
     } catch (err) {
       this.logger.warn(`读取用户记忆失败（不影响主流程）: ${err instanceof Error ? err.message : String(err)}`);
@@ -277,8 +277,6 @@ export class RecommendationService {
       this.logger.warn(`读取用户记忆失败（回退规则分析）: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // 预算档位：从记忆中取不到就用 null
-    const budgetLevel = (memoryContext?.styleProfile as any)?.budgetLevel ?? undefined;
     const currentSeason = season ?? this.currentSeason();
 
     try {
@@ -382,7 +380,7 @@ export class RecommendationService {
     try {
       memoryContext = await this.memoryService.buildAIContext(userId, 'purchase_evaluate');
       this.logger.log(
-        `买前判断已加载用户记忆 | userId: ${userId} | 记忆摘要: ${memoryContext.memorySummary ? '有' : '无'}`,
+        `买前判断已加载用户记忆 | userId: ${userId} | 记忆摘要: ${memoryContext.snapshot?.summary ? '有' : '无'}`,
       );
     } catch (err) {
       this.logger.warn(`读取用户记忆失败（不影响主流程）: ${err instanceof Error ? err.message : String(err)}`);

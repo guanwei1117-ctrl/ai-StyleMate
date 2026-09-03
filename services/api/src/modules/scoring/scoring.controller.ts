@@ -81,16 +81,20 @@ export class ScoringController {
   async chatStyle(
     @Body()
     body: {
+      userId?: string;
       basicInfo: import('../ai-skills/style-chat/style-chat.dto').StyleChatBasicInfo;
       history: import('../ai-skills/style-chat/style-chat.dto').StyleChatTurn[];
       userMessage?: string;
       forceFinalize?: boolean;
     },
+    @Req() req: Request,
   ) {
+    const userId = resolveUserId(req, body.userId ?? '');
     this.logger.log(
-      `收到引导式测评对话 | 轮次: ${body.history?.length ?? 0} | 强制结束: ${!!body.forceFinalize}`,
+      `收到引导式测评对话 | userId: ${userId} | 轮次: ${body.history?.length ?? 0} | 强制结束: ${!!body.forceFinalize}`,
     );
     return this.scoringService.chatStyle({
+      userId,
       basicInfo: body.basicInfo ?? {},
       history: Array.isArray(body.history) ? body.history : [],
       userMessage: body.userMessage,

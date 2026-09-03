@@ -115,6 +115,17 @@ export const AGE_GROUP_LABELS: Record<AgeGroup, string> = {
   '50_plus': '50 岁以上',
 };
 
+/** 将用户输入的年龄数字映射到 AgeGroup 枚举 */
+export function ageToGroup(age: number | null): AgeGroup | null {
+  if (age === null || age <= 0) return null;
+  if (age < 18) return 'under_18';
+  if (age <= 24) return '18_24';
+  if (age <= 29) return '25_29';
+  if (age <= 39) return '30_39';
+  if (age <= 49) return '40_49';
+  return '50_plus';
+}
+
 /** 职业 / 使用场景（选填） */
 export const OCCUPATION_OPTIONS = [
   { label: '学生', value: 'student', emoji: '🎓' },
@@ -258,7 +269,8 @@ export interface OnboardingAnswers {
   budget: BudgetLevel | null;
 
   // Step 6: 生活方式 —— 现实约束 + 行为偏好
-  ageGroup: AgeGroup | null;               // 必填
+  age: number | null;                      // 必填，用户直接输入年龄
+  ageGroup: AgeGroup | null;               // 兼容旧数据，后续迁移后移除
   occupation: Occupation | null;            // 选填
   dailyScenes: DailyScene[];                // 选填多选
   customScene: string;                      // 选填，自定义场景
@@ -392,6 +404,7 @@ export function createDefaultAnswers(): OnboardingAnswers {
     preferredStyleIds: [],
     interests: [],
     budget: null,
+    age: null,
     ageGroup: null,
     occupation: null,
     dailyScenes: [],

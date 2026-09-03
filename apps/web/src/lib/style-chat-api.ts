@@ -6,7 +6,7 @@ export interface StyleChatBasicInfo {
   gender?: string;
   height?: number | null;
   weight?: number | null;
-  ageGroup?: string | null;
+  age?: number | null;
   occupation?: string | null;
   city?: string | null;
 }
@@ -33,17 +33,19 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v
  * - forceFinalize → 用户主动结束，AI 输出总结
  */
 export async function chatWithStylist(params: {
+  userId?: string;
   basicInfo: StyleChatBasicInfo;
   history: StyleChatTurn[];
   userMessage?: string;
   forceFinalize?: boolean;
 }): Promise<StyleChatResult> {
+  const userId = getLocalUserId();
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/scoring/style-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ userId, ...params }),
     });
   } catch {
     throw new Error('无法连接 AI 服务，请确认后端 API（localhost:4000）已启动。');

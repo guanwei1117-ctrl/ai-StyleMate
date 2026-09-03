@@ -12,6 +12,7 @@ import {
   RecordFeedbackDto,
   UpdateIntentDto,
   AIMemoryContext,
+  MemorySnapshot,
   TaskType,
 } from './memory.dto';
 
@@ -282,6 +283,9 @@ export class MemoryService {
     this.logger.log(
       `反馈 ${dto.feedbackType} 已更新用户 ${userId} 的记忆权重`,
     );
+
+    // 反馈更新后自动刷新记忆快照
+    this.refreshSnapshot(userId).catch(() => {});
   }
 
   private addAvoidRule(
@@ -538,57 +542,106 @@ ${data.join('\n\n') || '（新用户，数据极少）'}
     return lines;
   }
 
-  // ==================== AI 上下文组装 ====================
+  // ==================== 记忆快照（核心优化）====================
+
+  /**
+   * 从原始数据构建预压缩记忆快照
+   *
+   * 核心优化：将用户画像、AI 总结、当前意图等压缩成 150 字以内的结构化摘要，
+   * 避免每次 AI 调用都加载完整的原始数据。
+   */
+  async buildSnapshot(userId: string): Promise<MemorySnapshot | null> {
+    const [profile, intent, summary] = await Promise.all([
+      this.getStyleProfile(userId),
+      this.getCurrentIntent(userId),
+      this.getMemorySummary(userId),
+    ]);
+
+    if (!profile && !intent && !summary) return null;
+
+    const avoidRules: string[] = [];
+    if (profile?.avoidRules?.length) {
+      profile.avoidRules
+        .filter((r) => r.weight > 0)
+        .forEach((r) => avoidRules.push(r.rule));
+    }
+
+    return {
+      summary: summary?.summary ?? '',
+      likedStyles: profile?.likedStyles ?? [],
+      dislikedStyles: profile?.dislikedStyles ?? [],
+      preferredColors: profile?.preferredColors ?? [],
+      dislikedColors: profile?.dislikedColors ?? [],
+      avoidRules,
+      dressGoals: profile?.dressGoals ?? [],
+      bodyConcerns: profile?.bodyConcerns ?? [],
+      commonOccasions: profile?.commonOccasions ?? [],
+      currentIntent: intent?.lookingFor ?? null,
+      confidence: summary?.confidence ?? 0.1,
+    };
+  }
+
+  /**
+   * 刷新记忆快照（在关键时机调用）
+   *
+   * 触发时机：
+   * - 对话结束转化记忆时
+   * - 用户提交反馈时
+   * - 用户手动编辑记忆时
+   */
+  async refreshSnapshot(userId: string): Promise<void> {
+    // 先刷新 AI 总结（如果已有足够数据）
+    try {
+      await this.refreshMemorySummary(userId);
+    } catch {
+      // 静默处理
+    }
+    // 快照由 buildAIContext 在调用时实时构建（轻量操作，仅从 DB 读少量字段）
+    this.logger.log(`记忆快照已刷新 | userId: ${userId}`);
+  }
+
+  // ==================== AI 上下文组装（按需加载）====================
 
   /**
    * 为 AI 调用组装上下文
    *
-   * 所有 AI 功能调用前必须先调用此方法，获取用户长期记忆。
+   * 核心优化：按 taskType 按需加载，只读取当前任务需要的字段。
+   * 所有 AI 功能调用前必须先调用此方法。
    */
   async buildAIContext(userId: string, taskType: TaskType): Promise<AIMemoryContext> {
-    const [profile, intent, summary, wardrobeItems, feedbacks] = await Promise.all([
-      this.getStyleProfile(userId),
-      this.getCurrentIntent(userId),
-      this.getMemorySummary(userId),
-      this.wardrobeItemRepo.find({ where: { userId }, order: { createdAt: 'DESC' } }),
-      this.getRecentFeedbacks(userId, 10),
-    ]);
+    // 所有任务都需要记忆快照（轻量，仅读 summary + profile 的数组字段）
+    const snapshot = await this.buildSnapshot(userId);
 
-    // 衣柜关键数据
+    // 衣柜数据：仅 today_outfit / item_styling / wardrobe_gap 需要
     let wardrobeSummary: AIMemoryContext['wardrobeSummary'] = null;
-    if (wardrobeItems.length > 0) {
-      const categoryCount: Record<string, number> = {};
-      wardrobeItems.forEach((item) => {
-        categoryCount[item.category] = (categoryCount[item.category] || 0) + 1;
+    if (
+      taskType === 'today_outfit' ||
+      taskType === 'item_styling' ||
+      taskType === 'wardrobe_gap'
+    ) {
+      const wardrobeItems = await this.wardrobeItemRepo.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
       });
+      if (wardrobeItems.length > 0) {
+        const categoryCount: Record<string, number> = {};
+        wardrobeItems.forEach((item) => {
+          categoryCount[item.category] = (categoryCount[item.category] || 0) + 1;
+        });
 
-      wardrobeSummary = {
-        totalItems: wardrobeItems.length,
-        byCategory: categoryCount,
-        idleItems: [],
-        topWorn: [],
-      };
-    }
-
-    // 最近反馈摘要
-    let recentFeedbackSummary: string | null = null;
-    if (feedbacks.length > 0) {
-      recentFeedbackSummary = feedbacks
-        .slice(0, 10)
-        .map(
-          (f) =>
-            `${this.feedbackTypeLabel(f.feedbackType)}${f.reason ? `：${f.reason}` : ''}`,
-        )
-        .join('；');
+        wardrobeSummary = {
+          totalItems: wardrobeItems.length,
+          byCategory: categoryCount,
+          idleItems: [],
+          topWorn: [],
+        };
+      }
     }
 
     return {
-      styleProfile: profile,
-      wardrobeSummary,
-      recentFeedbackSummary,
-      currentIntent: intent,
-      memorySummary: summary?.summary ?? null,
       taskType,
+      snapshot,
+      wardrobeSummary,
     };
   }
 

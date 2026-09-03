@@ -115,24 +115,25 @@ export class ScoringService {
     if (userId && this.memoryService) {
       try {
         const memory = await this.memoryService.buildAIContext(userId, 'outfit_scoring');
-        const parts: string[] = [];
-        const p = memory.styleProfile;
-        if (p?.suitableStyles?.length) parts.push(`适合风格：${p.suitableStyles.join('、')}`);
-        if (p?.likedStyles?.length) parts.push(`偏好风格：${p.likedStyles.join('、')}`);
-        if (p?.dislikedStyles?.length) parts.push(`避开风格：${p.dislikedStyles.join('、')}`);
-        if (p?.preferredColors?.length) parts.push(`偏好颜色：${p.preferredColors.join('、')}`);
-        if (p?.dislikedColors?.length) parts.push(`避开颜色：${p.dislikedColors.join('、')}`);
-        if (p?.bodyConcerns?.length) parts.push(`身材顾虑：${p.bodyConcerns.join('、')}`);
-        if (p?.dressGoals?.length) parts.push(`穿搭目标：${p.dressGoals.join('、')}`);
-        if (p?.commonOccasions?.length) parts.push(`日常场景：${p.commonOccasions.join('、')}`);
-        if (memory.memorySummary) parts.push(`记忆总结：${memory.memorySummary}`);
-        if (memory.recentFeedbackSummary) parts.push(`近期反馈：${memory.recentFeedbackSummary}`);
-        if (parts.length > 0) {
-          userContextStr = `${userContextStr}\n- 用户长期记忆：${parts.join('；')}`;
+        const s = memory.snapshot;
+        if (s) {
+          const parts: string[] = [];
+          if (s.summary) parts.push(`记忆总结：${s.summary}`);
+          if (s.likedStyles.length) parts.push(`偏好风格：${s.likedStyles.join('、')}`);
+          if (s.dislikedStyles.length) parts.push(`避开风格：${s.dislikedStyles.join('、')}`);
+          if (s.preferredColors.length) parts.push(`偏好颜色：${s.preferredColors.join('、')}`);
+          if (s.dislikedColors.length) parts.push(`避开颜色：${s.dislikedColors.join('、')}`);
+          if (s.bodyConcerns.length) parts.push(`身材顾虑：${s.bodyConcerns.join('、')}`);
+          if (s.dressGoals.length) parts.push(`穿搭目标：${s.dressGoals.join('、')}`);
+          if (s.commonOccasions.length) parts.push(`日常场景：${s.commonOccasions.join('、')}`);
+          if (s.avoidRules.length) parts.push(`避坑规则：${s.avoidRules.join('、')}`);
+          if (parts.length > 0) {
+            userContextStr = `${userContextStr}\n- 用户长期记忆：${parts.join('；')}`;
+          }
         }
         this.logger.log(`评分已加载用户记忆 | userId: ${userId}`);
       } catch (err) {
-        this.logger.warn(`读取用户记忆失败（不影响评分）: ${err instanceof Error ? err.message : String(err)}`);
+        this.logger.warn(`读取用户记忆失败（不影响评分）: ${err instanceof Error ? err.message : String(err)`);
       }
     }
 

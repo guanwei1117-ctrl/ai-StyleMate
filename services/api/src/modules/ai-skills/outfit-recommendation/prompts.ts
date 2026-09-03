@@ -1,84 +1,48 @@
 import { OutfitRecommendationInput } from './outfit-recommendation.dto';
-import type { AIMemoryContext } from '../../memory/memory.dto';
+import type { AIMemoryContext, MemorySnapshot } from '../../memory/memory.dto';
 
 /**
  * 构建用户记忆上下文文本
  *
- * 将用户长期画像、衣柜关键数据、最近反馈、当前意图、AI 总结注入 prompt
+ * 核心优化：只读取预压缩的 MemorySnapshot，不再读取原始数据。
+ * 将用户偏好、避坑规则、AI 总结等压缩为 150 字以内的精简摘要，
+ * 大幅减少 token 消耗。
  */
 function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string {
-  if (!ctx) return '## 用户长期记忆\n（暂无记忆数据，请按通用审美推荐）\n';
+  if (!ctx?.snapshot) return '## 用户长期记忆\n（暂无记忆数据，请按通用审美推荐）\n';
 
+  const s = ctx.snapshot;
   const lines: string[] = ['## 用户长期记忆'];
 
-  // AI 总结记忆
-  if (ctx.memorySummary) {
-    lines.push(`### AI 总结\n${ctx.memorySummary}`);
+  // AI 总结（核心摘要）
+  if (s.summary) {
+    lines.push(`### AI 总结\n${s.summary}`);
   }
 
-  // 用户长期画像
-  const p = ctx.styleProfile as any;
-  if (p) {
-    const profileLines: string[] = [];
-    if (p.suitableStyles?.length) profileLines.push(`适合风格：${p.suitableStyles.join('、')}`);
-    if (p.likedStyles?.length) profileLines.push(`喜欢风格：${p.likedStyles.join('、')}`);
-    if (p.dislikedStyles?.length) profileLines.push(`不喜欢风格：${p.dislikedStyles.join('、')}`);
-    if (p.preferredColors?.length) profileLines.push(`偏好颜色：${p.preferredColors.join('、')}`);
-    if (p.dislikedColors?.length) profileLines.push(`不喜欢颜色：${p.dislikedColors.join('、')}`);
-    if (p.bodyType) profileLines.push(`体型：${p.bodyType}`);
-    if (p.bodyConcerns?.length) profileLines.push(`身材顾虑：${p.bodyConcerns.join('、')}`);
-    if (p.dressGoals?.length) profileLines.push(`穿搭目标：${p.dressGoals.join('、')}`);
-    if (p.commonOccasions?.length) profileLines.push(`常见场景：${p.commonOccasions.join('、')}`);
-    if (p.avoidRules?.length) {
-      const avoids = p.avoidRules
-        .filter((r: any) => r.weight > 0)
-        .map((r: any) => r.rule);
-      if (avoids.length) profileLines.push(`避坑规则：\n${avoids.map((a: string) => `  - ${a}`).join('\n')}`);
-    }
-    if (profileLines.length) {
-      lines.push(`### 用户画像\n${profileLines.join('\n')}`);
-    }
+  // 偏好（仅输出非空字段）
+  const prefs: string[] = [];
+  if (s.likedStyles.length) prefs.push(`喜欢风格：${s.likedStyles.join('、')}`);
+  if (s.dislikedStyles.length) prefs.push(`避开风格：${s.dislikedStyles.join('、')}`);
+  if (s.preferredColors.length) prefs.push(`偏好颜色：${s.preferredColors.join('、')}`);
+  if (s.dislikedColors.length) prefs.push(`避开颜色：${s.dislikedColors.join('、')}`);
+  if (s.dressGoals.length) prefs.push(`穿搭目标：${s.dressGoals.join('、')}`);
+  if (s.bodyConcerns.length) prefs.push(`身材顾虑：${s.bodyConcerns.join('、')}`);
+  if (prefs.length) {
+    lines.push(`### 偏好\n${prefs.join('\n')}`);
   }
 
-  // 衣柜关键数据
-  if (ctx.wardrobeSummary) {
-    const ws = ctx.wardrobeSummary;
-    const wsLines: string[] = [`衣柜共 ${ws.totalItems} 件`];
-    const catStr = Object.entries(ws.byCategory)
-      .map(([k, v]) => `${k} ${v}件`)
-      .join('、');
-    wsLines.push(`品类分布：${catStr}`);
-    if (ws.idleItems?.length) {
-      wsLines.push(
-        `闲置单品（>60天未穿）：${ws.idleItems.map((i) => i.description).join('、')}`,
-      );
-    }
-    if (ws.topWorn?.length) {
-      wsLines.push(
-        `高频穿着：${ws.topWorn.map((i) => `${i.description}(${i.wearCount}次)`).join('、')}`,
-      );
-    }
-    lines.push(`### 衣柜摘要\n${wsLines.join('\n')}`);
-  }
-
-  // 最近反馈
-  if (ctx.recentFeedbackSummary) {
-    lines.push(`### 最近反馈\n${ctx.recentFeedbackSummary}`);
+  // 避坑规则（高权重优先）
+  if (s.avoidRules.length) {
+    lines.push(`### 避坑规则\n${s.avoidRules.map((r: string) => `  - ${r}`).join('\n')}`);
   }
 
   // 当前意图
-  if (ctx.currentIntent) {
-    const ci = ctx.currentIntent as any;
-    const ciLines: string[] = [];
-    if (ci.lookingFor) ciLines.push(`正在寻找：${ci.lookingFor}`);
-    if (ci.targetOccasion) ciLines.push(`目标场景：${ci.targetOccasion}`);
-    if (ciLines.length) {
-      lines.push(`### 当前意图\n${ciLines.join('\n')}`);
-    }
+  if (s.currentIntent) {
+    lines.push(`### 当前意图\n正在寻找：${s.currentIntent}`);
   }
 
   lines.push(
-    `\n### 重要提示\n请严格遵守用户记忆中的避坑规则和不喜欢的风格/颜色。如果用户多次反馈"太正式"，降低正式度组合权重；如果反馈"太显胖"，避免宽松上衣+宽松下装。`,
+    `\n### 重要提示\n请严格遵守避坑规则和避开风格/颜色。优先推荐用户喜欢的风格和颜色。`,
   );
 
   return lines.join('\n') + '\n';

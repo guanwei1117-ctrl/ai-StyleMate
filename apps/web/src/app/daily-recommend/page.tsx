@@ -29,8 +29,8 @@ export default function DailyRecommendPage() {
     try {
       const data = await generateTodayOutfit({ city, occasion, styleGoal, constraints: [] });
       setResult(data);
-    } catch (e: any) {
-      setError(e?.message || '生成失败');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '生成失败');
     } finally {
       setLoading(false);
     }

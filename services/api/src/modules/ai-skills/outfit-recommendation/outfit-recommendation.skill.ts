@@ -37,8 +37,8 @@ export class OutfitRecommendationSkill {
       },
       occasion: input.occasion,
       styleGoal: input.styleGoal,
-      bodyShape: input.memoryContext?.styleProfile?.bodyType ?? undefined,
-      skinTone: input.memoryContext?.styleProfile?.skinTone ?? undefined,
+      bodyShape: undefined, // 体型数据从用户基础信息获取
+      skinTone: undefined,  // 肤色数据从用户基础信息获取
     });
 
     this.logger.log(
@@ -125,35 +125,24 @@ export class OutfitRecommendationSkill {
     };
   }
 
-  /** 记忆评分：用户偏好加权 */
+  /** 记忆评分：基于 MemorySnapshot 的用户偏好加权 */
   private scoreMemoryForPlan(
     plan: OutfitRecommendationPlan,
     memoryCtx?: OutfitRecommendationInput['memoryContext'],
   ): number {
     let score = 60;
-    if (!memoryCtx) return score;
+    if (!memoryCtx?.snapshot) return score;
 
-    const p = memoryCtx.styleProfile as any;
-    if (!p) return score;
+    const s = memoryCtx.snapshot;
 
-    const slots = [plan.hat, plan.top, plan.bottom, plan.outerwear, plan.shoes, plan.bag, plan.accessory];
-    for (const slot of slots) {
-      if (!slot?.itemId) continue;
-      const item = (memoryCtx as any).wardrobeSummary?.topWorn?.find((w: any) => w.id === slot.itemId);
-      if (item) {
-        if (item.wearCount >= 5) score += 5;  // 常用 → 喜欢
-        if (item.wearCount === 0) score += 2;  // 鼓励使用闲置
-      }
-    }
-
-    if (p.likedStyles?.length > 0) score += 5;
-    if (p.dislikedStyles?.length > 0) score -= 5;
-
-    // 最近反馈加权
-    if (memoryCtx.recentFeedbackSummary) {
-      if (memoryCtx.recentFeedbackSummary.includes('喜欢')) score += 5;
-      if (memoryCtx.recentFeedbackSummary.includes('不喜欢')) score -= 10;
-    }
+    // 喜欢风格 → 加分
+    if (s.likedStyles.length > 0) score += 5;
+    // 避开风格 → 减分
+    if (s.dislikedStyles.length > 0) score -= 5;
+    // 避坑规则 → 减分（有规则说明用户有明确偏好）
+    if (s.avoidRules.length > 0) score -= 3;
+    // 穿搭目标 → 加分
+    if (s.dressGoals.length > 0) score += 3;
 
     return Math.min(100, Math.max(20, score));
   }

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogIn, Menu, User, X } from 'lucide-react';
+import { LogIn, Menu, User, ChevronDown, X } from 'lucide-react';
 import AboutDialog from './about-dialog';
 import { isAuthenticated, logout } from '@/lib/auth';
 
@@ -27,6 +27,8 @@ export default function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setAuthed(isAuthenticated());
@@ -34,6 +36,18 @@ export default function Navigation() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // 点击菜单外部关闭下拉
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userMenuOpen]);
 
   const linkClass = `text-sm tracking-widest uppercase transition-colors duration-300 ${
     scrolled
@@ -82,16 +96,53 @@ export default function Navigation() {
                 </a>
               ),
             )}
-            <Link
-              href="/auth"
-              className={`${linkClass} inline-flex items-center gap-1.5`}
-            >
-              {authed ? (
-                <><User size={14} /><span>我的</span></>
-              ) : (
-                <><LogIn size={14} /><span>登录</span></>
-              )}
-            </Link>
+            {authed ? (
+              <div ref={menuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className={`${linkClass} inline-flex items-center gap-1.5`}
+                >
+                  <User size={14} />
+                  <span>我的</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-ink-900/10 bg-white py-2 shadow-lift">
+                    <Link
+                      href="/onboarding?view=history"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block px-4 py-2.5 text-sm text-ink-700 transition-colors hover:bg-creme-100"
+                    >
+                      我的档案
+                    </Link>
+                    <Link
+                      href="/memory"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block px-4 py-2.5 text-sm text-ink-700 transition-colors hover:bg-creme-100"
+                    >
+                      AI 记忆管理
+                    </Link>
+                    <hr className="my-1 border-ink-900/5" />
+                    <button
+                      type="button"
+                      onClick={() => { logout(); setUserMenuOpen(false); setAuthed(false); }}
+                      className="block w-full px-4 py-2.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      退出登录
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/auth"
+                className={`${linkClass} inline-flex items-center gap-1.5`}
+              >
+                <LogIn size={14} />
+                <span>登录</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile toggle */}
@@ -140,6 +191,29 @@ export default function Navigation() {
                   </motion.a>
                 );
               })}
+              {authed && (
+                <motion.button
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + NAV_LINKS.length * 0.06 }}
+                  onClick={() => { setMobileOpen(false); logout(); setAuthed(false); }}
+                  className="font-display text-xl text-red-500 tracking-wide mt-4"
+                >
+                  退出登录
+                </motion.button>
+              )}
+              {!authed && (
+                <motion.a
+                  href="/auth"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + NAV_LINKS.length * 0.06 }}
+                  onClick={() => setMobileOpen(false)}
+                  className="font-display text-xl text-ink-500 tracking-wide"
+                >
+                  登录 / 注册
+                </motion.a>
+              )}
             </div>
           </motion.div>
         )}

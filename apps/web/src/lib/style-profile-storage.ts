@@ -7,6 +7,7 @@ import {
   DRESSING_GOAL_LABELS,
   OCCUPATION_LABELS,
   PRIORITY_LABELS,
+  ageToGroup,
   type BodyShape,
   type OnboardingAnswers,
   type StyleMatchResult,
@@ -170,7 +171,7 @@ export function extractStyleIntent(statement: string): ExtractedStyleIntent {
 export function buildGeneratedStatement(answers: OnboardingAnswers) {
   const parts: string[] = [];
   const genderText = answers.gender === 'female' ? '女性' : answers.gender === 'male' ? '男性' : answers.gender === 'other' ? '不限定性别表达' : '';
-  const ageText = answers.ageGroup ? AGE_GROUP_LABELS[answers.ageGroup] : '';
+  const ageText = answers.age ? `${answers.age}岁` : '';
   const bodyText = [answers.height ? `${answers.height}cm` : '', answers.weight ? `${answers.weight}kg` : ''].filter(Boolean).join(' / ');
   const occupationText = answers.occupation ? OCCUPATION_LABELS[answers.occupation] : '';
   const climateText = answers.climate ? CLIMATE_LABELS[answers.climate] : '';
@@ -213,6 +214,7 @@ export function createStoredStyleProfile(
       gender: answers.gender,
       height: answers.height,
       weight: answers.weight,
+      age: answers.age,
       ageGroup: answers.ageGroup ? AGE_GROUP_LABELS[answers.ageGroup] : null,
       occupation: answers.occupation ? OCCUPATION_LABELS[answers.occupation] : null,
       budget: answers.budget ? BUDGET_OPTIONS.find((item) => item.value === answers.budget)?.label ?? null : null,

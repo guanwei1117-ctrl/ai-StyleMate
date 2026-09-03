@@ -12,8 +12,8 @@ export interface StyleChatBasicInfo {
   height?: number | null;
   /** 体重 kg */
   weight?: number | null;
-  /** 年龄段（中文标签） */
-  ageGroup?: string | null;
+  /** 年龄（用户直接输入的数字） */
+  age?: number | null;
   /** 职业（中文标签） */
   occupation?: string | null;
   /** 城市 */
@@ -26,6 +26,8 @@ export interface StyleChatTurn {
 }
 
 export interface StyleChatInput {
+  /** 用户 ID（用于对话结束时写入记忆） */
+  userId?: string;
   /** 第一步填写的用户基础信息 */
   basicInfo: StyleChatBasicInfo;
   /** 已有对话历史（不含最新一条用户消息） */

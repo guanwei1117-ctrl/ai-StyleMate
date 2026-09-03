@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { LLMFactory } from '../../llm/llm-factory';
 import { ChatMessage } from '../../llm/llm-provider.interface';
 import { buildStyleChatPrompt } from './prompts';
 import { StyleChatInput, StyleChatResult } from './style-chat.dto';
+import { MemoryService } from '../../memory/memory.service';
 
 /**
  * 强制结束时硬保证输出：无论模型返回什么，done 必须为 true 且必须有 statement。
@@ -27,10 +28,13 @@ export function hardenFinalizeResult(
 export class StyleChatSkill {
   private readonly logger = new Logger(StyleChatSkill.name);
 
-  constructor(private readonly llmFactory: LLMFactory) {}
+  constructor(
+    private readonly llmFactory: LLMFactory,
+    @Optional() private readonly memoryService?: MemoryService,
+  ) {}
 
   /**
-   * 引导式测评对话：返回 AI 的下一个问题或最终总结
+   * 自由对话式测评：返回 AI 的下一个回复或最终总结
    */
   async chat(input: StyleChatInput): Promise<StyleChatResult> {
     const systemPrompt = buildStyleChatPrompt(input);
@@ -38,12 +42,11 @@ export class StyleChatSkill {
       { role: 'system', content: systemPrompt },
       {
         role: 'user',
-        // 三种场景的用户消息必须与系统提示一致，避免"开始吧"与"结束"矛盾
         content: input.forceFinalize
           ? '请立即结束对话，直接输出总结 JSON（done 必须为 true）。'
           : input.userMessage
-            ? '（已在上文给出我的最新回复，请继续）'
-            : '开始吧。',
+            ? '（以上是我最新的回复，请继续对话）'
+            : '请开始对话。',
       },
     ];
 
@@ -63,6 +66,14 @@ export class StyleChatSkill {
     this.logger.log(
       `引导式测评对话完成 | 耗时 ${Date.now() - startTime}ms | done: ${result.done} | 回复长度: ${result.reply.length}`,
     );
+
+    // 对话结束时，将结果写入长期记忆（best-effort，不影响主流程）
+    if (result.done && input.userId && this.memoryService) {
+      this.saveChatToMemory(input.userId, result).catch((err) => {
+        this.logger.warn(`对话记忆写入失败（静默）: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
+
     return result;
   }
 
@@ -93,5 +104,40 @@ export class StyleChatSkill {
         : undefined,
       scenes: Array.isArray(parsed.scenes) ? parsed.scenes.map(String) : undefined,
     };
+  }
+
+  /**
+   * 对话结束时将结果写入长期记忆
+   *
+   * 将 AI 总结的 likedKeywords/dislikedKeywords/scenes/statement
+   * 写入 UserStyleProfile 和 UserMemorySummary。
+   */
+  private async saveChatToMemory(
+    userId: string,
+    result: StyleChatResult,
+  ): Promise<void> {
+    if (!this.memoryService) return;
+
+    // 写入风格画像
+    const profileUpdate: Record<string, string[]> = {};
+    if (result.likedKeywords?.length) {
+      profileUpdate.likedStyles = result.likedKeywords;
+    }
+    if (result.dislikedKeywords?.length) {
+      profileUpdate.dislikedStyles = result.dislikedKeywords;
+    }
+    if (result.scenes?.length) {
+      profileUpdate.commonOccasions = result.scenes;
+    }
+    if (Object.keys(profileUpdate).length > 0) {
+      await this.memoryService.updateStyleProfile(userId, profileUpdate as any);
+    }
+
+    // 写入 AI 总结记忆
+    if (result.statement) {
+      await this.memoryService.refreshMemorySummary(userId);
+    }
+
+    this.logger.log(`对话记忆已写入 | userId: ${userId}`);
   }
 }

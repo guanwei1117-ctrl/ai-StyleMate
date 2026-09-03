@@ -186,27 +186,24 @@ export default function WardrobePage() {
           )}
 
           {/* 搜索栏 */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-300" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜索颜色、材质、风格标签…"
-                className="w-full rounded-full border border-ink-900/10 bg-white pl-9 pr-8 py-2.5 text-sm outline-none transition-all duration-200 focus:border-ink-900/30"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-500 transition-colors duration-200"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-            
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-300" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="搜索颜色、材质、风格标签…"
+              className="w-full rounded-full border border-ink-900/10 bg-white pl-9 pr-8 py-2.5 text-sm outline-none transition-all duration-200 focus:border-ink-900/30"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-500 transition-colors duration-200"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* 激活的筛选标签 */}

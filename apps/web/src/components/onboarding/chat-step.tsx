@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sparkles, Send, Loader2, UserRound, ArrowRight, RefreshCw } from 'lucide-react';
 import { chatWithStylist, type StyleChatBasicInfo, type StyleChatTurn, type StyleChatResult } from '@/lib/style-chat-api';
 import type { OnboardingAnswers } from '@/lib/onboarding-types';
-import { AGE_GROUP_LABELS, OCCUPATION_LABELS } from '@/lib/onboarding-types';
+import { OCCUPATION_LABELS } from '@/lib/onboarding-types';
 
 interface ChatStepProps {
   answers: OnboardingAnswers;
@@ -24,7 +24,7 @@ function buildBasicInfo(answers: OnboardingAnswers): StyleChatBasicInfo {
       answers.gender === 'female' ? '女性' : answers.gender === 'male' ? '男性' : answers.gender === 'other' ? '不限定性别表达' : undefined,
     height: answers.height,
     weight: answers.weight,
-    ageGroup: answers.ageGroup ? AGE_GROUP_LABELS[answers.ageGroup] : null,
+    age: answers.age,
     occupation: answers.occupation ? OCCUPATION_LABELS[answers.occupation] : null,
     city: answers.city || null,
   };

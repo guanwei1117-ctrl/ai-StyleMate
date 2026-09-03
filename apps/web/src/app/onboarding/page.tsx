@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +20,6 @@ import { syncPushLocal, SYNC_ENTRIES } from '@/lib/sync-api';
 import { deriveBodyShape } from '@/lib/body-analysis';
 import { matchStyles } from '@/lib/style-matcher';
 import {
-  AGE_GROUP_OPTIONS,
   BUDGET_OPTIONS,
   CLIMATE_OPTIONS,
   DAILY_SCENE_OPTIONS,
@@ -29,7 +28,7 @@ import {
   PRIORITY_OPTIONS, DRESSING_GOAL_LABELS, PRIORITY_LABELS,
   STYLE_OPENNESS_OPTIONS,
   createDefaultAnswers,
-  type AgeGroup,
+  ageToGroup,
   type BodyShape,
   type BudgetLevel,
   type ClimateZone,
@@ -43,10 +42,7 @@ import {
 } from '@/lib/onboarding-types';
 import {
   CATEGORY_LABELS,
-  DIMENSIONS,
-  DIMENSION_LABELS,
   STYLES,
-  type StyleDimension,
 } from '@/data/styles';
 import styleImages from '@/data/style-images.json';
 import ResultView from '@/components/onboarding/result-view';
@@ -105,7 +101,6 @@ function OnboardingContent() {
   const [answers, setAnswers] = useState<OnboardingAnswers>(createDefaultAnswers);
   const [results, setResults] = useState<StyleMatchResult[]>([]);
   const [bodyShape, setBodyShape] = useState<BodyShape>('unknown');
-  const [activeDimension, setActiveDimension] = useState<StyleDimension | '全部'>('全部');
   const [statementEdited, setStatementEdited] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<AiStyleProfileAnalysis | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'ai' | 'fallback'>('idle');
@@ -134,7 +129,14 @@ function OnboardingContent() {
 
 
   const updateAnswers = useCallback((patch: Partial<OnboardingAnswers>) => {
-    setAnswers((prev) => ({ ...prev, ...patch }));
+    setAnswers((prev) => {
+      const next = { ...prev, ...patch };
+      // 年龄变化时自动同步 ageGroup（供风格匹配引擎使用）
+      if ('age' in patch) {
+        next.ageGroup = ageToGroup(next.age);
+      }
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -146,7 +148,7 @@ function OnboardingContent() {
     answers.gender,
     answers.height,
     answers.weight,
-    answers.ageGroup,
+    answers.age,
     answers.occupation,
     answers.city,
     answers.climate,
@@ -156,20 +158,9 @@ function OnboardingContent() {
     answers.priorities,
   ]);
 
-  const filteredStyles = useMemo(() => {
-    if (activeDimension === '全部') return STYLES;
-    return STYLES.filter((style) => style.dimension === activeDimension);
-  }, [activeDimension]);
-
-
-
-
-
-
-
   const canContinue = useMemo(() => {
     if (step === 0) {
-      return !!answers.gender && !!answers.height && !!answers.weight && !!answers.ageGroup;
+      return !!answers.gender && !!answers.height && !!answers.weight && answers.age !== null && answers.age > 0;
     }
     if (step === 1) return true; // 对话步骤始终可继续
     return false;
@@ -508,31 +499,25 @@ function ProfileStep({
               label="身高"
               unit="cm"
               value={answers.height ?? ''}
-              placeholder="165"
+              placeholder="请填写"
               onChange={(value) => updateAnswers({ height: value ? Number(value) : null })}
             />
             <NumberInput
               label="体重"
               unit="kg"
               value={answers.weight ?? ''}
-              placeholder="55"
+              placeholder="请填写"
               onChange={(value) => updateAnswers({ weight: value ? Number(value) : null })}
             />
           </div>
 
-          <FieldGroup title="年龄段">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {AGE_GROUP_OPTIONS.slice(0, 3).map((option) => (
-                <ChoiceButton
-                  key={option.value}
-                  active={answers.ageGroup === option.value}
-                  onClick={() => updateAnswers({ ageGroup: option.value as AgeGroup })}
-                >
-                  {option.label}
-                </ChoiceButton>
-              ))}
-            </div>
-          </FieldGroup>
+          <NumberInput
+              label="年龄"
+              unit="岁"
+              value={answers.age ?? ''}
+              placeholder="请输入年龄"
+              onChange={(value) => updateAnswers({ age: value ? Number(value) : null })}
+            />
 
           <FieldGroup title="职业" optional>
             <div className="flex flex-wrap gap-2">
