@@ -2,6 +2,8 @@
  * 引导式 AI 测评对话 — 前端 API
  */
 
+import { getLocalUserId } from './wardrobe-api';
+
 export interface StyleChatBasicInfo {
   gender?: string;
   height?: number | null;
