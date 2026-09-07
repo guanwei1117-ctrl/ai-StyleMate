@@ -50,6 +50,7 @@ export interface StoredStyleProfile {
     gender: string | null;
     height: number | null;
     weight: number | null;
+    age: number | null;
     ageGroup: string | null;
     occupation: string | null;
     budget: string | null;
