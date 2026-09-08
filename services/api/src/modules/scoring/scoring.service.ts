@@ -133,7 +133,7 @@ export class ScoringService {
         }
         this.logger.log(`评分已加载用户记忆 | userId: ${userId}`);
       } catch (err) {
-        this.logger.warn(`读取用户记忆失败（不影响评分）: ${err instanceof Error ? err.message : String(err)`);
+        this.logger.warn(`读取用户记忆失败（不影响评分）: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 

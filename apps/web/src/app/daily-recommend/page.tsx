@@ -5,6 +5,7 @@ import { generateTodayOutfit } from '@/lib/today-outfit-api';
 import { submitFeedback } from '@/lib/feedback-api';
 import type { TodayOutfitResponse, OutfitPlan } from '@/lib/today-outfit-types';
 import { useRequireAuth } from '@/lib/require-auth';
+import { KnowledgeUsedPanel } from '@/components/knowledge-used-panel';
 
 export default function DailyRecommendPage() {
   const { requireAuth } = useRequireAuth();
@@ -20,6 +21,8 @@ export default function DailyRecommendPage() {
   const [ratings, setRatings] = useState<Record<number, number>>({});
   const [comments, setComments] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState<Record<number, boolean>>({});
+  // AI 对每个反馈的回应（让"AI 记住我"在产品上立刻可见）
+  const [feedbackNotes, setFeedbackNotes] = useState<Record<number, string>>({});
 
   async function handleGenerate() {
     if (!requireAuth('请先登录后再使用每日推荐')) return;
@@ -39,13 +42,17 @@ export default function DailyRecommendPage() {
   async function handleFeedback(index: number, plan: OutfitPlan) {
     setSubmitting((s) => ({ ...s, [index]: true }));
     try {
-      await submitFeedback({
+      const res = await submitFeedback({
         reaction: reactions[index] || 'like',
         rating: ratings[index] ?? 0,
         comment: comments[index] || '',
         planTitle: plan.title,
         plan: plan,
       });
+      // 显示 AI 对这条反馈的回应（核心：让用户立刻看到"AI 记住了"）
+      if (res?.aiMemoryNote) {
+        setFeedbackNotes((n) => ({ ...n, [index]: res.aiMemoryNote }));
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -123,6 +130,19 @@ export default function DailyRecommendPage() {
         {result && (
           <section className="mt-8 space-y-4">
             <h2 className="text-xl font-semibold">为你推荐的方案</h2>
+            {/* "AI 注意到你"（用户感知层的核心：让长期记忆"被看见"） */}
+            {result.memoryEcho && result.memoryEcho.length > 0 && (
+              <div className="rounded-xl border border-olive-pale bg-olive-pale/30 px-4 py-3 text-sm text-olive-dark">
+                <p className="mb-1 font-medium">💭 我注意到你</p>
+                <ul className="space-y-1 text-ink/80">
+                  {result.memoryEcho.map((line, i) => (
+                    <li key={i}>· {line}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* AI 引用依据（RAG 可解释性，knowledgeUsed 为空时自动隐藏） */}
+            <KnowledgeUsedPanel titles={result.knowledgeUsed ?? []} />
             {result.plans.map((plan, i) => (
               <article
                 key={i}
@@ -236,6 +256,12 @@ export default function DailyRecommendPage() {
                       {submitting[i] ? '提交中…' : '提交反馈'}
                     </button>
                   </div>
+                  {/* AI 对这条反馈的回应（用户感知层核心：让"AI 记住了"立刻可见） */}
+                  {feedbackNotes[i] && (
+                    <div className="mt-3 rounded-lg bg-olive-pale/40 px-3 py-2 text-sm text-olive-dark">
+                      {feedbackNotes[i]}
+                    </div>
+                  )}
                 </div>
               </article>
             ))}

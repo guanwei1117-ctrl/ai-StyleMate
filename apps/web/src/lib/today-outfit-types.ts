@@ -46,6 +46,18 @@ export interface TodayOutfitResponse {
   isStarter?: boolean;
   /** 起步方案提示文案 */
   starterMessage?: string;
+  /**
+   * AI 引用了哪些专业知识（可解释性证据，RAG 检索结果）
+   * - 来自后端 RAG 知识库（体型/色彩/场合/风格百科）
+   * - 为空数组或 undefined 时表示"无证据命中"，前端可不展示
+   */
+  knowledgeUsed?: string[];
+  /**
+   * AI "读到了"哪些用户偏好（前端的"我注意到你 X"用）
+   * - 派生自后端 memoryContext.snapshot
+   * - 最多 4 条；空数组或 undefined 时前端不展示
+   */
+  memoryEcho?: string[];
 }
 
 export const OCCASION_OPTIONS = [

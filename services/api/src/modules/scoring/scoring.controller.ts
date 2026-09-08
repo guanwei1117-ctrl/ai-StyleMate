@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Logger, Req, UseGuards } from '@nestjs/com
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { OptionalAuthGuard } from '../../common/guards/optional-auth.guard';
+import { resolveUserId } from '../../common/guards/resolve-user-id';
 import { ScoringService } from './scoring.service';
 import { EvaluateOutfitRequestDto } from './dto/evaluate-outfit.dto';
 import { AnalyzeStyleProfileRequestDto } from './dto/analyze-style-profile.dto';

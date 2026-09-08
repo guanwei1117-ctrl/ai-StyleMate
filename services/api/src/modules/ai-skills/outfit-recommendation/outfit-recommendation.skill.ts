@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { RagService } from '../../rag/rag.service';
 import { LLMFactory } from '../../llm/llm-factory';
 import { ChatMessage } from '../../llm/llm-provider.interface';
 import {
@@ -19,7 +20,11 @@ export class OutfitRecommendationSkill {
   private readonly logger = new Logger(OutfitRecommendationSkill.name);
   private readonly rulesEngine = new StylingRulesEngine();
 
-  constructor(private readonly llmFactory: LLMFactory) {}
+  constructor(
+    private readonly llmFactory: LLMFactory,
+    // @Optional：RagModule 仅在 ENABLE_DB=true 时加载；未加载时 ragService 为 undefined，走降级
+    @Optional() private readonly ragService?: RagService,
+  ) {}
 
   async recommend(input: OutfitRecommendationInput): Promise<OutfitRecommendationResult> {
     // 空衣橱 → 起步方案：给出建议购买的单品组合，而不是报错挡人
@@ -46,7 +51,8 @@ export class OutfitRecommendationSkill {
     );
 
     // ====== AI 推荐 (40% 权重) ======
-    const systemPrompt = buildOutfitRecommendationPrompt(input, rulesOutput.rulesSummary);
+    const { text: knowledgeText, titles: knowledgeTitles } = await this.retrieveKnowledge(input);
+    const systemPrompt = buildOutfitRecommendationPrompt(input, rulesOutput.rulesSummary, knowledgeText);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: '请基于我的衣橱和今天的情况，在规则引擎建议的基础上推荐 3 套穿搭方案。' },
@@ -84,7 +90,13 @@ export class OutfitRecommendationSkill {
       plan.score = Math.round(aiScore * 0.4 + avgRulesScore * 0.4 + memoryScore * 0.2);
     }
 
-    return parsed;
+    return {
+      ...parsed,
+      ...(knowledgeTitles.length ? { knowledgeUsed: knowledgeTitles } : {}),
+      ...(this.buildMemoryEcho(input.memoryContext?.snapshot).length
+        ? { memoryEcho: this.buildMemoryEcho(input.memoryContext?.snapshot) }
+        : {}),
+    };
   }
 
   /**
@@ -96,7 +108,8 @@ export class OutfitRecommendationSkill {
   private async recommendStarter(
     input: OutfitRecommendationInput,
   ): Promise<OutfitRecommendationResult> {
-    const systemPrompt = buildStarterOutfitPrompt(input);
+    const { text: knowledgeText, titles: knowledgeTitles } = await this.retrieveKnowledge(input);
+    const systemPrompt = buildStarterOutfitPrompt(input, knowledgeText);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: '我的衣橱还是空的，请给我几套可以直接照着买的起步穿搭方案。' },
@@ -122,7 +135,118 @@ export class OutfitRecommendationSkill {
       isStarter: true,
       starterMessage:
         '你的衣橱还是空的，以上方案中的单品都是购买建议。把它们加入衣橱后，推荐会精确到你的每一件衣服。',
+      ...(knowledgeTitles.length ? { knowledgeUsed: knowledgeTitles } : {}),
+      ...(this.buildMemoryEcho(input.memoryContext?.snapshot).length
+        ? { memoryEcho: this.buildMemoryEcho(input.memoryContext?.snapshot) }
+        : {}),
     };
+  }
+
+  /**
+   * 检索穿搭知识并注入 prompt（RAG 接线）
+   *
+   * 使用 RagService.augmentForRecommendation 按 场合/天气/风格 从知识库检索专业建议。
+   * 安全性设计：
+   * - @Optional：RagModule 未加载（ENABLE_DB=false）时 ragService 为 undefined，直接跳过
+   * - try/catch：DB 不可用 / 检索报错时降级为"无知识推荐"，绝不影响推荐主流程
+   * - 无证据短路：检索为空时返回空，由规则引擎 + 通用审美兜底
+   */
+  private async retrieveKnowledge(
+    input: OutfitRecommendationInput,
+  ): Promise<{ text: string; titles: string[] }> {
+    if (!this.ragService) {
+      this.logger.debug('RAG 未启用（RagService 未注入），跳过知识检索');
+      return { text: '', titles: [] };
+    }
+
+    try {
+      const styleTags = input.memoryContext?.snapshot?.likedStyles?.slice(0, 3) ?? [];
+
+      const text = await this.ragService.augmentForRecommendation({
+        occasion: input.occasion,
+        weather: `${input.weather.temperature}°C ${input.weather.condition}${input.weather.isRaining ? ' 下雨' : ''}`,
+        styleTags,
+      });
+
+      if (!text) {
+        this.logger.debug('RAG 未命中相关知识（无证据短路，走规则/通用推荐）');
+        return { text: '', titles: [] };
+      }
+
+      // 提取标题用于可解释性（knowledgeUsed）
+      const titles = (text.match(/【([^】]+)】/g) ?? []).map((t) => t.replace(/[【】]/g, ''));
+      this.logger.log(`RAG 命中 ${titles.length} 条知识 | ${titles.join('、')}`);
+      return { text, titles };
+    } catch (err) {
+      this.logger.warn(
+        `RAG 检索失败，降级为无知识推荐: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return { text: '', titles: [] };
+    }
+  }
+
+  /**
+   * 从用户记忆快照派生"我注意到你 X"短句列表（用户感知层核心）
+   *
+   * 设计意图：让"长期记忆"在产品上**被用户看见**——
+   * 即使 LLM 输出的 reason 是通用的，前端也能展示"AI 真的读了你的偏好"。
+   * 规则：
+   * - 优先展示"避坑/不喜欢"类（用户最在意的差异化）
+   * - 每个字段最多展示 2 个值，避免刷屏
+   * - 总数上限 4 条，再多就只取前 4
+   * - 空 snapshot 直接返回空数组（前端不展示）
+   */
+  private buildMemoryEcho(snapshot?: {
+    summary?: string;
+    likedStyles?: string[];
+    dislikedStyles?: string[];
+    preferredColors?: string[];
+    dislikedColors?: string[];
+    avoidRules?: string[];
+    dressGoals?: string[];
+    bodyConcerns?: string[];
+    currentIntent?: string | null;
+  } | null): string[] {
+    if (!snapshot) return [];
+
+    const echo: string[] = [];
+
+    // 优先级 1：当前意图（最有"专属感"的信号）
+    if (snapshot.currentIntent) {
+      echo.push(`你最近在找「${snapshot.currentIntent}」`);
+    }
+
+    // 优先级 2：避坑规则（差异化最强）
+    if (snapshot.avoidRules?.length) {
+      echo.push(`你说过：${snapshot.avoidRules.slice(0, 1).join('；')}`);
+    }
+
+    // 优先级 3：不喜欢的颜色
+    if (snapshot.dislikedColors?.length) {
+      echo.push(`避开你不喜欢的颜色：${snapshot.dislikedColors.slice(0, 2).join('、')}`);
+    }
+
+    // 优先级 4：不喜欢的风格
+    if (snapshot.dislikedStyles?.length) {
+      echo.push(`避开你不喜欢的风格：${snapshot.dislikedStyles.slice(0, 2).join('、')}`);
+    }
+
+    // 优先级 5：喜欢的风格
+    if (snapshot.likedStyles?.length) {
+      echo.push(`基于你喜欢的风格：${snapshot.likedStyles.slice(0, 2).join('、')}`);
+    }
+
+    // 优先级 6：偏好颜色
+    if (snapshot.preferredColors?.length) {
+      echo.push(`偏好颜色：${snapshot.preferredColors.slice(0, 2).join('、')}`);
+    }
+
+    // 优先级 7：穿搭目标
+    if (snapshot.dressGoals?.length) {
+      echo.push(`穿搭目标：${snapshot.dressGoals.slice(0, 2).join('、')}`);
+    }
+
+    return echo.slice(0, 4);
   }
 
   /** 记忆评分：基于 MemorySnapshot 的用户偏好加权 */

@@ -90,4 +90,11 @@ export interface OutfitRecommendationResult {
   isStarter?: boolean;
   /** 起步方案提示文案 */
   starterMessage?: string;
+  /** 本次推荐引用的 RAG 知识标题（可解释性，未命中为空数组） */
+  knowledgeUsed?: string[];
+  /**
+   * AI 本次"读到了"哪些用户偏好（前端的"我注意到你 X"用）
+   * 派生自 memoryContext.snapshot，最多 4 条；空数组时前端不展示
+   */
+  memoryEcho?: string[];
 }

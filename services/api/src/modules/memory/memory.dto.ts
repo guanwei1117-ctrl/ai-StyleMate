@@ -57,6 +57,31 @@ export interface AIMemoryContext {
     idleItems: Array<{ id: string; description: string; idleDays: number }>;
     topWorn: Array<{ id: string; description: string; wearCount: number }>;
   } | null;
+  // ============== 便捷派生字段（由 buildAIContext 从 snapshot/entities 派生）==============
+  /** AI 总结的快捷访问 = snapshot?.summary（部分 prompts 旧版字段命名） */
+  memorySummary?: string;
+  /** 用户画像扁平视图 = snapshot 字段聚合（部分 prompts 旧版字段命名） */
+  styleProfile?: {
+    suitableStyles?: string[];
+    likedStyles?: string[];
+    dislikedStyles?: string[];
+    preferredColors?: string[];
+    dislikedColors?: string[];
+    bodyType?: string;
+    bodyConcerns?: string[];
+    dressGoals?: string[];
+    commonOccasions?: string[];
+    avoidRules?: Array<{ rule: string; source: string; weight: number }>;
+  };
+  /** 最近反馈的文本摘要（按需从 OutfitFeedback 聚合；当前未启用，预留） */
+  recentFeedbackSummary?: string;
+  /** 当前购物意图（按需从 UserCurrentIntent 读；当前未启用，预留） */
+  currentIntent?: {
+    lookingFor?: string;
+    targetOccasion?: string;
+    budgetRange?: { min?: number; max?: number; currency?: string };
+    preferredBrands?: string[];
+  };
 }
 
 /**

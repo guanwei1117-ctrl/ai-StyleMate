@@ -50,7 +50,7 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
 /**
  * 构建"这件怎么搭"System Prompt
  */
-export function buildItemStylingPrompt(input: ItemStylingInput): string {
+export function buildItemStylingPrompt(input: ItemStylingInput, knowledge?: string): string {
   const focus = input.focusItem;
   const focusJson = JSON.stringify(
     {
@@ -101,6 +101,7 @@ export function buildItemStylingPrompt(input: ItemStylingInput): string {
 - dress（连体装）单品放入 top 槽位
 
 ${memoryText}
+${knowledge ? knowledge + '\n' : ''}
 ## 焦点单品（用户想搭配的这件）
 ${focusJson}
 
@@ -111,7 +112,7 @@ ${wardrobeJson.length > 2 ? wardrobeJson : '[]（衣橱里暂时只有这一件�
 ${input.occasion ? `场合：${input.occasion}` : '场合：不限，给出不同场景的方案更佳'}
 
 ## 任务
-以焦点单品为核心，给出 3 套搭配方案（safe / flattering / vibe 各一套）：
+以焦点单品为核心，结合上方"参考知识（RAG 检索）"中的专业建议（体型/场合/色彩搭配），给出 3 套搭配方案（safe / flattering / vibe 各一套）：
 1. safe（稳妥不出错）：焦点单品 + 最不容易出错的基础组合。
 2. flattering（显瘦显高）：结合用户身材顾虑，扬长避短。
 3. vibe（更有氛围感）：更有个性、更出彩的组合。

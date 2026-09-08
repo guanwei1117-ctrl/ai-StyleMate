@@ -28,6 +28,8 @@ if (dbEnabled) {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { OotdModule } = require('./modules/ootd/ootd.module');
   const { AdminModule } = require('./modules/admin/admin.module');
+  // RAG 知识库：依赖 TypeOrm（KnowledgeDocument/KnowledgeChunk），仅在 DB 启用时加载
+  const { RagModule } = require('./modules/rag/rag.module');
 
   dbModules.push(
     TypeOrmModule.forRoot({
@@ -49,6 +51,7 @@ if (dbEnabled) {
     SyncModule,
     OotdModule,
     AdminModule,
+    RagModule,
   );
 }
 

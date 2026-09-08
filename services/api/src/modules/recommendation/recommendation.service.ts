@@ -269,6 +269,10 @@ export class RecommendationService {
   async analyzeWardrobeGaps(userId: string, season?: string): Promise<WardrobeGapResult> {
     const items = await this.wardrobeService.getUserItems(userId);
 
+    // TODO: 预算档位应从用户档案派生（待 UserStyleProfile 增加 budget 字段后接入）
+    // 当前 UserStyleProfile/MemorySnapshot 都没有预算字段，暂传 undefined，不影响主流程
+    const budgetLevel: string | undefined = undefined;
+
     // 读取用户长期记忆（AI 分析需要）
     let memoryContext: AIMemoryContext | null = null;
     try {

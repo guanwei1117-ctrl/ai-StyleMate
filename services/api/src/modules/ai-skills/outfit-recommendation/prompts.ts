@@ -54,7 +54,7 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
  * 用户衣橱为空时使用：所有单品都是"建议购买"，帮助不会穿搭/不会买的新手直接照着买照着穿。
  * 输出 JSON 结构与常规推荐一致，但每个 item 不带 itemId，而是带 budgetHint。
  */
-export function buildStarterOutfitPrompt(input: OutfitRecommendationInput): string {
+export function buildStarterOutfitPrompt(input: OutfitRecommendationInput, knowledge?: string): string {
   const memoryText = buildMemoryContextText(input.memoryContext);
 
   const constraintsText =
@@ -65,6 +65,7 @@ export function buildStarterOutfitPrompt(input: OutfitRecommendationInput): stri
   return `你是 StyleMate 的专业穿搭顾问。用户衣橱还是空的，想知道"今天穿什么、以及照着买什么"。
 
 ${memoryText}
+${knowledge ? knowledge + '\n' : ''}
 ## 今日天气
 城市：${input.weather.city}
 天气：${input.weather.condition}
@@ -80,6 +81,15 @@ ${constraintsText}
 ## 任务
 用户衣橱为空，请给出 3 套"照着买就能穿"的起步方案（safe / flattering / vibe 各一套）。
 每套方案用建议购买的单品填满 hat/top/bottom/outerwear/shoes/bag/accessory 槽位（没有需要的槽位填 null）。
+若上方提供了"参考知识（RAG 检索）"，请优先依据其中的专业建议（体型/场合/色彩搭配）来设计单品与理由。
+
+## 记忆引用要求（起步方案也要"懂我"）
+起步方案用户往往没衣橱，但可能有画像（身材/肤色/偏好/避坑）。reason 字段同样要体现个性化：
+- 若用户有 likedStyles / preferredColors：方案应围绕这些偏好设计，reason 说明"挑了你喜欢的 X 风格/颜色"
+- 若用户有 avoidRules / dislikedColors / bodyConcerns：方案必须严格避开，reason 说明"避开了你说的 X"
+- 若用户有 dressGoals（如"显瘦、显高"）：reason 中呼应目标
+- 若用户记忆为空：reason 用通用理由，不编造"基于你的偏好"
+- reason ≤ 80 字
 
 ## 输出要求
 - 每个单品对象字段：{ "category": "品类", "description": "具体描述（颜色+品类，如 米白色针织开衫）", "budgetHint": "建议预算区间（如 ¥150-300）" }，不要 itemId。
@@ -110,7 +120,7 @@ ${constraintsText}
   ]
 }`;
 }
-export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput, rulesSummary?: string): string {
+export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput, rulesSummary?: string, knowledge?: string): string {
   const itemsJson = JSON.stringify(
     input.wardrobeItems.map((i) => ({
       id: i.id,
@@ -147,6 +157,7 @@ export function buildOutfitRecommendationPrompt(input: OutfitRecommendationInput
 
 ${memoryText}
 ${rulesSummary ? rulesSummary + '\n' : ''}
+${knowledge ? knowledge + '\n' : ''}
 ## 今日天气
 城市：${input.weather.city}
 天气：${input.weather.condition}
@@ -167,6 +178,16 @@ ${itemsJson}
 
 ## 任务
 基于天气、场合和风格目标，结合用户长期记忆中的偏好和避坑规则，从用户衣橱中搭配 3 套穿搭方案：
+若上方提供了"参考知识（RAG 检索）"，请优先依据其中的专业建议（体型/场合/色彩搭配）来设计搭配与理由。
+
+## 记忆引用要求（让用户感觉"AI 真的懂我"）
+每套方案的 reason 字段必须体现"基于你的偏好"——这是用户感知"AI 记住我"的唯一信号。
+- 若用户有 likedStyles（如"极简、通勤风"）：reason 中要明确说"基于你喜欢的 X 风格…"
+- 若用户有 avoidRules（如"避免宽松上衣+宽松下装"）：reason 中要明确说"避开了你说的 X 规则…"
+- 若用户有 dislikedColors（如"荧光绿"）：推荐中避开该颜色，reason 中说明"避开了你不喜欢的 X 色"
+- 若用户有 bodyConcerns / dressGoals：reason 中要呼应（如"高腰设计照顾你的显瘦需求"）
+- 若用户记忆为空：reason 用通用理由，但**不要编造"基于你的偏好"**
+- reason 字数限制：≤ 80 字（既要体现个性化，又不能冗长）
 
 1. safe（稳妥不出错）：用百搭单品，适合大多数场景，不会出错。
 2. flattering（显瘦显高）：优先选择能修饰身材比例的单品，适合想显瘦显高的日子。

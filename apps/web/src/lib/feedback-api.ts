@@ -21,7 +21,26 @@ export interface FeedbackInput {
   plan?: Record<string, any>;
 }
 
-export async function submitFeedback(input: FeedbackInput) {
+/**
+ * /feedback 接口响应（含"AI 记住了"的可感知提示，向后兼容）
+ * - 顶层 id/userId/reaction/rating/comment/planTitle/plan/createdAt：原 Feedback 实体字段（向后兼容）
+ * - aiMemoryNote：给用户的可感知文案（让"AI 记住我"在产品上立刻可见）
+ * - memoryUpdated：长期记忆是否成功同步（失败时 aiMemoryNote 会说明）
+ */
+export interface FeedbackResponse {
+  id: string;
+  userId: string;
+  reaction: 'like' | 'dislike';
+  rating?: number;
+  comment?: string;
+  planTitle?: string;
+  plan?: Record<string, any>;
+  createdAt: string;
+  aiMemoryNote: string;
+  memoryUpdated: boolean;
+}
+
+export async function submitFeedback(input: FeedbackInput): Promise<FeedbackResponse> {
   const userId = getCurrentUserId();
   const res = await fetch(`${API_BASE}/feedback`, {
     method: 'POST',

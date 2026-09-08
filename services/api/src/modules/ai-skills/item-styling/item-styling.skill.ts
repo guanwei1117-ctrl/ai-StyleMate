@@ -1,4 +1,5 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, Optional, BadRequestException } from '@nestjs/common';
+import { RagService } from '../../rag/rag.service';
 import { LLMFactory } from '../../llm/llm-factory';
 import { ChatMessage } from '../../llm/llm-provider.interface';
 import { buildItemStylingPrompt } from './prompts';
@@ -16,20 +17,25 @@ const SLOT_KEYS = ['hat', 'top', 'bottom', 'outerwear', 'shoes', 'bag', 'accesso
 export class ItemStylingSkill {
   private readonly logger = new Logger(ItemStylingSkill.name);
 
-  constructor(private readonly llmFactory: LLMFactory) {}
+  constructor(
+    private readonly llmFactory: LLMFactory,
+    // @Optional：RagModule 未加载（ENABLE_DB=false）时 ragService 为 undefined，走降级
+    @Optional() private readonly ragService?: RagService,
+  ) {}
 
   /**
    * 以焦点单品为核心生成 3 套搭配方案
    */
   async style(input: ItemStylingInput): Promise<ItemStylingResult> {
-    const systemPrompt = buildItemStylingPrompt(input);
+    const { text: knowledgeText, titles: knowledgeTitles } = await this.retrieveKnowledge(input);
+    const systemPrompt = buildItemStylingPrompt(input, knowledgeText);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: `请围绕「${input.focusItem.color} ${input.focusItem.subCategory || input.focusItem.category}」给我 3 套搭配方案。` },
     ];
 
     this.logger.log(
-      `单品搭配 AI 调用 | 焦点单品: ${input.focusItem.id} | 衣橱单品: ${input.wardrobeItems.length} | 场合: ${input.occasion ?? '不限'}`,
+      `单品搭配 AI 调用 | 焦点单品: ${input.focusItem.id} | 衣橱单品: ${input.wardrobeItems.length} | 场合: ${input.occasion ?? '不限'} | RAG命中: ${knowledgeTitles.length}`,
     );
     const startTime = Date.now();
     const response = await this.llmFactory.chat(messages, {
@@ -43,7 +49,53 @@ export class ItemStylingSkill {
       `单品搭配完成 | 耗时 ${Date.now() - startTime}ms | 模型: ${response.model} | 方案数: ${parsed.plans.length}`,
     );
 
-    return parsed;
+    return {
+      ...parsed,
+      ...(knowledgeTitles.length ? { knowledgeUsed: knowledgeTitles } : {}),
+    };
+  }
+
+  /**
+   * 检索穿搭知识并注入 prompt（RAG 接线）
+   *
+   * 复用 RagService.augmentForOutfitScoring（领域组合：body_type + occasion + color_theory + style_encyclopedia）
+   * 完美匹配"单品搭配"场景，让 LLM 依据体型/色彩/场合的专业建议设计搭配。
+   *
+   * 安全性：@Optional + try/catch + 无证据短路，与 outfit-recommendation 一致。
+   */
+  private async retrieveKnowledge(
+    input: ItemStylingInput,
+  ): Promise<{ text: string; titles: string[] }> {
+    if (!this.ragService) {
+      this.logger.debug('RAG 未启用（RagService 未注入），跳过知识检索');
+      return { text: '', titles: [] };
+    }
+
+    try {
+      const styleTags =
+        input.focusItem.styleTags?.slice(0, 3) ??
+        input.memoryContext?.snapshot?.likedStyles?.slice(0, 3) ??
+        [];
+
+      const text = await this.ragService.augmentForOutfitScoring({
+        occasion: input.occasion,
+        styleTags,
+      });
+
+      if (!text) {
+        this.logger.debug('RAG 未命中相关知识（无证据短路，走通用推荐）');
+        return { text: '', titles: [] };
+      }
+
+      const titles = (text.match(/【([^】]+)】/g) ?? []).map((t) => t.replace(/[【】]/g, ''));
+      this.logger.log(`RAG 命中 ${titles.length} 条知识 | ${titles.join('、')}`);
+      return { text, titles };
+    } catch (err) {
+      this.logger.warn(
+        `RAG 检索失败，降级为无知识推荐: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return { text: '', titles: [] };
+    }
   }
 
   private parseResponse(content: string): ItemStylingResult {

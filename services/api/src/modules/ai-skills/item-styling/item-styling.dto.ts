@@ -66,4 +66,6 @@ export interface ItemStylingResult {
   plans: ItemStylingPlan[];
   /** 提示文案 */
   note: string;
+  /** 本次推荐引用的 RAG 知识标题（可解释性，未命中为空数组） */
+  knowledgeUsed?: string[];
 }

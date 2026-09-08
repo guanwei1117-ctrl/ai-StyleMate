@@ -642,6 +642,23 @@ ${data.join('\n\n') || '（新用户，数据极少）'}
       taskType,
       snapshot,
       wardrobeSummary,
+      // 便捷派生字段：从 snapshot 聚合，让旧版 prompts（item-styling / purchase-evaluation / wardrobe-gap）
+      // 能直接读到 memorySummary / styleProfile 字段（避免改 3 个 prompts 的结构）
+      // 注意：recentFeedbackSummary / currentIntent 暂不派生（需要额外 DB 查询，留待后续 PR）
+      memorySummary: snapshot?.summary,
+      styleProfile: snapshot
+        ? {
+            likedStyles: snapshot.likedStyles,
+            dislikedStyles: snapshot.dislikedStyles,
+            preferredColors: snapshot.preferredColors,
+            dislikedColors: snapshot.dislikedColors,
+            bodyConcerns: snapshot.bodyConcerns,
+            dressGoals: snapshot.dressGoals,
+            commonOccasions: snapshot.commonOccasions,
+            // avoidRules 的类型与 snapshot 中不同（snapshot 是 string[]，这里期望带 weight 的对象），
+            // 保持 undefined 让 prompts 跳过避坑规则渲染（snapshot 里有等价字段，prompts 旧版不感知）
+          }
+        : undefined,
     };
   }
 
