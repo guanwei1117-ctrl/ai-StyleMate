@@ -16,6 +16,38 @@ export interface UpdateStyleProfileDto {
   dressGoals?: string[];
   commonOccasions?: string[];
   avoidRules?: Array<{ rule: string; source: string; weight: number }>;
+  // ============== M14 教练模式字段 ==============
+  /** 穿搭水平自评 0-10 */
+  styleProficiency?: number | null;
+  /** 用户困惑类型数组（'buy' | 'wear' | 'match'） */
+  confusionTypes?: string[] | null;
+}
+
+/** 教练子模式推导结果 */
+export type CoachMode = 'shopping' | 'occasion' | 'combination' | 'mixed';
+
+/**
+ * 从 confusionTypes + styleProficiency 推导教练子模式
+ * （供 skill 调用 — 不存数据库，每次实时派生）
+ */
+export function deriveCoachMode(
+  confusionTypes: string[] | null | undefined,
+  styleProficiency: number | null | undefined,
+): CoachMode {
+  const types = confusionTypes ?? [];
+  // 高水平（>7）+ 无困惑 → mixed（顾问模式，给建议但不教）
+  if (styleProficiency !== null && styleProficiency !== undefined && styleProficiency >= 7 && types.length === 0) {
+    return 'mixed';
+  }
+  // 多困惑 → mixed（综合模式）
+  if (types.length >= 2) return 'mixed';
+  if (types.length === 1) {
+    if (types[0] === 'buy') return 'shopping';
+    if (types[0] === 'wear') return 'occasion';
+    if (types[0] === 'match') return 'combination';
+  }
+  // 无困惑或 unknown → mixed（默认顾问模式，不打扰高水平用户）
+  return 'mixed';
 }
 
 export interface RecordFeedbackDto {
@@ -72,7 +104,13 @@ export interface AIMemoryContext {
     dressGoals?: string[];
     commonOccasions?: string[];
     avoidRules?: Array<{ rule: string; source: string; weight: number }>;
+    /** M14：穿搭水平 0-10 */
+    styleProficiency?: number | null;
+    /** M14：用户困惑类型数组 */
+    confusionTypes?: string[] | null;
   };
+  /** M14：教练子模式（实时派生） */
+  coachMode?: CoachMode;
   /** 最近反馈的文本摘要（按需从 OutfitFeedback 聚合；当前未启用，预留） */
   recentFeedbackSummary?: string;
   /** 当前购物意图（按需从 UserCurrentIntent 读；当前未启用，预留） */

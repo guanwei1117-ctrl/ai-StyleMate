@@ -64,11 +64,8 @@ export type StyleType =
 /** 年龄段 */
 export type AgeGroup =
   | 'under_18'    // 18岁以下
-  | '18_24'       // 18-24
-  | '25_29'       // 25-29
-  | '30_39'       // 30-39
-  | '40_49'       // 40-49
-  | '50_plus';    // 50岁以上
+  | '18_30'       // 18-30
+  | '30_plus';    // 30岁以上
 
 /** 穿衣目标（多选） */
 export type DressingGoal =

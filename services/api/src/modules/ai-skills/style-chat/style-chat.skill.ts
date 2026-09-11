@@ -4,6 +4,7 @@ import { ChatMessage } from '../../llm/llm-provider.interface';
 import { buildStyleChatPrompt } from './prompts';
 import { StyleChatInput, StyleChatResult } from './style-chat.dto';
 import { MemoryService } from '../../memory/memory.service';
+import { RagService } from '../../rag/rag.service';
 
 /**
  * 强制结束时硬保证输出：无论模型返回什么，done 必须为 true 且必须有 statement。
@@ -31,13 +32,17 @@ export class StyleChatSkill {
   constructor(
     private readonly llmFactory: LLMFactory,
     @Optional() private readonly memoryService?: MemoryService,
+    // M9：接 RAG（让对话引导有专业依据 —— 风格/体型/色彩知识库检索）
+    @Optional() private readonly ragService?: RagService,
   ) {}
 
   /**
    * 自由对话式测评：返回 AI 的下一个回复或最终总结
    */
   async chat(input: StyleChatInput): Promise<StyleChatResult> {
-    const systemPrompt = buildStyleChatPrompt(input);
+    // M9：检索风格/体型/色彩专业知识（让对话引导有专业依据）
+    const knowledge = await this.retrieveStyleKnowledge(input);
+    const systemPrompt = buildStyleChatPrompt(input, knowledge);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       {
@@ -75,6 +80,41 @@ export class StyleChatSkill {
     }
 
     return result;
+  }
+
+  /**
+   * M9：检索风格 / 体型 / 色彩专业知识
+   *
+   * - 根据对话历史最后一条用户消息（如果存在）或最近的偏好关键词检索相关知识
+   * - @Optional + try/catch 三层降级：RAG 不可用时不影响对话流程
+   * - 返回空字符串时下游直接拼"无参考知识"提示
+   */
+  private async retrieveStyleKnowledge(input: StyleChatInput): Promise<string> {
+    if (!this.ragService) {
+      this.logger.debug('RAG 未启用（RagService 未注入），跳过对话知识检索');
+      return '';
+    }
+
+    // 取最后一条用户消息作为 query（对话场景下这是当前焦点）
+    const lastUserMsg = [...(input.history ?? [])].reverse().find((h) => h.role === 'user');
+    const query = (lastUserMsg?.content ?? input.userMessage ?? '穿搭风格推荐').slice(0, 80);
+
+    try {
+      const text = await this.ragService.augmentWithContext(query, {
+        domains: ['style_encyclopedia', 'body_type', 'color_theory'],
+        topK: 3,
+      });
+      if (text) {
+        const titles = (text.match(/【([^】]+)】/g) ?? []).map((t) => t.replace(/[【】]/g, ''));
+        this.logger.log(`style-chat RAG 命中 ${titles.length} 条知识 | ${titles.join('、')}`);
+      }
+      return text;
+    } catch (err) {
+      this.logger.warn(
+        `style-chat RAG 检索失败，降级为无知识对话: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return '';
+    }
   }
 
   private parseResponse(content: string): StyleChatResult {

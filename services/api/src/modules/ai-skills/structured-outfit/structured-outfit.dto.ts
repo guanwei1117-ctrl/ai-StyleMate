@@ -10,6 +10,8 @@ export interface StructuredOutfitInput {
   imageBase64: string;
   /** 可选场合提示 */
   occasion?: string;
+  /** M16：可选教练子模式（shopping/occasion/combination/mixed） */
+  coachMode?: string;
 }
 
 export interface StructuredOutfitItem {

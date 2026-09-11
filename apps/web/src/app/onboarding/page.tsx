@@ -22,6 +22,7 @@ import { matchStyles } from '@/lib/style-matcher';
 import {
   BUDGET_OPTIONS,
   CLIMATE_OPTIONS,
+  CONFUSION_TYPE_LABELS,
   DAILY_SCENE_OPTIONS,
   DRESSING_GOAL_OPTIONS,
   OCCUPATION_OPTIONS,
@@ -32,6 +33,7 @@ import {
   type BodyShape,
   type BudgetLevel,
   type ClimateZone,
+  type ConfusionType,
   type DailyScene,
   type DressingGoal,
   type Gender,
@@ -40,6 +42,7 @@ import {
   type PriorityDimension,
   type StyleMatchResult,
 } from '@/lib/onboarding-types';
+import { COACH_MODE_EMOJI, COACH_MODE_LABELS, type CoachMode } from '@/lib/memory-api';
 import {
   CATEGORY_LABELS,
   STYLES,
@@ -303,6 +306,11 @@ function OnboardingContent() {
               <p className="mt-4 text-sm leading-7 text-ink-500">
                 先填基础信息，再和 AI 顾问对话——它会一步步问你、追问、听懂你的纠正，最后对照风格库生成专属档案。
               </p>
+              {/* M15：让用户从 onboarding 起步就感知到"AI 会记住一切"——降低后续反馈/收藏/标注的心理门槛 */}
+              <div className="mx-auto mt-5 inline-flex items-center gap-1.5 rounded-full bg-olive-pale/30 px-3.5 py-1.5 text-xs text-olive-dark">
+                <Sparkles size={12} />
+                我会记住你说的每一句话，让推荐越来越懂你
+              </div>
             </header>
           )}
 
@@ -475,8 +483,8 @@ function ProfileStep({
       <SectionHeader
         icon={UserRound}
         label="01"
-        title="基础"
-        copy="必填：性别、身高、体重、年龄。"
+        title="基础 + 教练匹配"
+        copy="必填：性别、身高、体重、年龄。告诉 AI 你的困惑，匹配专属教练模式。"
       />
       <div className="grid gap-8 p-6 sm:p-8">
         <div className="space-y-7">
@@ -561,10 +569,110 @@ function ProfileStep({
               className="mt-3 w-full border border-ink-900/10 bg-white/50 px-4 py-3 text-sm outline-none focus:border-ink-900/40"
             />
           </FieldGroup>
+
+          {/* ============== M14 教练模式匹配（让 AI 知道你需要哪种教练）============== */}
+          <div className="rounded-2xl border-2 border-dashed border-olive-pale bg-olive-pale/10 p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-ink-900 px-2.5 py-1 text-[10px] font-medium text-creme-100">
+                <Sparkles size={12} />
+                M14
+              </span>
+              <p className="text-xs font-medium text-ink-700">匹配你的 AI 教练模式</p>
+            </div>
+
+            {/* Q1：困惑类型（多选） */}
+            <FieldGroup title="你最困惑什么？（多选）" optional>
+              <p className="mb-3 text-xs text-ink-500 leading-relaxed">
+                选得越准，AI 越懂你。例：选了"不知道怎么买"→ AI 会推"该补什么单品"清单；选了"不知道怎么穿"→ 重点教场合匹配。
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(CONFUSION_TYPE_LABELS) as ConfusionType[]).map((type) => {
+                  const active = answers.confusionTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() =>
+                        updateAnswers({
+                          confusionTypes: active
+                            ? answers.confusionTypes.filter((t) => t !== type)
+                            : [...answers.confusionTypes, type],
+                        })
+                      }
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm transition-all',
+                        active
+                          ? 'border-ink-900 bg-ink-900 text-creme-100 shadow-sm'
+                          : 'border-ink-900/15 bg-white text-ink-600 hover:border-ink-900/40 hover:bg-creme-50',
+                      )}
+                    >
+                      <span>{active ? '✓' : '+'}</span>
+                      <span>{CONFUSION_TYPE_LABELS[type]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* 实时显示推导的 mode */}
+              {answers.confusionTypes.length > 0 && (
+                <div className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-xs text-ink-600">
+                  <span className="text-ink-400">→ AI 将以 </span>
+                  <span className="font-medium text-ink-900">
+                    {COACH_MODE_EMOJI[deriveCoachModeFromAnswers(answers.confusionTypes, answers.styleProficiency)]}{' '}
+                    {COACH_MODE_LABELS[deriveCoachModeFromAnswers(answers.confusionTypes, answers.styleProficiency)]}
+                  </span>
+                  <span className="text-ink-400"> 模式为你服务</span>
+                </div>
+              )}
+            </FieldGroup>
+
+            {/* Q2：穿搭水平自评（滑块） */}
+            <FieldGroup title="你觉得自己对穿搭有多了解？" optional>
+              <p className="mb-3 text-xs text-ink-500 leading-relaxed">
+                0 = 不会买、不会穿、不会搭；5 = 知道基本规则；10 = 非常专业。
+              </p>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={answers.styleProficiency ?? 5}
+                  onChange={(e) =>
+                    updateAnswers({ styleProficiency: Number(e.target.value) })
+                  }
+                  className="flex-1 accent-ink-900"
+                />
+                <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-lg border-2 border-ink-900 bg-white text-base font-semibold text-ink-900">
+                  {answers.styleProficiency ?? 5}
+                </div>
+              </div>
+              <div className="mt-2 flex justify-between text-[10px] text-ink-400">
+                <span>完全不懂</span>
+                <span>基础</span>
+                <span>专业</span>
+              </div>
+            </FieldGroup>
+          </div>
         </div>
       </div>
     </>
   );
+}
+
+/** 本地派生教练模式（仅 UI 显示用，与后端 deriveCoachMode 逻辑一致） */
+function deriveCoachModeFromAnswers(
+  confusionTypes: ConfusionType[],
+  styleProficiency: number | null,
+): CoachMode {
+  const prof = styleProficiency;
+  if (prof !== null && prof >= 7 && confusionTypes.length === 0) return 'mixed';
+  if (confusionTypes.length >= 2) return 'mixed';
+  if (confusionTypes.length === 1) {
+    if (confusionTypes[0] === 'buy') return 'shopping';
+    if (confusionTypes[0] === 'wear') return 'occasion';
+    if (confusionTypes[0] === 'match') return 'combination';
+  }
+  return 'mixed';
 }
 
 function PreferenceStep({

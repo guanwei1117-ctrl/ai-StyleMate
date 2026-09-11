@@ -14,6 +14,7 @@ import {
   AIMemoryContext,
   MemorySnapshot,
   TaskType,
+  deriveCoachMode,
 } from './memory.dto';
 
 @Injectable()
@@ -81,6 +82,13 @@ export class MemoryService {
       // avoidRules: 追加
       if (data.avoidRules && data.avoidRules.length > 0) {
         profile.avoidRules = [...(profile.avoidRules ?? []), ...data.avoidRules];
+      }
+      // M14 教练模式字段
+      if (data.styleProficiency !== undefined) {
+        profile.styleProficiency = data.styleProficiency;
+      }
+      if (data.confusionTypes !== undefined) {
+        profile.confusionTypes = data.confusionTypes;
       }
     }
     return this.profileRepo.save(profile);
@@ -612,6 +620,14 @@ ${data.join('\n\n') || '（新用户，数据极少）'}
     // 所有任务都需要记忆快照（轻量，仅读 summary + profile 的数组字段）
     const snapshot = await this.buildSnapshot(userId);
 
+    // M14：教练模式需要 styleProficiency + confusionTypes（profile 直接读取，避开压缩）
+    // 原因：快照是压缩后的"用户偏好"，但教练模式是个性化"行为模式"，需要原始字段
+    const profile = await this.getStyleProfile(userId);
+    const styleProficiency = profile?.styleProficiency ?? null;
+    const confusionTypes = profile?.confusionTypes ?? null;
+    // 派生教练子模式
+    const coachMode = deriveCoachMode(confusionTypes, styleProficiency);
+
     // 衣柜数据：仅 today_outfit / item_styling / wardrobe_gap 需要
     let wardrobeSummary: AIMemoryContext['wardrobeSummary'] = null;
     if (
@@ -642,10 +658,8 @@ ${data.join('\n\n') || '（新用户，数据极少）'}
       taskType,
       snapshot,
       wardrobeSummary,
-      // 便捷派生字段：从 snapshot 聚合，让旧版 prompts（item-styling / purchase-evaluation / wardrobe-gap）
-      // 能直接读到 memorySummary / styleProfile 字段（避免改 3 个 prompts 的结构）
-      // 注意：recentFeedbackSummary / currentIntent 暂不派生（需要额外 DB 查询，留待后续 PR）
-      memorySummary: snapshot?.summary,
+      // M14：教练模式数据 + 派生 mode
+      coachMode,
       styleProfile: snapshot
         ? {
             likedStyles: snapshot.likedStyles,
@@ -655,6 +669,9 @@ ${data.join('\n\n') || '（新用户，数据极少）'}
             bodyConcerns: snapshot.bodyConcerns,
             dressGoals: snapshot.dressGoals,
             commonOccasions: snapshot.commonOccasions,
+            // M14：穿搭建康 + 困惑类型透传给 prompts
+            styleProficiency,
+            confusionTypes,
             // avoidRules 的类型与 snapshot 中不同（snapshot 是 string[]，这里期望带 weight 的对象），
             // 保持 undefined 让 prompts 跳过避坑规则渲染（snapshot 里有等价字段，prompts 旧版不感知）
           }

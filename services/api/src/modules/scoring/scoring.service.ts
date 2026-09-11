@@ -111,6 +111,9 @@ export class ScoringService {
       ? `- 性别：${userContext.gender ?? '未知'}\n- 体型：${userContext.bodyShape ?? '未知'}\n- 身高：${userContext.height ? userContext.height + 'cm' : '未知'}\n- 体重：${userContext.weight ? userContext.weight + 'kg' : '未知'}\n- 场合：${userContext.occasion ?? '日常'}`
       : '';
 
+    // M16：教练模式（用于传给 structured-outfit 子调用）
+    let coachMode: string = 'mixed';
+
     // 读取用户长期记忆并注入 prompt（best-effort，不影响主流程）
     if (userId && this.memoryService) {
       try {
@@ -131,6 +134,22 @@ export class ScoringService {
             userContextStr = `${userContextStr}\n- 用户长期记忆：${parts.join('；')}`;
           }
         }
+        // M16：教练模式上下文（让评分按用户水平给不同详略的建议）
+        const styleProficiency = memory.styleProfile?.styleProficiency;
+        const confusions = memory.styleProfile?.confusionTypes ?? [];
+        coachMode = memory.coachMode ?? coachMode;
+        if (styleProficiency !== null && styleProficiency !== undefined) {
+          userContextStr += `\n- 用户穿搭水平：${styleProficiency}/10`;
+        }
+        if (confusions.length > 0) {
+          const labels: Record<string, string> = { buy: '不知道怎么买', wear: '不知道怎么穿', match: '不知道怎么搭' };
+          userContextStr += `\n- 用户困惑：${confusions.map((c: string) => labels[c] ?? c).join('、')}`;
+        }
+        const modeLabels: Record<string, string> = {
+          shopping: '购物顾问', occasion: '场合顾问', combination: '搭配教练', mixed: '综合顾问',
+        };
+        userContextStr += `\n- 教练模式：${modeLabels[coachMode] ?? coachMode}`;
+
         this.logger.log(`评分已加载用户记忆 | userId: ${userId}`);
       } catch (err) {
         this.logger.warn(`读取用户记忆失败（不影响评分）: ${err instanceof Error ? err.message : String(err)}`);
@@ -170,6 +189,7 @@ export class ScoringService {
       structured = await this.structuredOutfitSkill.analyze({
         imageBase64,
         occasion: userContext?.occasion,
+        coachMode,
       });
     } catch (err) {
       this.logger.warn(

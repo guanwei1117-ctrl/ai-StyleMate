@@ -97,33 +97,24 @@ export type BudgetLevel = typeof BUDGET_OPTIONS[number]['value'];
 /** 年龄段（必填） */
 export const AGE_GROUP_OPTIONS = [
   { label: '18 岁以下', value: 'under_18', emoji: '🎒' },
-  { label: '18-24 岁', value: '18_24', emoji: '🎓' },
-  { label: '25-29 岁', value: '25_29', emoji: '💼' },
-  { label: '30-39 岁', value: '30_39', emoji: '🏡' },
-  { label: '40-49 岁', value: '40_49', emoji: '🌟' },
-  { label: '50 岁以上', value: '50_plus', emoji: '🌸' },
+  { label: '18-30 岁', value: '18_30', emoji: '🎓' },
+  { label: '30 岁以上', value: '30_plus', emoji: '🌸' },
 ] as const;
 
 export type AgeGroup = typeof AGE_GROUP_OPTIONS[number]['value'];
 
 export const AGE_GROUP_LABELS: Record<AgeGroup, string> = {
   under_18: '18 岁以下',
-  '18_24': '18-24 岁',
-  '25_29': '25-29 岁',
-  '30_39': '30-39 岁',
-  '40_49': '40-49 岁',
-  '50_plus': '50 岁以上',
+  '18_30': '18-30 岁',
+  '30_plus': '30 岁以上',
 };
 
 /** 将用户输入的年龄数字映射到 AgeGroup 枚举 */
 export function ageToGroup(age: number | null): AgeGroup | null {
   if (age === null || age <= 0) return null;
   if (age < 18) return 'under_18';
-  if (age <= 24) return '18_24';
-  if (age <= 29) return '25_29';
-  if (age <= 39) return '30_39';
-  if (age <= 49) return '40_49';
-  return '50_plus';
+  if (age <= 30) return '18_30';
+  return '30_plus';
 }
 
 /** 职业 / 使用场景（选填） */
@@ -285,7 +276,23 @@ export interface OnboardingAnswers {
 
   // 用户自述：由选项自动生成，用户可以继续编辑补充
   userStatement: string;
+
+  // ============== M14 教练模式字段 ==============
+  /** 用户困惑类型（多选）：不知道怎么买 / 不知道怎么穿 / 不知道怎么搭 */
+  confusionTypes: ConfusionType[];
+  /** 穿搭水平自评 0-10 */
+  styleProficiency: number | null;
 }
+
+/** 教练模式困惑类型 */
+export type ConfusionType = 'buy' | 'wear' | 'match';
+
+/** 困惑类型标签 */
+export const CONFUSION_TYPE_LABELS: Record<ConfusionType, string> = {
+  buy: '不知道怎么买',
+  wear: '不知道怎么穿',
+  match: '不知道怎么搭',
+};
 
 /** AI 照片分析结果（预留接口） */
 export interface PhotoAnalysisResult {
@@ -418,6 +425,9 @@ export function createDefaultAnswers(): OnboardingAnswers {
     styleOpenness: null,
     openToNewStyles: null,
     userStatement: '',
+    // M14 教练模式字段
+    confusionTypes: [],
+    styleProficiency: null,
   };
 }
 

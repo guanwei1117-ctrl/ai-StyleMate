@@ -13,12 +13,32 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/**
+ * 细粒度反馈类型（与后端 RecordFeedbackDto.feedbackType 对齐）
+ * 用户在 dislike 时可选具体原因，让"AI 记住"更精确
+ */
+export type DetailedFeedbackType =
+  | 'like'
+  | 'dislike'
+  | 'too_fat'
+  | 'too_formal'
+  | 'too_plain'
+  | 'uncomfortable'
+  | 'color_dislike'
+  | 'occasion_mismatch';
+
 export interface FeedbackInput {
   reaction: 'like' | 'dislike';
   rating?: number;
   comment?: string;
   planTitle?: string;
   plan?: Record<string, any>;
+  /**
+   * 细粒度反馈类型（多选，可选）
+   * 传了之后每条会单独写入长期记忆（精确学习）
+   * 不传则按 reaction 写入（向后兼容）
+   */
+  reasonTypes?: DetailedFeedbackType[];
 }
 
 /**
@@ -26,6 +46,7 @@ export interface FeedbackInput {
  * - 顶层 id/userId/reaction/rating/comment/planTitle/plan/createdAt：原 Feedback 实体字段（向后兼容）
  * - aiMemoryNote：给用户的可感知文案（让"AI 记住我"在产品上立刻可见）
  * - memoryUpdated：长期记忆是否成功同步（失败时 aiMemoryNote 会说明）
+ * - appliedReasonTypes：实际写入记忆的类型列表（reasonTypes 为空时为 undefined）
  */
 export interface FeedbackResponse {
   id: string;
@@ -38,6 +59,7 @@ export interface FeedbackResponse {
   createdAt: string;
   aiMemoryNote: string;
   memoryUpdated: boolean;
+  appliedReasonTypes?: DetailedFeedbackType[];
 }
 
 export async function submitFeedback(input: FeedbackInput): Promise<FeedbackResponse> {

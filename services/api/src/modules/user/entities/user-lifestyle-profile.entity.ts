@@ -27,7 +27,7 @@ export class UserLifestyleProfile {
   @Column({
     name: 'age_group',
     type: 'enum',
-    enum: ['under_18', '18_24', '25_29', '30_39', '40_49', '50_plus'],
+    enum: ['under_18', '18_30', '30_plus'],
     nullable: true,
   })
   ageGroup: string;

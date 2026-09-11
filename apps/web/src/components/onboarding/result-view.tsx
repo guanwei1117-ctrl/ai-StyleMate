@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import type { BodyShape } from '@/lib/onboarding-types';
 import { generateExplanation } from '@/lib/style-explain';
 import type { AiStyleProfileAnalysis } from '@/lib/style-profile-api';
 import { BodyFitCard, AvoidanceZone, StyleRanking } from './explain-sections';
+import { getUserMemory, type UserStyleProfile, deriveCoachModeFromProfile, COACH_MODE_LABELS, COACH_MODE_EMOJI, type CoachMode } from '@/lib/memory-api';
 
 interface ResultViewProps {
   results: StyleMatchResult[];
@@ -26,6 +27,33 @@ export default function ResultView({ results, answers, bodyShape, aiAnalysis, an
   const explanation = generateExplanation(results, answers, bodyShape);
   const [showAiDetail, setShowAiDetail] = useState(false);
 
+  // 拉取用户长期记忆，统计"AI 记住了多少条偏好"用于顶部 banner
+  // 设计：让用户立刻感受到"AI 开始懂我了"——这是用户从 onboarding 转化为活跃用户的关键信号
+  const [profile, setProfile] = useState<UserStyleProfile | null>(null);
+  // M2-C：AI 总结（让用户 onboarding 后立刻看到 AI 用自然语言总结她是谁）——memorySummary 已经在 UserMemory 类型里存在
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getUserMemory()
+      .then((mem) => {
+        if (!cancelled) {
+          setProfile(mem.styleProfile ?? null);
+          setAiSummary(mem.memorySummary?.summary ?? null);
+        }
+      })
+      .catch(() => {
+        // 拉取失败不阻塞 onboarding 完成流程（banner 隐藏即可）
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 计算偏好条数 + 具体展示项
+  const memoryItems = buildMemoryBannerItems(profile);
+  // M14：派生教练子模式（基于 profile 的困惑类型 + 穿搭水平）
+  const coachMode: CoachMode = deriveCoachModeFromProfile(profile);
+
   // 锚点导航
   const anchors = [
     { id: 'body-fit', label: '身形分析' },
@@ -35,6 +63,60 @@ export default function ResultView({ results, answers, bodyShape, aiAnalysis, an
 
   return (
     <div className="w-full">
+      {/* 顶部 banner：让用户立刻看到"AI 记住了我"（拉新 → 留存的关键信号） */}
+      {memoryItems.totalCount > 0 && (
+        <div className="mb-6 rounded-2xl border border-olive-pale bg-gradient-to-br from-olive-pale/40 to-creme-50 p-5">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs tracking-[0.2em] text-olive-dark/70">AI MEMORY</p>
+              <h2 className="mt-1 font-display text-lg text-ink-900">
+                ✅ AI 已经记住你 {memoryItems.totalCount} 条偏好
+              </h2>
+              {/* M14：教练模式标签（在 banner 顶部告诉用户"已为你匹配了专属 AI 教练"） */}
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-3 py-1 text-[11px] font-medium text-creme-100">
+                <span>{COACH_MODE_EMOJI[coachMode]}</span>
+                <span>你的 AI 教练模式：{COACH_MODE_LABELS[coachMode]}</span>
+              </div>
+            </div>
+            <Link
+              href="/memory"
+              className="shrink-0 rounded-full bg-ink-900 px-4 py-2 text-xs font-medium text-creme-100 transition-colors hover:bg-ink-700"
+            >
+              查看全部 →
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {memoryItems.preview.map((item, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs',
+                  item.tone === 'positive'
+                    ? 'bg-olive-pale/60 text-olive-dark'
+                    : 'bg-red-50 text-red-700',
+                )}
+              >
+                {item.tone === 'positive' ? '✓' : '✕'} {item.label}
+              </span>
+            ))}
+            {memoryItems.overflowCount > 0 && (
+              <Link
+                href="/memory"
+                className="inline-flex items-center rounded-full bg-ink-900/5 px-3 py-1 text-xs text-ink-600 hover:bg-ink-900/10"
+              >
+                +{memoryItems.overflowCount} 条 →
+              </Link>
+            )}
+          </div>
+          {/* M2-C：AI 总结卡片（直接读 memorySummary.summary —— 让 onboarding 结束后立刻看到 "AI 懂我"） */}
+          {aiSummary && (
+            <div className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm">
+              <p className="mb-1 text-xs font-medium text-ink/60">🧠 AI 总结</p>
+              <p className="leading-relaxed text-ink/80">{aiSummary}</p>
+            </div>
+          )}
+        </div>
+      )}
       {/* ===== 顶部标题区：横向横排，高度大幅压缩 ===== */}
       <div className="flex items-center justify-between gap-6 pb-4 mb-6 border-b border-ink-900/10">
         <div className="flex-1 min-w-0">
@@ -258,6 +340,41 @@ export default function ResultView({ results, answers, bodyShape, aiAnalysis, an
       </div>
     </div>
   );
+}
+
+/* ============ 辅助函数：构造"AI 记住了" banner 数据 ============ */
+
+/**
+ * 从 UserStyleProfile 派生 banner 展示数据
+ * - 汇总偏好条数（liked/disliked styles/colors + dressGoals + bodyConcerns + avoidRules）
+ * - 展示前 8 条，超出显示 +N 条
+ * - tone 用于视觉区分（positive = 喜欢/偏好，negative = 避雷/不喜欢）
+ */
+function buildMemoryBannerItems(profile: UserStyleProfile | null): {
+  totalCount: number;
+  preview: Array<{ label: string; tone: 'positive' | 'negative' }>;
+  overflowCount: number;
+} {
+  if (!profile) return { totalCount: 0, preview: [], overflowCount: 0 };
+
+  const all: Array<{ label: string; tone: 'positive' | 'negative' }> = [];
+
+  (profile.likedStyles ?? []).forEach((s) => all.push({ label: `喜欢 ${s}`, tone: 'positive' }));
+  (profile.dislikedStyles ?? []).forEach((s) => all.push({ label: `避开 ${s}`, tone: 'negative' }));
+  (profile.preferredColors ?? []).forEach((c) => all.push({ label: `偏好 ${c}`, tone: 'positive' }));
+  (profile.dislikedColors ?? []).forEach((c) => all.push({ label: `不穿 ${c}`, tone: 'negative' }));
+  (profile.dressGoals ?? []).forEach((g) => all.push({ label: `目标 ${g}`, tone: 'positive' }));
+  (profile.bodyConcerns ?? []).forEach((c) => all.push({ label: `顾虑 ${c}`, tone: 'negative' }));
+  (profile.avoidRules ?? [])
+    .filter((r) => r.weight > 0)
+    .forEach((r) => all.push({ label: r.rule, tone: 'negative' }));
+
+  const MAX_PREVIEW = 8;
+  return {
+    totalCount: all.length,
+    preview: all.slice(0, MAX_PREVIEW),
+    overflowCount: Math.max(0, all.length - MAX_PREVIEW),
+  };
 }
 
 /* ============ 子组件 ============ */

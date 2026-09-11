@@ -42,7 +42,7 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
 /**
  * 构建衣橱缺口分析 System Prompt
  */
-export function buildWardrobeGapPrompt(input: WardrobeGapInput): string {
+export function buildWardrobeGapPrompt(input: WardrobeGapInput, knowledge?: string): string {
   const itemsJson = JSON.stringify(
     input.wardrobeItems.map((i) => ({
       id: i.id,
@@ -65,6 +65,7 @@ export function buildWardrobeGapPrompt(input: WardrobeGapInput): string {
   return `你是 StyleMate 的专业衣橱规划师。用户想知道"我的衣橱缺什么、该先买什么"。
 
 ${memoryText}
+${knowledge ? '\n## 参考知识（RAG 检索）\n' + knowledge + '\n' : ''}
 ## 当前季节
 ${input.season}
 ${input.budgetLevel ? `## 预算档位\n${input.budgetLevel}\n` : ''}

@@ -30,7 +30,7 @@ test('style profile AI payload includes selected scenes, custom scene, and riche
   answers.gender = 'female';
   answers.height = 165;
   answers.weight = 52;
-  answers.ageGroup = '25_29';
+  answers.ageGroup = '18_30';
   answers.dailyScenes = ['client_meeting', 'date', 'travel'];
   answers.customScene = '经常需要直播上镜和周末探店';
 

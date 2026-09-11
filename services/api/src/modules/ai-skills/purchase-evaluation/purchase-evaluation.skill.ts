@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { LLMFactory } from '../../llm/llm-factory';
 import { ChatMessage } from '../../llm/llm-provider.interface';
 import { buildPurchaseEvaluationPrompt } from './prompts';
+import { RagService } from '../../rag/rag.service';
 import {
   PurchaseEvaluationInput,
   PurchaseEvaluationResult,
@@ -15,10 +16,16 @@ const VALID_RISK_LEVELS = ['low', 'medium', 'high'] as const;
 export class PurchaseEvaluationSkill {
   private readonly logger = new Logger(PurchaseEvaluationSkill.name);
 
-  constructor(private readonly llmFactory: LLMFactory) {}
+  constructor(
+    private readonly llmFactory: LLMFactory,
+    // M9：接 RAG（让买前判断的"是否值得买"结论更专业）
+    @Optional() private readonly ragService?: RagService,
+  ) {}
 
   async evaluate(input: PurchaseEvaluationInput): Promise<PurchaseEvaluationResult> {
-    const systemPrompt = buildPurchaseEvaluationPrompt(input);
+    // M9：检索相关风格百科 + 衣橱搭配知识
+    const knowledge = await this.retrievePurchaseKnowledge(input);
+    const systemPrompt = buildPurchaseEvaluationPrompt(input, knowledge);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       {
@@ -93,5 +100,30 @@ export class PurchaseEvaluationSkill {
   private clamp(value: number, min: number, max: number): number {
     const n = Math.round(value);
     return Math.max(min, Math.min(max, n));
+  }
+
+  /**
+   * M9：检索"百搭基础款" + "购买决策"相关知识
+   * - @Optional + try/catch 三层降级
+   */
+  private async retrievePurchaseKnowledge(input: PurchaseEvaluationInput): Promise<string> {
+    if (!this.ragService) {
+      this.logger.debug('RAG 未启用，跳过买前判断知识检索');
+      return '';
+    }
+    const query = `买前判断 百搭 基础款 ${input.userProfile?.stylePreferences?.[0] ?? ''}`;
+    try {
+      const text = await this.ragService.augmentWithContext(query, {
+        domains: ['style_encyclopedia', 'body_type'],
+        topK: 2,
+      });
+      if (text) this.logger.log('purchase-evaluation RAG 命中');
+      return text;
+    } catch (err) {
+      this.logger.warn(
+        `purchase-evaluation RAG 检索失败，降级: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return '';
+    }
   }
 }

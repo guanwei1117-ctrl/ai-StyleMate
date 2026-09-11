@@ -8,7 +8,7 @@ import { StyleChatInput } from './style-chat.dto';
  * 2. 根据用户回答自然延伸追问
  * 3. 用户主动结束 或 AI 自动提醒结束
  */
-export function buildStyleChatPrompt(input: StyleChatInput): string {
+export function buildStyleChatPrompt(input: StyleChatInput, knowledge?: string): string {
   const b = input.basicInfo ?? {};
 
   const basicLines: string[] = [];
@@ -43,6 +43,7 @@ ${historyLines}
 
 ## 最新动态
 ${latestText}
+${knowledge ? '\n' + knowledge + '\n' : ''}
 
 ## 对话规则
 
@@ -59,6 +60,8 @@ ${latestText}
 - 用户纠正你时，先道歉并复述修正后的理解。
 - 用口语化、亲切的中文，回复控制在 2-4 句，不要长篇大论。
 - 不评判用户、不直接推荐商品，只了解偏好。
+- **M16 人格化升级**：用"我"开头（"我注意到你说...、我会记住..."），不要"基于你的回答"这种工程化表达
+- **M14 教练模式兼容**：如果用户提到"不知道怎么穿"，问"最常穿什么场合？"，把对话引向"场合匹配"
 
 ### 第三层：结束策略（双重触发）
 - 触发方式一：用户主动说"可以了/差不多了/就这样/谢谢"等 → 立即结束，不做补问。

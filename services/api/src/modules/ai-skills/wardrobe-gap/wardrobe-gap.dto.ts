@@ -23,6 +23,12 @@ export interface WardrobeGapInput {
   season: string;
   /** 预算档位 */
   budgetLevel?: string;
+  /** 用户基础画像（M9：RAG query 拼接用） */
+  userProfile?: {
+    bodyShape?: string;
+    stylePreferences?: string[];
+    dressingGoals?: string[];
+  };
   /** 长期记忆上下文 */
   memoryContext?: import('../../memory/memory.dto').AIMemoryContext | null;
 }

@@ -61,7 +61,7 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
  *
  * 将商品图片信息 + 用户衣橱数据 + 用户画像 + 长期记忆注入 prompt
  */
-export function buildPurchaseEvaluationPrompt(input: PurchaseEvaluationInput): string {
+export function buildPurchaseEvaluationPrompt(input: PurchaseEvaluationInput, knowledge?: string): string {
   const isEmptyWardrobe = input.wardrobeItems.length === 0;
 
   const itemsJson = JSON.stringify(
@@ -111,6 +111,7 @@ ${itemsJson}`;
 你的任务不是简单回答"好看不好看"，而是要结合用户已有衣橱和长期记忆进行深度分析。
 
 ${memoryText}
+${knowledge ? '\n## 参考知识（RAG 检索）\n' + knowledge + '\n' : ''}
 ${wardrobeSection}
 
 ${profileText}

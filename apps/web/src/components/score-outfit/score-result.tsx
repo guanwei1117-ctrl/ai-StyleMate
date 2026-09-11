@@ -22,6 +22,8 @@ import { CATEGORY_LABELS, WardrobeItem } from "@/lib/wardrobe-types";
 import { publishOotd, blobToDataUrl } from "@/lib/ootd-api";
 import { adminApi, type StyleTag } from "@/lib/admin-api";
 import { isAuthenticated } from "@/lib/auth";
+import { getUserMemory } from "@/lib/memory-api";
+import type { UserMemory } from "@/lib/memory-api";
 import type { StructuredOutfitResult } from "@stylemate/shared";
 
 interface ScoreResultProps {
@@ -43,7 +45,15 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
   const [tags, setTags] = useState<StyleTag[]>([]);
   const [selectedTag, setSelectedTag] = useState("");
   const [tagLoading, setTagLoading] = useState(false);
+
+  // M5：拉取用户偏好，在评分顶部展示"我用你的偏好打分"——让用户感知到 AI 不是瞎打
+  const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    getUserMemory()
+      .then((m) => setUserMemory(m))
+      .catch(() => { /* 拉取失败不阻塞主流程 */ });
+  }, []);
 
   const handleCopySummary = async () => {
     const summary = buildScoringSummaryText(result);
@@ -205,6 +215,112 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
           </div>
         </div>
       </motion.div>
+
+      {/* M5：💭 AI 偏好呼应 —— 让用户感知"打分不是瞎打，是基于我" */}
+      {userMemory?.styleProfile && (() => {
+        const p = userMemory.styleProfile;
+        const hasLiked = (p.likedStyles?.length ?? 0) > 0;
+        const hasDislikedColors = (p.dislikedColors?.length ?? 0) > 0;
+        const hasAvoidRules = (p.avoidRules?.length ?? 0) > 0;
+        const hasDressGoals = (p.dressGoals?.length ?? 0) > 0;
+        if (!hasLiked && !hasDislikedColors && !hasAvoidRules && !hasDressGoals) return null;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="border border-olive-pale bg-gradient-to-br from-olive-pale/30 to-creme-50 p-5"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 text-2xl">💭</div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-olive-dark mb-2">
+                  我用你的偏好来打分
+                </p>
+                <p className="text-xs text-olive-dark/80 mb-3 leading-relaxed">
+                  你之前告诉过我的：
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.likedStyles?.slice(0, 4).map((s) => (
+                    <span
+                      key={`like-${s}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-olive-pale/60 px-2.5 py-1 text-xs text-olive-dark"
+                    >
+                      ✓ 喜欢 {s}
+                    </span>
+                  ))}
+                  {p.dislikedColors?.slice(0, 3).map((c) => (
+                    <span
+                      key={`discolor-${c}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs text-red-700"
+                    >
+                      ✕ 避开 {c}
+                    </span>
+                  ))}
+                  {p.avoidRules?.slice(0, 2).map((r) => (
+                    <span
+                      key={`avoid-${r.rule}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-700"
+                    >
+                      ⚠️ {r.rule}
+                    </span>
+                  ))}
+                  {p.dressGoals?.slice(0, 2).map((g) => (
+                    <span
+                      key={`goal-${g}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-ink-900/5 px-2.5 py-1 text-xs text-ink-700"
+                    >
+                      🎯 {g}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-ink/60 italic">
+                  我注意到你 → 这次打分会重点参考这些维度
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
+
+      {/* M5：穿搭水平解读（基于 styleProficiency + 当前总分） */}
+      {userMemory?.styleProfile?.styleProficiency !== null &&
+        userMemory?.styleProfile?.styleProficiency !== undefined && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-2xl border border-creme-200 bg-creme-50/60 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 text-xl">🎓</div>
+              <div className="flex-1">
+                <p className="mb-1 text-sm font-semibold text-ink-900">
+                  穿搭水平解读（{userMemory.styleProfile.styleProficiency}/10）
+                </p>
+                <p className="text-xs leading-relaxed text-ink/75">
+                  {(() => {
+                    const prof = userMemory.styleProfile.styleProficiency;
+                    const totalScore = result.dimensions?.reduce(
+                      (sum, d) => sum + (d.score ?? 0),
+                      0,
+                    ) / Math.max(1, result.dimensions?.length ?? 1);
+                    if (prof <= 3) {
+                      return '你目前是穿搭新手阶段，重点是建立基础规则（三色原则、上宽下窄）。这次的评分仅供参考，不必焦虑——每天进步一点就好。';
+                    }
+                    if (prof <= 6) {
+                      return '你已经有基础审美了，知道什么适合自己。这次评分能帮你发现"还能更好"的空间，建议看 3 条 improvements 重点改进。';
+                    }
+                    if (prof <= 8) {
+                      return '你是穿搭达人，对自己的风格很清楚。这次评分主要帮你发现"高级感"和"细节提升"的进阶点。';
+                    }
+                    return '你是穿搭专家！这次评分主要作为参考和客观验证——你已经知道自己穿什么好看。';
+                  })()}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
       {/* 雷达图 — 等待组件挂载后再渲染，避免 Recharts getBoundingClientRect 空值 */}
       <motion.div

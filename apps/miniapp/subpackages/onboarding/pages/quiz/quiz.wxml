@@ -71,10 +71,10 @@
       <view class="form-group">
         <text class="form-label">年龄段</text>
         <view class="option-row wrap">
-          <view wx:for="{{['under_18','18_24','25_29','30_39','40_49','50_plus']}}" wx:key="*this"
+          <view wx:for="{{['under_18','18_30','30_plus']}}" wx:key="*this"
             class="option-btn small {{ageGroup === item ? 'active' : ''}}"
             data-value="{{item}}" bindtap="selectAgeGroup"
-          >{{item === 'under_18' ? '18岁以下' : item === '50_plus' ? '50岁以上' : item.replace('_', '-') + '岁'}}</view>
+          >{{item === 'under_18' ? '18岁以下' : item === '18_30' ? '18-30岁' : item === '30_plus' ? '30岁以上' : item}}</view>
         </view>
       </view>
       <view class="form-group">

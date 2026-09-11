@@ -64,22 +64,16 @@ export type BudgetLevel = typeof BUDGET_OPTIONS[number]['value'];
 
 export const AGE_GROUP_OPTIONS = [
   { label: '18 岁以下', value: 'under_18', emoji: '🎒' },
-  { label: '18-24 岁', value: '18_24', emoji: '🎓' },
-  { label: '25-29 岁', value: '25_29', emoji: '💼' },
-  { label: '30-39 岁', value: '30_39', emoji: '🏡' },
-  { label: '40-49 岁', value: '40_49', emoji: '🌟' },
-  { label: '50 岁以上', value: '50_plus', emoji: '🌸' },
+  { label: '18-30 岁', value: '18_30', emoji: '🎓' },
+  { label: '30 岁以上', value: '30_plus', emoji: '🌸' },
 ] as const;
 
 export type AgeGroup = typeof AGE_GROUP_OPTIONS[number]['value'];
 
 export const AGE_GROUP_LABELS: Record<AgeGroup, string> = {
   under_18: '18 岁以下',
-  '18_24': '18-24 岁',
-  '25_29': '25-29 岁',
-  '30_39': '30-39 岁',
-  '40_49': '40-49 岁',
-  '50_plus': '50 岁以上',
+  '18_30': '18-30 岁',
+  '30_plus': '30 岁以上',
 };
 
 export const OCCUPATION_OPTIONS = [

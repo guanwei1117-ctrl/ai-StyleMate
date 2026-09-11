@@ -12,6 +12,7 @@ import {
   type UserMemory,
   type UserStyleProfile,
 } from '@/lib/memory-api';
+import { GrowthDashboard } from '@/components/growth-radar-chart';
 
 type TabKey = 'profile' | 'intent' | 'feedback' | 'summary';
 
@@ -162,6 +163,42 @@ export default function MemoryPage() {
           <div className="py-20 text-center text-ink/50">加载中…</div>
         ) : (
           <>
+            {/* M15：穿搭成长雷达图 + 月度报告（始终展示，让用户看到进步） */}
+            <GrowthDashboard profile={memory?.styleProfile ?? null} feedbacks={memory?.recentFeedbacks ?? []} />
+
+            {/* M6：AI 学习轨迹时间线（最近 8 条反馈，按时间倒序） */}
+            {feedbacks.length > 0 && (
+              <div className="mb-6 rounded-2xl border border-creme-200 bg-white/60 p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs tracking-[0.2em] text-ink/50">📜 AI LEARNING TRAIL</p>
+                    <h2 className="mt-1 font-display text-base text-ink-900">AI 最近的成长足迹</h2>
+                  </div>
+                </div>
+                <ol className="relative space-y-3 border-l-2 border-creme-200 pl-5">
+                  {feedbacks.slice(0, 8).map((fb, i) => {
+                    const date = new Date(fb.createdAt);
+                    const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                    const isLike = fb.feedbackType === 'like';
+                    const dotColor = isLike ? 'bg-green-400' : fb.feedbackType === 'dislike' ? 'bg-red-400' : 'bg-blue-400';
+                    return (
+                      <li key={fb.id ?? i} className="relative">
+                        <span className={`absolute -left-[27px] mt-1.5 h-2.5 w-2.5 rounded-full ${dotColor}`} />
+                        <div className="text-xs">
+                          <span className="font-medium text-ink/80">{dateStr}</span>
+                          <span className="mx-2 text-ink/40">·</span>
+                          <span className="text-ink/70">
+                            AI 学会了：{FEEDBACK_TYPE_LABELS[fb.feedbackType] ?? fb.feedbackType}
+                            {fb.reason ? `（${fb.reason}）` : ''}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            )}
+
             {/* Tabs */}
             <div className="mb-6 flex gap-2 border-b border-ink/10">
               {([
@@ -409,32 +446,73 @@ export default function MemoryPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {feedbacks.map((fb) => (
-                      <div
-                        key={fb.id}
-                        className="rounded-xl border border-ink/10 bg-white p-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              fb.feedbackType === 'like'
-                                ? 'bg-green-50 text-green-700'
-                                : fb.feedbackType === 'worn_today'
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }`}
-                          >
-                            {FEEDBACK_TYPE_LABELS[fb.feedbackType] ?? fb.feedbackType}
-                          </span>
-                          <span className="text-xs text-ink/40">
-                            {new Date(fb.createdAt).toLocaleString('zh-CN')}
-                          </span>
+                    {feedbacks.map((fb) => {
+                      // M6：把每条反馈"翻译"成"AI 学到了什么"——让用户感知到 AI 在持续学习
+                      const ctx = fb.context as Record<string, any> | undefined;
+                      const learnedNote = (() => {
+                        switch (fb.feedbackType) {
+                          case 'like':
+                            return ctx?.styles?.length
+                              ? `✓ 我把"${(ctx.styles as string[]).slice(0, 2).join('、')}"记入喜欢风格`
+                              : '✓ 我把这次穿搭加入喜好';
+                          case 'dislike':
+                            return ctx?.styles?.length
+                              ? `✕ 我把"${(ctx.styles as string[]).slice(0, 2).join('、')}"记入不喜欢风格`
+                              : '✕ 我把这次穿搭记入不喜欢';
+                          case 'color_dislike':
+                            return ctx?.colors?.length
+                              ? `✕ 我把"${(ctx.colors as string[]).slice(0, 2).join('、')}"加入避雷颜色`
+                              : '✕ 我把这个颜色加入避雷';
+                          case 'too_fat':
+                            return '✓ 我记下了"显瘦"偏好，下次会优先宽松 / 高腰 / 直筒';
+                          case 'too_formal':
+                            return '✓ 我记下了"减少高正式度"，下次会推休闲些';
+                          case 'too_plain':
+                            return '✓ 我记下了"避免太普通"，下次会推更有设计感的';
+                          case 'uncomfortable':
+                            return '✓ 我记下了"舒适优先"，下次会推宽松 / 平底 / 软材质';
+                          case 'occasion_mismatch':
+                            return '✓ 我记下了"场合匹配"，下次会先确认场景';
+                          case 'worn_today':
+                            return '✓ 我记下了"今天穿了"，下次会避免重复推荐';
+                          default:
+                            return null;
+                        }
+                      })();
+                      return (
+                        <div
+                          key={fb.id}
+                          className="rounded-xl border border-ink/10 bg-white p-4"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                                fb.feedbackType === 'like'
+                                  ? 'bg-green-50 text-green-700'
+                                  : fb.feedbackType === 'worn_today'
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {FEEDBACK_TYPE_LABELS[fb.feedbackType] ?? fb.feedbackType}
+                            </span>
+                            <span className="text-xs text-ink/40">
+                              {new Date(fb.createdAt).toLocaleString('zh-CN')}
+                            </span>
+                          </div>
+                          {fb.reason && (
+                            <p className="mt-2 text-sm text-ink/70">{fb.reason}</p>
+                          )}
+                          {/* M6：💡 AI 学到了 —— 让用户感知到反馈在驱动 AI 学习 */}
+                          {learnedNote && (
+                            <div className="mt-3 rounded-lg bg-olive-pale/30 px-3 py-2 text-xs text-olive-dark">
+                              <span className="font-medium">💡 我学到了：</span>
+                              {learnedNote}
+                            </div>
+                          )}
                         </div>
-                        {fb.reason && (
-                          <p className="mt-2 text-sm text-ink/70">{fb.reason}</p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>

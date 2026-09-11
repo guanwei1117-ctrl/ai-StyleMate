@@ -30,8 +30,55 @@ export interface UserStyleProfile {
   dressGoals?: string[];
   commonOccasions?: string[];
   avoidRules?: Array<{ rule: string; source: string; weight: number }>;
+  /** M14：穿搭水平自评 0-10 */
+  styleProficiency?: number | null;
+  /** M14：用户困惑类型数组 ('buy' | 'wear' | 'match') */
+  confusionTypes?: string[] | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** 教练子模式（与后端 CoachMode 同源） */
+export type CoachMode = 'shopping' | 'occasion' | 'combination' | 'mixed';
+
+/** 教练模式中文标签 */
+export const COACH_MODE_LABELS: Record<CoachMode, string> = {
+  shopping: '购物顾问',
+  occasion: '场合顾问',
+  combination: '搭配教练',
+  mixed: '综合顾问',
+};
+
+/** 教练模式 emoji */
+export const COACH_MODE_EMOJI: Record<CoachMode, string> = {
+  shopping: '🛍️',
+  occasion: '📅',
+  combination: '🎨',
+  mixed: '✨',
+};
+
+/**
+ * 从用户画像派生教练子模式（前端版本，与后端 deriveCoachMode 保持一致）
+ * - 1 个困惑 → 对应 mode
+ * - 多困惑或无困惑 → mixed
+ */
+export function deriveCoachModeFromProfile(
+  profile: UserStyleProfile | null | undefined,
+): CoachMode {
+  if (!profile) return 'mixed';
+  const types = profile.confusionTypes ?? [];
+  const prof = profile.styleProficiency;
+
+  if (prof !== null && prof !== undefined && prof >= 7 && types.length === 0) {
+    return 'mixed';
+  }
+  if (types.length >= 2) return 'mixed';
+  if (types.length === 1) {
+    if (types[0] === 'buy') return 'shopping';
+    if (types[0] === 'wear') return 'occasion';
+    if (types[0] === 'match') return 'combination';
+  }
+  return 'mixed';
 }
 
 export interface OutfitFeedbackRecord {

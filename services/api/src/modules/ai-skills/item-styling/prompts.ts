@@ -43,6 +43,34 @@ function buildMemoryContextText(ctx: AIMemoryContext | null | undefined): string
   lines.push(
     `\n### 重要提示\n请严格遵守用户记忆中的避坑规则和不喜欢的风格/颜色。`,
   );
+  // M8：人格化语气提示（在末尾追加，要求 AI 用"我"开头表达）
+  lines.push(`\n## 表达要求（人格化语气）
+- 每套方案的 reason 字段要像"私人造型师跟你说话"一样自然，**让用户感到"她在跟我说话"**：
+-  语气用"我"开头（"我注意到你..."、"我建议你..."、"我帮你挑了..."），不要用"基于你的偏好"这种工程化表达
+-  若用户有 likedStyles / preferredColors：reason 改为"我注意到你喜欢 X，这次我挑了..."
+-  若用户有 avoidRules / dislikedColors：reason 改为"我避开了你说的 X..."
+-  若用户记忆为空：reason 用"我建议你..."的通用语气，不编造"我注意到你"
+-  reason ≤ 80 字`);
+
+  // ============== M16：教练模式上下文（item-styling 版本）==============
+  // 与 outfit-recommendation 共用风格：根据 mode 给不同行为指引
+  if (ctx.coachMode || (ctx.styleProfile?.confusionTypes?.length ?? 0) > 0) {
+    const mode = ctx.coachMode ?? 'mixed';
+    const modeLabels: Record<string, string> = {
+      shopping: '购物顾问',
+      occasion: '场合顾问',
+      combination: '搭配教练',
+      mixed: '综合顾问',
+    };
+    lines.push(`\n## 教练模式（M16：因材施教）\n当前模式：${modeLabels[mode] ?? mode}`);
+    const modeRules: Record<string, string> = {
+      shopping: '重点教"如何挑选搭配单品"——safe 推基础款 + vibe 推 1 件亮眼单品',
+      occasion: '重点教"什么场合怎么搭"——scene 字段写明具体场景',
+      combination: '重点教"搭配原理"——reason 解释为什么这样搭（颜色/版型/风格呼应）',
+      mixed: '只给关键提示，reason ≤ 60 字，不啰嗦',
+    };
+    lines.push(modeRules[mode] ?? '');
+  }
 
   return lines.join('\n') + '\n';
 }

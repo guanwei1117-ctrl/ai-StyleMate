@@ -96,6 +96,13 @@ export async function syncLocalResultsToMemory(
         likedStyles: topStyles.slice(0, 3).map((r) => r.styleName),
         dressGoals: answers.dressingGoals.map((g) => DRESSING_GOAL_LABELS[g]),
         commonOccasions: answers.dailyScenes.map((s) => DAILY_SCENE_LABELS[s]),
+        // M14：教练模式字段（困惑类型 + 穿搭水平）
+        ...(answers.confusionTypes?.length
+          ? { confusionTypes: answers.confusionTypes }
+          : {}),
+        ...(answers.styleProficiency !== null
+          ? { styleProficiency: answers.styleProficiency }
+          : {}),
       }),
     });
   } catch {

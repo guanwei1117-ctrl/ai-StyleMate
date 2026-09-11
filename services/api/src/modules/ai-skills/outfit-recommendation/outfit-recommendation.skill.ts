@@ -7,6 +7,7 @@ import {
   buildStarterOutfitPrompt,
 } from './prompts';
 import { StylingRulesEngine } from './styling-rules.engine';
+import { applyWardrobePreFilter } from './wardrobe-pre-filter';
 import {
   OutfitRecommendationInput,
   OutfitRecommendationResult,
@@ -50,9 +51,28 @@ export class OutfitRecommendationSkill {
       `规则引擎分析完成 | 单品数: ${input.wardrobeItems.length} | 排除: ${rulesOutput.excludedItems.length} | 品类: ${rulesOutput.topByCategory.size}`,
     );
 
+    // ====== M3：衣橱前置过滤（500 → 20） ======
+    // 目的：省 token + 提速 + 提质。规则引擎看全部衣橱（精细打分），
+    // 但 AI prompt 只看"今日相关"的 top 20 件。
+    const excludedIds = new Set(rulesOutput.excludedItems.map((e) => e.itemId));
+    const preFilterResult = applyWardrobePreFilter(input.wardrobeItems, {
+      weather: input.weather,
+      occasion: input.occasion,
+      styleGoal: input.styleGoal,
+      memorySnapshot: input.memoryContext?.snapshot ?? undefined,
+      excludedItemIds: excludedIds,
+      maxItems: 20,
+    });
+    this.logger.log(`衣橱预过滤: ${preFilterResult.summary}`);
+    // 用 filteredInput 注入 prompt；规则引擎评分仍用原始 input（不影响现有评分逻辑）
+    const filteredInput: OutfitRecommendationInput = {
+      ...input,
+      wardrobeItems: preFilterResult.items,
+    };
+
     // ====== AI 推荐 (40% 权重) ======
     const { text: knowledgeText, titles: knowledgeTitles } = await this.retrieveKnowledge(input);
-    const systemPrompt = buildOutfitRecommendationPrompt(input, rulesOutput.rulesSummary, knowledgeText);
+    const systemPrompt = buildOutfitRecommendationPrompt(filteredInput, rulesOutput.rulesSummary, knowledgeText);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: '请基于我的衣橱和今天的情况，在规则引擎建议的基础上推荐 3 套穿搭方案。' },

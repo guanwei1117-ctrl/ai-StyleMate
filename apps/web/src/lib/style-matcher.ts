@@ -81,21 +81,15 @@ const SKIN_TONE_COLOR_MAP: Record<string, string[]> = {
 // ============================================================
 const AGE_DIFFICULTY_FIT: Record<AgeGroup, { ideal: [number, number]; penalty: number }> = {
   under_18: { ideal: [1, 3], penalty: 3 }, // 青春，高难度扣分多
-  '18_24':  { ideal: [1, 4], penalty: 2 }, // 潮流实验期
-  '25_29':  { ideal: [1, 4], penalty: 2 }, // 轻熟过渡
-  '30_39':  { ideal: [1, 4], penalty: 2 }, // 质感成熟
-  '40_49':  { ideal: [1, 3], penalty: 2 }, // 经典优雅
-  '50_plus':{ ideal: [1, 2], penalty: 3 }, // 舒适端庄
+  '18_30':   { ideal: [1, 4], penalty: 2 }, // 潮流实验+轻熟过渡
+  '30_plus': { ideal: [1, 3], penalty: 2 }, // 经典优雅
 };
 
 /** 年龄段偏好的风格 category（额外加分） */
 const AGE_CATEGORY_FIT: Record<AgeGroup, Set<string>> = {
   under_18: new Set(['清新甜美', '街头潮流', '运动休闲', '亚文化']),
-  '18_24':  new Set(['街头潮流', '亚文化', '音乐舞台', '视觉元素', '运动休闲']),
-  '25_29':  new Set(['职场精英', '法式', '韩系', '质感主义', '极简']),
-  '30_39':  new Set(['职场精英', '质感主义', '法式', '英伦', '极简']),
-  '40_49':  new Set(['质感主义', '职场精英', '英伦', '意式', '极简']),
-  '50_plus':new Set(['质感主义', '极简', '休闲度假']),
+  '18_30':   new Set(['街头潮流', '亚文化', '音乐舞台', '视觉元素', '运动休闲', '职场精英', '法式', '韩系', '质感主义', '极简']),
+  '30_plus': new Set(['职场精英', '质感主义', '法式', '英伦', '意式', '极简', '休闲度假']),
 };
 
 // ============================================================
@@ -910,10 +904,10 @@ function buildRiskFlags(
   }
 
   // 年龄风险
-  if (answers.ageGroup && ['under_18', '18_24'].includes(answers.ageGroup) && style.difficulty >= 5) {
+  if (answers.ageGroup === 'under_18' && style.difficulty >= 5) {
     flags.push('年龄建议：超难风格可能需要较长的搭配经验积累');
   }
-  if (answers.ageGroup && ['40_49', '50_plus'].includes(answers.ageGroup) && style.difficulty >= 4) {
+  if (answers.ageGroup === '30_plus' && style.difficulty >= 4) {
     flags.push('年龄建议：高难度前卫风格可能与你的年龄段气质有差异');
   }
 

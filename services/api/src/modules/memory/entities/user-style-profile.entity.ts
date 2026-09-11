@@ -81,6 +81,28 @@ export class UserStyleProfile {
   @Column('json', { name: 'avoid_rules', nullable: true })
   avoidRules: Array<{ rule: string; source: string; weight: number }>;
 
+  // ============== M14 教练模式字段 ==============
+
+  /**
+   * 穿搭水平自评 (0-10)
+   * 0=完全不懂  5=知道基本规则  10=非常专业
+   * 由 onboarding 第 1 步的滑块问题得到
+   */
+  @Column({ name: 'style_proficiency', type: 'int', nullable: true })
+  styleProficiency: number | null;
+
+  /**
+   * 用户困惑类型 JSON 数组
+   * ['buy' | 'wear' | 'match'] 的任意子集（多选）
+   * - 'buy':   不知道怎么买衣服
+   * - 'wear':  不知道怎么穿（什么场合穿什么）
+   * - 'match': 不知道怎么搭（单品组合）
+   * 由 onboarding 第 1 步的"你最困惑什么？"问题得到
+   * 决定 AI 教练子模式：shopping / occasion / combination / mixed
+   */
+  @Column('json', { name: 'confusion_types', nullable: true })
+  confusionTypes: string[] | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

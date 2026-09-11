@@ -36,7 +36,7 @@ export interface UserStylePreference {
 }
 export type StyleType = 'japanese' | 'korean' | 'french' | 'american' | 'minimal' | 'street' | 'y2k' | 'vintage' | 'business' | 'sporty';
 /** 年龄段 */
-export type AgeGroup = 'under_18' | '18_24' | '25_29' | '30_39' | '40_49' | '50_plus';
+export type AgeGroup = 'under_18' | '18_30' | '30_plus';
 /** 穿衣目标（多选） */
 export type DressingGoal = 'look_polished' | 'express_personality' | 'comfort_first' | 'look_slim' | 'professional' | 'try_new_style' | 'build_wardrobe';
 /** 穿衣优先级维度（排序） */

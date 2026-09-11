@@ -75,10 +75,10 @@ const BODY_EXPLAIN_MAP: Record<BodyShape, BodyTemplate> = {
 /** 年龄段 → 配色建议 */
 function buildColorAdvice(ageGroup: AgeGroup | null): string {
   if (!ageGroup) return '建议以低饱和度的质感色彩为主，百搭且不易出错。';
-  if (ageGroup === 'under_18' || ageGroup === '18_24') {
+  if (ageGroup === 'under_18') {
     return '你的气质年轻活泼，适合中高饱和度的明快色彩，如亮橙、雾霾蓝、嫩粉。';
   }
-  if (ageGroup === '25_29' || ageGroup === '30_39') {
+  if (ageGroup === '18_30') {
     return '你的气质趋于成熟知性，适合低饱和度的质感色彩，如燕麦、灰蓝、焦糖。';
   }
   return '你的气质优雅从容，适合大地色系和经典中性色，如驼色、米白、深灰。';
@@ -86,7 +86,7 @@ function buildColorAdvice(ageGroup: AgeGroup | null): string {
 
 /** 穿衣目标 → 气质定位 */
 function buildAuraDescription(goals: DressingGoal[], ageGroup: AgeGroup | null): string {
-  const isYouth = ageGroup === 'under_18' || ageGroup === '18_24';
+  const isYouth = ageGroup === 'under_18';
   if (goals.includes('look_polished') || goals.includes('professional')) {
     return isYouth
       ? '你的气质偏温和清秀，比起高攻击性的穿搭，更适合轻松、干净、有层次的风格表达。'

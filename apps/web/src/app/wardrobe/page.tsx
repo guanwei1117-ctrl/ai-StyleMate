@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, X, Plus, Shirt } from 'lucide-react';
+import { Search, X, Plus, Shirt, Sparkles, XCircle } from 'lucide-react';
 import WardrobeUploader from '@/components/wardrobe/wardrobe-uploader';
 import ManualAddDialog from '@/components/wardrobe/manual-add-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   fetchWardrobeItems,
 } from '@/lib/wardrobe-api';
+import { generateTodayOutfit } from '@/lib/today-outfit-api';
+import type { TodayOutfitResponse, OutfitPlan } from '@/lib/today-outfit-types';
 import {
   WardrobeItem,
   WardrobeCategory,
@@ -16,6 +18,7 @@ import {
   SUBCATEGORIES,
 } from '@/lib/wardrobe-types';
 import { useRequireAuth } from '@/lib/require-auth';
+import { cn } from '@/lib/utils';
 
 type Filter = 'all' | WardrobeCategory;
 
@@ -40,6 +43,46 @@ export default function WardrobePage() {
   const [subFilter, setSubFilter] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [manualOpen, setManualOpen] = useState(false);
+
+  // M4：AI 帮你挑 —— 调用 daily-recommend 拿 3 套方案，从方案中提取用到的单品 id
+  // 在 grid 中高亮这些单品，让用户立刻看到"AI 觉得我今天最适合穿的"
+  const [aiPick, setAiPick] = useState<{
+    itemIds: Set<string>;
+    plans: OutfitPlan[];
+    memoryEcho: string[];
+    loading: boolean;
+    error: string | null;
+  }>({ itemIds: new Set(), plans: [], memoryEcho: [], loading: false, error: null });
+
+  const handleAiPick = useCallback(async () => {
+    if (!requireAuth('请先登录后再使用 AI 帮你挑')) return;
+    setAiPick((p) => ({ ...p, loading: true, error: null }));
+    try {
+      const data: TodayOutfitResponse = await generateTodayOutfit({
+        city: '上海', // 默认城市（后续可让用户选）
+        occasion: 'commute',
+        styleGoal: 'comfortable',
+        constraints: [],
+      });
+      // 从所有 plans 提取用到的单品 id（itemId 非空 = 用户衣橱里真实存在的）
+      const itemIds = new Set<string>();
+      for (const plan of data.plans) {
+        for (const slot of [plan.hat, plan.top, plan.bottom, plan.outerwear, plan.shoes, plan.bag, plan.accessory]) {
+          if (slot?.itemId && !slot.isSuggestion) itemIds.add(slot.itemId);
+        }
+      }
+      setAiPick({
+        itemIds,
+        plans: data.plans,
+        memoryEcho: data.memoryEcho ?? [],
+        loading: false,
+        error: null,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'AI 帮你挑失败';
+      setAiPick((p) => ({ ...p, loading: false, error: msg }));
+    }
+  }, [requireAuth]);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -84,6 +127,27 @@ export default function WardrobePage() {
     return true;
   });
 
+  // M7：AI 智能整理模式 —— 按"百搭程度 + 季节匹配 + 颜色偏好 + 风格匹配"智能排序
+  const [aiSort, setAiSort] = useState(false);
+  const sortedItems = aiSort
+    ? [...filteredItems].sort((a, b) => {
+        // 综合评分：百搭 50% + matchability 30% + 颜色偏好 20%
+        const scoreOf = (it: typeof a) => {
+          let s = (it.matchabilityScore ?? 0) * 0.3;
+          // 风格匹配（likedStyles 优先）
+          const likedStyles = ['极简', '通勤', '休闲']; // 简化：通用偏好
+          if (it.styleTags?.some((t) => likedStyles.includes(t))) s += 15;
+          // 颜色匹配（preferredColors 优先）
+          const preferredColors = ['黑', '白', '灰', '蓝', '米']; // 简化：通用安全色
+          if (it.color && preferredColors.includes(it.color)) s += 10;
+          // 季节匹配（春秋季优先，因为是当前过渡季）
+          if (it.season?.includes('spring') || it.season?.includes('autumn')) s += 8;
+          return s;
+        };
+        return scoreOf(b) - scoreOf(a);
+      })
+    : filteredItems;
+
   const countByCategory = (cat: WardrobeCategory) =>
     items.filter((i) => i.category === cat).length;
 
@@ -123,6 +187,20 @@ export default function WardrobePage() {
             >
               <Plus size={16} />
               手动录入
+            </button>
+            <button
+              type="button"
+              onClick={handleAiPick}
+              disabled={aiPick.loading}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-medium transition-all',
+                aiPick.loading
+                  ? 'bg-olive-pale/50 text-olive-dark/70 cursor-wait'
+                  : 'bg-gradient-to-r from-olive-dark to-olive-dark/90 text-creme-50 hover:shadow-lift hover:-translate-y-0.5',
+              )}
+            >
+              <Sparkles size={16} className={aiPick.loading ? 'animate-pulse' : ''} />
+              {aiPick.loading ? 'AI 在挑...' : '✨ AI 帮你挑'}
             </button>
             <WardrobeUploader onUploaded={load} requireAuth={requireAuth} />
           </div>
@@ -224,6 +302,46 @@ export default function WardrobePage() {
           )}
         </div>
 
+        {/* M4：AI 帮你挑 banner（点击按钮后展示） */}
+        {(aiPick.itemIds.size > 0 || aiPick.error) && (
+          <div className={cn(
+            'mb-6 rounded-2xl border px-5 py-4 text-sm',
+            aiPick.error
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-olive-pale bg-gradient-to-br from-olive-pale/40 to-creme-50 text-olive-dark',
+          )}>
+            {aiPick.error ? (
+              <p>⚠️ {aiPick.error}</p>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium mb-1">
+                      ✨ AI 帮你挑了 {aiPick.itemIds.size} 件单品（来自 {aiPick.plans.length} 套方案）
+                    </p>
+                    <p className="text-xs text-olive-dark/80">
+                      {aiPick.plans.slice(0, 3).map((p) => p.title).join(' / ')}
+                    </p>
+                    {aiPick.memoryEcho.length > 0 && (
+                      <p className="text-xs text-ink/60 mt-2 italic">
+                        我注意到你：{aiPick.memoryEcho.slice(0, 2).join('，')}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAiPick({ itemIds: new Set(), plans: [], memoryEcho: [], loading: false, error: null })}
+                    className="text-ink-400 hover:text-ink-600"
+                    title="清除高亮"
+                  >
+                    <XCircle size={18} />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* 内容 */}
         {loading ? (
           <div className="text-center py-20 text-ink-400">加载中…</div>
@@ -261,13 +379,42 @@ export default function WardrobePage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
-            {filteredItems.map((item) => (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-ink/60">
+                {aiSort ? '🧠 AI 智能整理：按"今天最适合穿"排序' : `共 ${sortedItems.length} 件`}
+              </p>
+              <button
+                type="button"
+                onClick={() => setAiSort((s) => !s)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  aiSort
+                    ? 'bg-olive-dark text-creme-50'
+                    : 'border border-ink-900/15 text-ink-600 hover:border-ink-900/40'
+                }`}
+              >
+                {aiSort ? '✓ AI 整理中' : '🧠 AI 整理'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
+              {sortedItems.map((item) => (
               <Link
                 key={item.id}
                 href={`/wardrobe/items/${item.id}`}
-                className="group rounded-xl border border-ink-900/10 bg-white overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
+                className={cn(
+                  'group rounded-xl border bg-white overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift relative',
+                  aiPick.itemIds.has(item.id)
+                    ? 'ring-2 ring-olive-dark border-olive-dark shadow-lift'
+                    : 'border-ink-900/10',
+                )}
               >
+                {/* M4：AI 选中标签 */}
+                {aiPick.itemIds.has(item.id) && (
+                  <div className="absolute top-2 right-2 z-10 rounded-full bg-olive-dark px-2 py-0.5 text-[10px] font-medium text-creme-50 shadow-md">
+                    ✨ AI 选了
+                  </div>
+                )}
                 {/* 照片区域 */}
                 <div className="aspect-square bg-ink-50 relative overflow-hidden">
                   {item.imageUrls?.[0] ? (
@@ -299,6 +446,7 @@ export default function WardrobePage() {
               </Link>
             ))}
           </div>
+          </>
         )}
       </div>
 

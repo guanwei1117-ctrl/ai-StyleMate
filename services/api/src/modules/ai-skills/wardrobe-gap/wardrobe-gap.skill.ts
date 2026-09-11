@@ -1,7 +1,8 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
 import { LLMFactory } from '../../llm/llm-factory';
 import { ChatMessage } from '../../llm/llm-provider.interface';
 import { buildWardrobeGapPrompt } from './prompts';
+import { RagService } from '../../rag/rag.service';
 import {
   WardrobeGapInput,
   WardrobeGapResult,
@@ -14,13 +15,19 @@ const VALID_CATEGORIES = ['top', 'outerwear', 'bottom', 'dress', 'shoes', 'bag',
 export class WardrobeGapSkill {
   private readonly logger = new Logger(WardrobeGapSkill.name);
 
-  constructor(private readonly llmFactory: LLMFactory) {}
+  constructor(
+    private readonly llmFactory: LLMFactory,
+    // M9：接 RAG（让衣橱缺什么分析参考风格百科 + 场合知识）
+    @Optional() private readonly ragService?: RagService,
+  ) {}
 
   /**
    * 个性化衣橱缺口分析
    */
   async analyze(input: WardrobeGapInput): Promise<WardrobeGapResult> {
-    const systemPrompt = buildWardrobeGapPrompt(input);
+    // M9：检索"基础款" + "季节" + "场合"相关知识
+    const knowledge = await this.retrieveGapKnowledge(input);
+    const systemPrompt = buildWardrobeGapPrompt(input, knowledge);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: '请分析我的衣橱缺口，告诉我该先买什么。' },
@@ -90,5 +97,30 @@ export class WardrobeGapSkill {
   private toInt(value: unknown): number {
     const n = Math.round(Number(value));
     return Number.isFinite(n) ? n : 0;
+  }
+
+  /**
+   * M9：检索"基础款" + "季节" + "场合"相关知识
+   * - @Optional + try/catch 三层降级
+   */
+  private async retrieveGapKnowledge(input: WardrobeGapInput): Promise<string> {
+    if (!this.ragService) {
+      this.logger.debug('RAG 未启用，跳过衣橱缺口知识检索');
+      return '';
+    }
+    const query = `衣橱基础款 必备单品 ${input.season} ${input.userProfile?.stylePreferences?.[0] ?? ''}`;
+    try {
+      const text = await this.ragService.augmentWithContext(query, {
+        domains: ['style_encyclopedia', 'occasion'],
+        topK: 2,
+      });
+      if (text) this.logger.log('wardrobe-gap RAG 命中');
+      return text;
+    } catch (err) {
+      this.logger.warn(
+        `wardrobe-gap RAG 检索失败，降级: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return '';
+    }
   }
 }
