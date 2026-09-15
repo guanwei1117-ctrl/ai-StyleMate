@@ -12,6 +12,8 @@ export interface StructuredOutfitInput {
   occasion?: string;
   /** M16：可选教练子模式（shopping/occasion/combination/mixed） */
   coachMode?: string;
+  /** 是否要求每件衣物输出 bbox（归一化边界框），用于从原图裁剪该衣物入库 */
+  withBbox?: boolean;
 }
 
 export interface StructuredOutfitItem {
@@ -24,6 +26,11 @@ export interface StructuredOutfitItem {
   formality: number;
   /** 1-10 */
   matchability: number;
+  /**
+   * 归一化边界框 [x0, y0, x1, y1]，值 0-1（左上角为原点，x 向右，y 向下）。
+   * 仅 when withBbox=true 时返回，用于从原图裁剪该衣物。
+   */
+  bbox?: [number, number, number, number];
 }
 
 export interface StructuredOutfitResult {

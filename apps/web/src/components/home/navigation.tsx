@@ -4,28 +4,18 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, Menu, User, ChevronDown, X } from 'lucide-react';
-import AboutDialog from './about-dialog';
 import { isAuthenticated, logout } from '@/lib/auth';
 
-type NavItem = { label: string; href: string } | { label: string; dialog: true };
-
-const NAV_LINKS: NavItem[] = [
+const NAV_LINKS = [
   { label: '风格百科', href: '/styles' },
-  { label: '风格测评', href: '/onboarding' },
-  { label: '我的档案', href: '/onboarding?view=history' },
+  { label: '生成档案', href: '/onboarding' },
   { label: '衣橱', href: '/wardrobe' },
   { label: '社区', href: '/ootd' },
-  { label: '关于', dialog: true },
-];
-
-function isDialogItem(item: NavItem): item is { label: string; dialog: true } {
-  return 'dialog' in item;
-}
+] as const;
 
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -49,7 +39,7 @@ export default function Navigation() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [userMenuOpen]);
 
-  const linkClass = `text-sm tracking-widest uppercase transition-colors duration-300 ${
+  const linkClass = `text-[13px] font-medium tracking-[0.2em] transition-colors duration-300 ${
     scrolled
       ? 'text-ink-600 hover:text-ink-900'
       : 'text-creme-200/90 hover:text-creme-100'
@@ -69,33 +59,22 @@ export default function Navigation() {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <a
-            href="#"
-            className={`font-display text-xl lg:text-2xl tracking-wide transition-colors duration-300 ${
+          <Link
+            href="/"
+            className={`font-display text-xl lg:text-2xl tracking-[0.3em] transition-colors duration-300 ${
               scrolled ? 'text-ink-900' : 'text-creme-100'
             }`}
           >
             STYLEMATE
-          </a>
+          </Link>
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((item) =>
-              isDialogItem(item) ? (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => setAboutOpen(true)}
-                  className={linkClass}
-                >
-                  {item.label}
-                </button>
-              ) : (
-                <a key={item.label} href={item.href} className={linkClass}>
-                  {item.label}
-                </a>
-              ),
-            )}
+            {NAV_LINKS.map((item) => (
+              <a key={item.label} href={item.href} className={linkClass}>
+                {item.label}
+              </a>
+            ))}
             {authed ? (
               <div ref={menuRef} className="relative">
                 <button
@@ -137,9 +116,13 @@ export default function Navigation() {
             ) : (
               <Link
                 href="/auth"
-                className={`${linkClass} inline-flex items-center gap-1.5`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[12px] font-medium tracking-[0.2em] transition-all duration-300 ${
+                  scrolled
+                    ? 'border-ink-900/30 text-ink-700 hover:bg-ink-900 hover:text-creme-100'
+                    : 'border-creme-100/40 text-creme-100 hover:bg-creme-100 hover:text-ink-900'
+                }`}
               >
-                <LogIn size={14} />
+                <LogIn size={13} />
                 <span>登录</span>
               </Link>
             )}
@@ -169,28 +152,19 @@ export default function Navigation() {
             className="fixed inset-0 z-40 bg-creme-100/95 backdrop-blur-xl pt-20"
           >
             <div className="flex flex-col items-center justify-center h-full gap-8 -mt-16">
-              {NAV_LINKS.map((item, i) => {
-                const handle = () => {
-                  setMobileOpen(false);
-                  if (isDialogItem(item)) setAboutOpen(true);
-                };
-                const commonProps = {
-                  initial: { opacity: 0, y: 16 },
-                  animate: { opacity: 1, y: 0 },
-                  transition: { delay: 0.1 + i * 0.06 },
-                  onClick: handle,
-                  className: 'font-display text-2xl text-ink-800 tracking-wide',
-                };
-                return isDialogItem(item) ? (
-                  <motion.button key={item.label} type="button" {...commonProps}>
-                    {item.label}
-                  </motion.button>
-                ) : (
-                  <motion.a key={item.label} href={item.href} {...commonProps}>
-                    {item.label}
-                  </motion.a>
-                );
-              })}
+              {NAV_LINKS.map((item, i) => (
+                <motion.a
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.06 }}
+                  className="font-display text-2xl text-ink-800 tracking-wide"
+                >
+                  {item.label}
+                </motion.a>
+              ))}
               {authed && (
                 <motion.button
                   initial={{ opacity: 0, y: 16 }}
@@ -219,7 +193,6 @@ export default function Navigation() {
         )}
       </AnimatePresence>
 
-      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </>
   );
 }

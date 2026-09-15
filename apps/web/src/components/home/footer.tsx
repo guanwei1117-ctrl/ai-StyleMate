@@ -1,11 +1,12 @@
 import { Instagram, Twitter, Mail } from 'lucide-react';
+import { STYLES } from '@/data/styles';
 
 const FOOTER_LINKS = {
   explore: {
     title: '探索',
     links: [
       { label: '风格百科', href: '/styles' },
-      { label: '风格测评', href: '/onboarding' },
+      { label: '生成档案', href: '/onboarding' },
       { label: '穿搭诊断', href: '/score-outfit' },
       { label: '智能衣橱', href: '/wardrobe' },
     ],
@@ -16,16 +17,16 @@ const FOOTER_LINKS = {
       { label: '我们的故事', href: '#story' },
       { label: '灵感墙', href: '#trending' },
       { label: '风格库预览', href: '#styles' },
-      { label: '隐私说明', href: '#story' },
+      { label: '加入社区', href: '/ootd' },
     ],
   },
   support: {
     title: '支持',
     links: [
-      { label: '测测你的穿搭人设', href: '/onboarding' },
+      { label: '生成我的风格档案', href: '/onboarding' },
       { label: '上传 Look 诊断', href: '/score-outfit' },
-      { label: '查看 80 种风格', href: '/styles' },
-      { label: '衣橱规划中', href: '/wardrobe' },
+      { label: `查看全部 ${STYLES.length} 种风格`, href: '/styles' },
+      { label: '管理我的衣橱', href: '/wardrobe' },
     ],
   },
 };
@@ -42,9 +43,9 @@ export default function Footer() {
               STYLEMATE
             </h3>
             <p className="text-creme-200/40 text-sm leading-relaxed font-light max-w-xs">
-              融合毒舌测评 + 知识拆解 + 真人试穿三种穿搭视角。
+              融合知识拆解 + 风格测评 + AI 教练三种穿搭视角。
               <br />
-              我们不只是 AI，我们是一个很会穿的朋友。
+              不替你做决定，只帮你看清自己的选项。
             </p>
             {/* Social */}
             <div className="flex items-center gap-4 mt-6">

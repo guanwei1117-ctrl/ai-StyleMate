@@ -601,9 +601,8 @@ function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
             </div>
             <div className="flex flex-wrap gap-2">
               {row.candidates.map((cand) => (
-                <Link
+                <div
                   key={cand.id}
-                  href={`/wardrobe/items/${cand.id}`}
                   className="flex items-center gap-2 rounded-lg border border-ink-900/10 bg-white px-2.5 py-2 transition hover:border-ink-900/40"
                 >
                   {cand.imageUrls?.[0] ? (
@@ -615,7 +614,7 @@ function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
                     <p className="text-xs font-medium text-ink-800">{cand.color} {cand.subCategory || cand.category}</p>
                     <p className="text-[10px] text-ink-400">百搭 {cand.matchabilityScore ?? 0}/10</p>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </div>

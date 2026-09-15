@@ -14,7 +14,8 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "clean": "turbo clean",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "make:admin": "node services/api/scripts/make-admin.js"
   },
   "devDependencies": {
     "prettier": "^3.3.0",

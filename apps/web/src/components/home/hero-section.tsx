@@ -17,12 +17,23 @@ export default function HeroSection() {
 
   return (
     <section ref={ref} className="relative h-screen overflow-hidden bg-ink-900">
-      {/* Background image */}
+      {/* Background image — 精确控制人像位置，避免缩放裁切 */}
       <motion.div style={{ scale: bgScale }} className="absolute inset-0">
-        <div className="absolute inset-0 bg-[url('/images/home/image.png')] bg-cover bg-center" />
-        {/* Lighter gradient — more natural, less dramatic */}
-        <div className="absolute inset-0 bg-gradient-to-b from-ink-900/25 via-transparent to-ink-900/50" />
+        <img
+          src="/images/home/image.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ objectPosition: '60% 30%' }}
+        />
+        {/* 渐变 overlay — 加强以提升文字可读性，避免压人脸 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-900/40 via-ink-900/20 to-ink-900/70" />
       </motion.div>
+
+      {/* 文字区独立渐变遮罩 — 任何缩放下保证文字可读性，图片大部分区域保留原样 */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-[20%] bottom-[10%] z-0 bg-gradient-to-b from-transparent via-ink-900/30 to-ink-900/70"
+      />
 
       {/* Content */}
       <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
@@ -37,70 +48,78 @@ export default function HeroSection() {
             穿对衣服，比买贵的重要
           </motion.p>
 
-          {/* Main title — Chinese forward, more approachable */}
+          {/* Main title — text-display (36-72px) 替代 text-hero (48-112px) */}
           <motion.h1
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1], delay: 0.4 }}
-            className="font-display text-hero text-creme-100 mb-6 text-balance"
+            className="font-display text-display text-creme-100 mb-8 leading-[1.1] text-balance"
           >
             测一测：你到底
             <br />
             <span className="italic">适合怎么穿？</span>
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* Subtitle — 对比度从 50% 提到 85%，行高 1.75 */}
           <motion.p
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1], delay: 0.65 }}
-            className="text-creme-200/50 text-base lg:text-lg max-w-lg mx-auto font-light leading-relaxed"
+            className="text-creme-100/90 text-lg lg:text-xl max-w-lg mx-auto font-normal leading-[1.75] tracking-wide"
           >
             不用看时尚杂志，你的身材已经在告诉你答案了
           </motion.p>
 
-          {/* CTA */}
+          {/* CTA — 3+1 布局：1 主（深底白字） + 3 次（浅底）横排 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1], delay: 0.9 }}
-            className="mt-10 flex flex-col items-center gap-4"
+            className="mt-10 flex flex-col items-center gap-3 w-full max-w-xl"
           >
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* 主 CTA — 深底白字，第一眼焦点 */}
+            <a
+              href="/onboarding"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto sm:px-12 py-4 bg-ink-900 text-creme-100 text-base font-medium tracking-wider shadow-lift hover:bg-ink-800 transition-all duration-400"
+            >
+              测一测 · 我适合怎么穿
+            </a>
+            {/* 3 个次按钮横排 — 等宽 + 半透明白底（柔化割裂感） */}
+            <div className="flex w-full sm:w-auto gap-2 sm:gap-3">
               <a
                 href="/styles"
-                className="inline-block px-8 py-3.5 bg-creme-100 text-ink-900 text-sm tracking-wider hover:bg-creme-200 transition-all duration-400"
+                className="flex-1 min-w-[112px] inline-flex items-center justify-center px-4 py-2.5 bg-creme-100/85 text-ink-900 text-xs tracking-wider hover:bg-creme-200 transition-all duration-400"
               >
-                看看风格百科 →
+                看风格百科
               </a>
               <a
-                href="/onboarding"
-                className="inline-block px-8 py-3.5 border border-creme-100/25 text-creme-100 text-sm tracking-wider hover:bg-creme-100/10 transition-all duration-400"
+                href="/styles/camera"
+                className="flex-1 min-w-[112px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-creme-100/85 text-ink-900 text-xs tracking-wider hover:bg-creme-200 transition-all duration-400"
               >
-                测测你的穿搭人设 👀
+                <span aria-hidden>📸</span> 拍立搭
+              </a>
+              <a
+                href="/wardrobe"
+                className="flex-1 min-w-[112px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-creme-100/85 text-ink-900 text-xs tracking-wider hover:bg-creme-200 transition-all duration-400"
+              >
+                <span aria-hidden>👔</span> 衣橱
               </a>
             </div>
-            <a
-              href="/wardrobe"
-              className="inline-block px-8 py-3 border border-creme-100/15 text-creme-100/70 text-sm tracking-wider hover:bg-creme-100/10 hover:text-creme-100 hover:border-creme-100/30 transition-all duration-400"
-            >
-              点击查看衣橱管理
-            </a>
           </motion.div>
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
+      {/* Scroll indicator — 加大字号、对比度，加粗 chevron */}
       <motion.div
         style={{ opacity: indicatorOpacity }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
       >
-        <span className="text-creme-200/30 text-[10px] tracking-[0.2em]">往下看，有好东西</span>
+        <span className="text-creme-200/70 hover:text-creme-100 text-xs tracking-[0.25em] cursor-pointer transition-colors duration-300">往下看，有好东西</span>
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <ChevronDown size={18} className="text-creme-200/30" />
+          <ChevronDown size={18} className="text-creme-200/60" strokeWidth={2.5} />
         </motion.div>
       </motion.div>
     </section>

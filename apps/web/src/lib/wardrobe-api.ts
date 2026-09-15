@@ -2,6 +2,7 @@ import {
   WardrobeItem,
   WardrobeCategory,
   RecognizeResponse,
+  AnalyzeOutfitResponse,
   PurchaseEvaluationResult,
   ItemStylingResult,
   WardrobeGapResult,
@@ -106,6 +107,34 @@ export async function recognizeAndAddItem(
   }
 
   return result;
+}
+
+/**
+ * 分析一张穿搭照，返回多件衣物及归一化 bbox（不落库）。
+ * 前端拿到 bbox 后裁剪出每件衣物，再逐件调用 recognizeAndAddItem 入库。
+ */
+export async function analyzeOutfitPhoto(
+  file: File,
+): Promise<AnalyzeOutfitResponse> {
+  const imageBase64 = await fileToDataUrl(file);
+  const userId = getCurrentUserId();
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/wardrobe/items/analyze-multi`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ userId, imageBase64 }),
+    });
+  } catch {
+    throw new Error('无法连接 AI 服务，请确认后端 API（localhost:4000）已启动。');
+  }
+
+  if (!res.ok) {
+    throw new Error(await buildApiErrorMessage(res, '穿搭照分析失败'));
+  }
+
+  return res.json();
 }
 
 /**

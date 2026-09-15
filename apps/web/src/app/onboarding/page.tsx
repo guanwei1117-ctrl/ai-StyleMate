@@ -75,9 +75,11 @@ import {
 } from '@/lib/style-profile-storage';
 // 照片上传功能暂未启用
 import { ONBOARDING_GUIDE_SECTIONS } from '@/lib/onboarding-guide';
+import PhotoUploadStep from '@/components/onboarding/photo-upload-step';
 
 const FLOW = [
   { id: 'profile', label: '基础', desc: '身高 / 体重 / 年龄' },
+  { id: 'photo', label: '拍照', desc: '拍立搭（正脸 + 全身）' },
   { id: 'chat', label: '对话', desc: '和 AI 聊聊偏好' },
 ] as const;
 
@@ -165,7 +167,8 @@ function OnboardingContent() {
     if (step === 0) {
       return !!answers.gender && !!answers.height && !!answers.weight && answers.age !== null && answers.age > 0;
     }
-    if (step === 1) return true; // 对话步骤始终可继续
+    if (step === 1) return true; // 拍立搭步骤：PhotoUploadStep 内部控制 onNext；外层 next 由用户主动点（不强制）
+    if (step === 2) return true; // 对话步骤始终可继续
     return false;
   }, [answers, step]);
 
@@ -421,7 +424,35 @@ function OnboardingContent() {
                     />
                   )}
                   {step === 1 && (
-                    <ChatStep answers={answers} onFinalize={finalizeFromChat} />
+                    <PhotoUploadStep
+                      answers={answers}
+                      onUpdate={updateAnswers}
+                      onNext={() => setStep(2)}
+                    />
+                  )}
+                  {step === 2 && (
+                    <>
+                      {/* C1：跳过对话按钮 — 给"不会打字 / 懒得互动"用户 */}
+                      <div className="border-b border-ink-900/10 bg-olive-pale/10 px-6 py-3 sm:px-8">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (requireAuth('请先登录后再生成风格档案')) {
+                              runSubmit(answers);
+                            }
+                          }}
+                          disabled={analysisStatus === 'ai'}
+                          className="inline-flex items-center gap-2 rounded-full border border-ink-900/15 bg-white px-4 py-2 text-xs text-ink-700 transition hover:border-ink-900/40 hover:bg-creme-50 disabled:opacity-50"
+                        >
+                          <span>💬</span>
+                          <span>我不会打字 / 懒得聊，直接生成风格档案</span>
+                        </button>
+                        <p className="mt-1 text-[10px] text-ink-400">
+                          将基于你上传的照片 + 基础信息，由 AI 直接生成专属风格画像（跳过对话测评）
+                        </p>
+                      </div>
+                      <ChatStep answers={answers} onFinalize={finalizeFromChat} />
+                    </>
                   )}
 
                   <div className="flex items-center justify-between border-t border-ink-900/10 p-5 sm:p-7">

@@ -61,6 +61,28 @@ export interface RecognizeResponse {
   recognition: GarmentRecognitionResult;
 }
 
+/** 穿搭照中检测到的单件衣物（含归一化 bbox，用于从原图裁剪） */
+export interface OutfitDetectedItem {
+  type: string;
+  name: string;
+  color: string;
+  style: string[];
+  season: string[];
+  formality: number;
+  matchability: number;
+  /** 归一化边界框 [x0,y0,x1,y1]，0-1 */
+  bbox?: [number, number, number, number];
+}
+
+/** 穿搭照多件分析结果 */
+export interface AnalyzeOutfitResponse {
+  items: OutfitDetectedItem[];
+  body_suggestions: string[];
+  style_tags: string[];
+  problems: string[];
+  improvements: string[];
+}
+
 export const CATEGORY_LABELS: Record<WardrobeCategory, string> = SHARED_CATEGORY_LABELS;
 
 export const CATEGORY_EMOJI: Record<WardrobeCategory, string> = {

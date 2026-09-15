@@ -88,9 +88,9 @@ export default function PhotoUploadStep({ answers, onUpdate, onNext }: PhotoUplo
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <h2 className="text-2xl font-display text-ink-900 mb-2">上传你的大头照</h2>
+      <h2 className="text-2xl font-display text-ink-900 mb-2">上传你的风格灵感照</h2>
       <p className="text-ink-500 font-light mb-6">
-        上传一张清晰的正面照片，帮助我们分析你的肤色与脸型
+        上传你最近喜欢的穿搭 / 风格照片，AI 会记住你的偏好（拍立搭用于分析风格变化）
       </p>
 
       {/* ======== 未上传 ======== */}

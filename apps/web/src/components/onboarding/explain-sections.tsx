@@ -169,102 +169,51 @@ export function AvoidanceZone({ advice, tone = 'nice' }: { advice: AvoidanceAdvi
 // ============================================================
 
 export function StyleRanking({ score, tone = 'nice' }: { score: MultiDimensionScore; tone?: ToneMode }) {
-  const hasSecondary = score.secondaryStyles.length > 0;
-  const hasCaution = score.cautionStyles.length > 0;
-  if (!hasSecondary && !hasCaution) return null;
+  // 只展示"推荐尝试"前 3 个（去掉"谨慎选择"列 — 负向引导 + 占面积，成本 > 收益）
+  const secondary = score.secondaryStyles.slice(0, 3);
+  if (secondary.length === 0) return null;
 
   return (
     <section id="style-rank" className="scroll-mt-24">
       <div className="p-5 bg-white rounded-2xl border border-creme-200 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-base">📊</span>
-          <h2 className="text-base font-display text-ink-900">风格适配榜单</h2>
+          <span className="text-base">✨</span>
+          <h2 className="text-base font-display text-ink-900">还有这些风格值得探索</h2>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {hasSecondary && (
-            <div>
-              <p className="text-xs font-semibold text-ink-500 mb-2.5 flex items-center gap-1">
-                <span>✨</span> 推荐尝试
-              </p>
-              <div className="space-y-2">
-                {score.secondaryStyles.map((s) => (
-                  <StyleRankItem key={s.styleId} style={s} type="secondary" />
-                ))}
-              </div>
-            </div>
-          )}
-          {hasCaution && (
-            <div>
-              <p className="text-xs font-semibold text-ink-400 mb-2.5 flex items-center gap-1">
-                <span>⚠️</span> 谨慎选择
-              </p>
-              <div className="space-y-2">
-                {score.cautionStyles.map((s) => (
-                  <StyleRankItem key={s.styleId} style={s} type="caution" />
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="space-y-2">
+          {secondary.map((s) => (
+            <StyleRankItem key={s.styleId} style={s} />
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-function StyleRankItem({ style, type }: { style: StyleMatchResult; type: 'secondary' | 'caution' }) {
+function StyleRankItem({ style }: { style: StyleMatchResult }) {
   return (
     <Link
       href={`/styles/${style.styleId}`}
-      className={cn(
-        'block p-3 rounded-xl border transition-all hover:shadow-sm group',
-        type === 'secondary'
-          ? 'bg-creme-50 border-creme-200 hover:border-ink-300'
-          : 'bg-creme-100/50 border-creme-200 hover:border-ink-200'
-      )}
+      className="group flex items-center justify-between gap-3 rounded-xl border border-creme-200 bg-creme-50 p-3 transition-all hover:border-ink-300 hover:shadow-sm"
     >
-      <div className="flex items-center justify-between mb-1">
-        <h4 className={cn(
-          'text-sm font-medium transition-colors',
-          type === 'secondary' ? 'text-ink-800 group-hover:text-ink-900' : 'text-ink-500'
-        )}>
-          {style.styleName}
-        </h4>
-        <span className={cn(
-          'text-xs font-semibold shrink-0 ml-2',
-          type === 'secondary' ? 'text-ink-700' : 'text-ink-400'
-        )}>
-          {style.score}<span className="font-normal text-ink-300">分</span>
-        </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <h4 className="truncate text-sm font-medium text-ink-800 transition-colors group-hover:text-ink-900">
+            {style.styleName}
+          </h4>
+          <span className="shrink-0 text-xs font-semibold text-ink-700">
+            {style.score}<span className="font-normal text-ink-300">分</span>
+          </span>
+        </div>
+        <p className="mt-1 truncate text-[11px] text-ink-400 leading-relaxed">
+          {style.matchReasons.slice(0, 1).join('；')}
+        </p>
       </div>
-      {/* 精简三支柱进度条 */}
-      <div className="flex gap-2 mb-1.5">
-        <MiniPillar label="审美" value={style.pillars.aesthetic} max={50} />
-        <MiniPillar label="现实" value={style.pillars.realistic} max={30} />
-        <MiniPillar label="偏好" value={style.pillars.behavioral} max={20} />
-      </div>
-      <p className="text-[11px] text-ink-400 line-clamp-1 leading-relaxed">
-        {style.matchReasons.slice(0, 1).join('；')}
-      </p>
+      <span className="shrink-0 text-xs font-medium text-ink-400 transition-colors group-hover:text-ink-600">
+        查看完整档案 →
+      </span>
     </Link>
-  );
-}
-
-function MiniPillar({ label, value, max }: { label: string; value: number; max: number }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  return (
-    <div className="flex-1">
-      <div className="flex justify-between text-[9px] text-ink-400 mb-0.5">
-        <span>{label}</span>
-        <span>{pct}%</span>
-      </div>
-      <div className="h-1 rounded-full bg-creme-200 overflow-hidden">
-        <div
-          className="h-full rounded-full bg-ink-300 transition-all duration-700"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
   );
 }
 

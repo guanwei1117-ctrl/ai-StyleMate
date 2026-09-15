@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Sparkles, X } from 'lucide-react';
+import { Search, Sparkles, X, Camera, ArrowRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
@@ -134,6 +134,30 @@ export default function StylesPage() {
               </p>
             </div>
           </div>
+
+          {/* 拍立搭横幅入口 — 上传穿搭图，AI 识别风格 + 评估适配度 */}
+          <Link
+            href="/styles/camera"
+            className="group mb-10 flex flex-col gap-6 rounded-2xl border border-warning/30 bg-gradient-to-r from-warning/15 via-creme-100 to-creme-200 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lift lg:flex-row lg:items-center lg:justify-between lg:p-8"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-warning/25 text-warning">
+                <Camera className="h-7 w-7" />
+              </div>
+              <div>
+                <p className="mb-1 text-xs tracking-[0.25em] text-warning">拍立搭 · CAMERA STYLE</p>
+                <h2 className="mb-1 font-display text-2xl text-ink-900">
+                  在网上看到喜欢的穿搭？
+                </h2>
+                <p className="text-sm leading-6 text-ink-500">
+                  上传图，AI 立刻告诉你这是什么风格、适不适合你。
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-ink-900 px-6 py-3 text-sm font-medium text-creme-100 transition group-hover:bg-ink-800">
+              立即拍立搭 <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
 
           <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">

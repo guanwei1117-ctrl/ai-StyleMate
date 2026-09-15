@@ -45,6 +45,18 @@ export class WardrobeController {
     );
   }
 
+  @Post('items/analyze-multi')
+  @ApiOperation({ summary: 'AI 分析穿搭照，返回多件衣物及 bbox（不落库）' })
+  async analyzeOutfitPhoto(
+    @Body() body: { userId: string; imageBase64: string },
+    @Req() req: Request,
+  ) {
+    validateImageDataUrl(body.imageBase64, 'imageBase64');
+    const userId = resolveUserId(req, body.userId);
+    this.logger.log(`收到穿搭照多件分析请求 | userId: ${userId}`);
+    return this.wardrobeService.analyzeOutfitPhoto(userId, body.imageBase64);
+  }
+
   @Post('items')
   @ApiOperation({ summary: '添加衣物（手动录入）' })
   addItem(@Body() body: Record<string, unknown>, @Req() req: Request) {

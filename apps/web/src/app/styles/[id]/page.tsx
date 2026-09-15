@@ -60,10 +60,16 @@ export default function StyleDetailPage({ params }: { params: { id: string } }) 
             <div className="max-w-3xl">
               {/* 操作栏：返回链接 + 收藏 + 分享 */}
               <div className="mb-5 flex items-center justify-between gap-3">
-                <Link href="/styles" className="inline-flex items-center gap-2 text-base text-ink-600 hover:text-ink-900 transition-colors">
-                  <ArrowLeft size={16} />
-                  返回风格库
-                </Link>
+                <div className="flex items-center gap-4">
+                  <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-900 transition-colors">
+                    <ArrowLeft size={14} />
+                    首页
+                  </Link>
+                  <span className="text-ink-300">/</span>
+                  <Link href="/styles" className="inline-flex items-center gap-2 text-base text-ink-600 hover:text-ink-900 transition-colors">
+                    返回风格库
+                  </Link>
+                </div>
                 <div className="flex items-center gap-5">
                   <FavoriteButton styleId={style.id} />
                   <ShareButton styleName={style.name} />

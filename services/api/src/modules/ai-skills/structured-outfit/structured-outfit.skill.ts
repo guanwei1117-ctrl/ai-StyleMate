@@ -23,7 +23,12 @@ export class StructuredOutfitSkill {
 
   async analyze(input: StructuredOutfitInput): Promise<StructuredOutfitResult> {
     const knowledge = await this.retrieveStyleKnowledge(input.occasion);
-    const systemPrompt = buildStructuredOutfitPrompt(input.occasion, knowledge, input.coachMode);
+    const systemPrompt = buildStructuredOutfitPrompt(
+      input.occasion,
+      knowledge,
+      input.coachMode,
+      input.withBbox,
+    );
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       {
@@ -93,6 +98,10 @@ export class StructuredOutfitSkill {
           season: Array.isArray(item.season) ? item.season.map(String) : [],
           formality: this.clamp(Number(item.formality ?? 3), 1, 5),
           matchability: this.clamp(Number(item.matchability ?? 5), 1, 10),
+          bbox:
+            Array.isArray(item.bbox) && item.bbox.length === 4
+              ? (item.bbox.map(Number) as [number, number, number, number])
+              : undefined,
         }))
       : [];
 

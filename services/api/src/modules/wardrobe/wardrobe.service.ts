@@ -5,6 +5,8 @@ import { WardrobeItem } from './entities/wardrobe-item.entity';
 import { Outfit } from './entities/outfit.entity';
 import { GarmentRecognitionSkill } from '../ai-skills/garment-recognition/garment-recognition.skill';
 import { GarmentRecognitionResult } from '../ai-skills/garment-recognition/garment-recognition.dto';
+import { StructuredOutfitSkill } from '../ai-skills/structured-outfit/structured-outfit.skill';
+import { StructuredOutfitResult } from '../ai-skills/structured-outfit/structured-outfit.dto';
 
 @Injectable()
 export class WardrobeService {
@@ -16,6 +18,7 @@ export class WardrobeService {
     @InjectRepository(Outfit)
     private readonly outfitRepo: Repository<Outfit>,
     private readonly garmentRecognitionSkill: GarmentRecognitionSkill,
+    private readonly structuredOutfitSkill: StructuredOutfitSkill,
   ) {}
 
   /**
@@ -62,6 +65,23 @@ export class WardrobeService {
     const saved = await this.itemRepo.save(item);
     this.logger.log(`衣物识别并落库完成 | itemId: ${saved.id}`);
     return { item: saved, recognition };
+  }
+
+  /**
+   * 分析一张穿搭照，返回多件衣物及其归一化 bbox（不落库）。
+   * 前端拿到 bbox 后从原图裁剪出每件衣物，再逐件调用 recognizeAndAddItem 入库。
+   */
+  async analyzeOutfitPhoto(
+    userId: string,
+    imageBase64: string,
+  ): Promise<StructuredOutfitResult> {
+    this.logger.log(`开始穿搭照多件分析 | userId: ${userId}`);
+    const result = await this.structuredOutfitSkill.analyze({
+      imageBase64,
+      withBbox: true,
+    });
+    this.logger.log(`穿搭照多件分析完成 | items: ${result.items.length}`);
+    return result;
   }
 
   // ---------- 衣物管理 ----------
