@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { StyleEngineModule } from './modules/style-engine/style-engine.module';
@@ -32,15 +32,19 @@ if (dbEnabled) {
   const { RagModule } = require('./modules/rag/rag.module');
 
   dbModules.push(
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'stylemate',
-      password: process.env.DB_PASSWORD || 'stylemate',
-      database: process.env.DB_NAME || 'stylemate',
-      autoLoadEntities: true,
-      synchronize: false,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST', 'localhost'),
+        port: parseInt(config.get<string>('DB_PORT', '5432'), 10),
+        username: config.get<string>('DB_USERNAME', 'stylemate'),
+        password: config.get<string>('DB_PASSWORD', 'stylemate'),
+        database: config.get<string>('DB_NAME', 'stylemate'),
+        autoLoadEntities: true,
+        synchronize: false,
+      }),
     }),
     UserModule,
     WardrobeModule,
