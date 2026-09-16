@@ -184,50 +184,8 @@ export default function ResultView({ results, answers, bodyShape, aiAnalysis, an
           {/* 避雷专区 */}
           <AvoidanceZone advice={explanation.avoidanceAdvice} tone="nice" />
 
-          {/* 风格适配榜单 */}
+          {/* 风格适配榜单（已合并「更多风格探索」/「还有这些风格值得探索」为一处，详见 explain-sections.tsx 的 StyleRanking） */}
           <StyleRanking score={explanation.multiDimension} tone="nice" />
-
-          {/* 更多风格探索 */}
-          {results.length > 1 && (
-            <section className="scroll-mt-24">
-              <div className="p-5 bg-white rounded-2xl border border-creme-200 shadow-card">
-                <h2 className="text-base font-display text-ink-900 mb-3 flex items-center gap-2">
-                  <span>🎯</span> 更多风格探索
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {results.slice(1).map((r) => (
-                    <Link
-                      key={r.styleId}
-                      href={`/styles/${r.styleId}`}
-                      className="block p-3 bg-creme-50 rounded-xl border border-creme-200 transition-all hover:border-ink-300 hover:shadow-sm group"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="min-w-0">
-                          <span className="inline-block px-2 py-0.5 bg-creme-200 text-ink-500 text-[10px] rounded-full mb-1">
-                            {CATEGORY_LABELS[r.category as keyof typeof CATEGORY_LABELS] || r.category}
-                          </span>
-                          <h4 className="text-sm font-medium text-ink-800 group-hover:text-ink-900 transition-colors truncate">
-                            {r.styleName}
-                          </h4>
-                        </div>
-                        <span className="text-xs font-semibold text-ink-600 shrink-0 ml-2">
-                          {r.score}<span className="font-normal text-ink-300">分</span>
-                        </span>
-                      </div>
-                      <div className="flex gap-1.5 mb-1.5">
-                        <PillarDot label="审美" value={r.pillars.aesthetic} max={50} />
-                        <PillarDot label="现实" value={r.pillars.realistic} max={30} />
-                        <PillarDot label="偏好" value={r.pillars.behavioral} max={20} />
-                      </div>
-                      <p className="text-[11px] text-ink-400 line-clamp-1 leading-relaxed">
-                        {r.matchReasons.slice(0, 1).join('；')}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
         </div>
 
         {/* ===== 右栏：col-span-4 固定悬浮 ===== */}
@@ -431,19 +389,3 @@ function MiniSideBar({ label, value, max }: { label: string; value: number; max:
   );
 }
 
-/** 三支柱小点 — 用于更多推荐卡片 */
-function PillarDot({ label, value, max }: { label: string; value: number; max: number }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  const tone = pct >= 75 ? 'bg-green-400' : pct >= 50 ? 'bg-yellow-400' : 'bg-ink-300';
-  return (
-    <div className="flex-1">
-      <div className="flex justify-between text-[9px] text-ink-400 mb-0.5">
-        <span>{label}</span>
-        <span>{pct}%</span>
-      </div>
-      <div className="h-1 rounded-full bg-creme-200 overflow-hidden">
-        <div className={cn('h-full rounded-full', tone)} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}

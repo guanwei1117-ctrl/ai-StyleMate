@@ -32,10 +32,10 @@ const TOOLS = [
   },
   {
     key: 'score-outfit',
-    title: '今日穿搭诊断',
-    desc: '上传今天的 Look 照片，AI 从 8 个维度评分并给出改良建议',
+    title: '拍立搭',
+    desc: '上传一张 Look 照片，可选「诊断穿搭」或「分析穿搭」两种模式',
     icon: Search,
-    link: '/score-outfit',
+    link: '/styles/camera?mode=diagnose',
   },
   {
     key: 'purchase-eval',

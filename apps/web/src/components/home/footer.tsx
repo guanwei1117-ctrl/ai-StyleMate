@@ -7,7 +7,7 @@ const FOOTER_LINKS = {
     links: [
       { label: '风格百科', href: '/styles' },
       { label: '生成档案', href: '/onboarding' },
-      { label: '穿搭诊断', href: '/score-outfit' },
+      { label: '拍立搭', href: '/styles/camera' },
       { label: '智能衣橱', href: '/wardrobe' },
     ],
   },
@@ -24,7 +24,7 @@ const FOOTER_LINKS = {
     title: '支持',
     links: [
       { label: '生成我的风格档案', href: '/onboarding' },
-      { label: '上传 Look 诊断', href: '/score-outfit' },
+      { label: '上传 Look 拍立搭', href: '/styles/camera' },
       { label: `查看全部 ${STYLES.length} 种风格`, href: '/styles' },
       { label: '管理我的衣橱', href: '/wardrobe' },
     ],

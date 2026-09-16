@@ -131,9 +131,9 @@ export default function OotdPage() {
             返回首页
           </Link>
           <p className="font-display text-lg tracking-wide">STYLEMATE</p>
-          <Link href="/score-outfit" className="inline-flex items-center gap-1.5 text-xs text-ink-500 hover:text-ink-900">
+          <Link href="/styles/camera?mode=diagnose" className="inline-flex items-center gap-1.5 text-xs text-ink-500 hover:text-ink-900">
             <Sparkles size={14} />
-            去诊断发 OOTD
+            去拍立搭发 OOTD
           </Link>
         </div>
       </div>
@@ -166,10 +166,10 @@ export default function OotdPage() {
             <div className="text-6xl">👗</div>
             <h3 className="mt-4 font-semibold text-ink-900">还没有人发布 OOTD</h3>
             <p className="mt-2 text-sm text-ink-500">
-              去「今日穿搭诊断」上传一张 Look，生成报告后一键发布到社区吧。
+              去「拍立搭」上传一张 Look，生成报告后一键发布到社区吧。
             </p>
             <Link
-              href="/score-outfit"
+              href="/styles/camera?mode=diagnose"
               className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-6 py-2.5 text-sm text-creme-100 hover:bg-ink-800"
             >
               <Sparkles size={15} />

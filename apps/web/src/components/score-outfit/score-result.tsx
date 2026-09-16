@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EvaluateOutfitResponse } from "@/lib/scoring-types";
-import DimensionCard from "./dimension-card";
 import { motion } from "framer-motion";
 import {
   Radar,
@@ -14,10 +13,24 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
-import { Clipboard, Lightbulb, RotateCcw, Shirt, Sparkles, Shuffle, Share2, Loader2, Users, CheckCircle, X } from "lucide-react";
+import {
+  Clipboard,
+  Lightbulb,
+  RotateCcw,
+  Shirt,
+  Sparkles,
+  Share2,
+  Loader2,
+  Users,
+  CheckCircle,
+  X,
+  Shuffle,
+  Check,
+  AlertCircle,
+} from "lucide-react";
 import { buildScoringSummaryText } from "@/lib/scoring-summary";
 import { renderShareCardImage } from "@/lib/scoring-share-card";
-import { fetchWardrobeItems } from "@/lib/wardrobe-api";
+import { fetchWardrobeItems, recognizeAndAddItem } from "@/lib/wardrobe-api";
 import { CATEGORY_LABELS, WardrobeItem } from "@/lib/wardrobe-types";
 import { publishOotd, blobToDataUrl } from "@/lib/ootd-api";
 import { adminApi, type StyleTag } from "@/lib/admin-api";
@@ -26,14 +39,38 @@ import { getUserMemory } from "@/lib/memory-api";
 import type { UserMemory } from "@/lib/memory-api";
 import type { StructuredOutfitResult } from "@stylemate/shared";
 
+type Mode = "diagnose" | "analyze";
+
 interface ScoreResultProps {
   result: EvaluateOutfitResponse;
   onReset: () => void;
+  /** 拍立搭模式：diagnose = 诊断穿搭（带偏好）/ analyze = 分析穿搭（不带偏好） */
+  mode?: Mode;
+  /** 原始图片 base64，用于「上传到衣橱」按钮 */
+  imageBase64?: string;
   /** Look 缩略图（用于分享卡），可选 */
   thumbnail?: string;
 }
 
-export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultProps) {
+/** base64 → File（用于调用 recognizeAndAddItem） */
+function base64ToFile(base64: string, filename: string): File {
+  const arr = base64.split(",");
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new File([u8arr], filename, { type: mime });
+}
+
+export default function ScoreResult({
+  result,
+  onReset,
+  mode = "diagnose",
+  imageBase64,
+  thumbnail,
+}: ScoreResultProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
@@ -46,14 +83,26 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
   const [selectedTag, setSelectedTag] = useState("");
   const [tagLoading, setTagLoading] = useState(false);
 
-  // M5：拉取用户偏好，在评分顶部展示"我用你的偏好打分"——让用户感知到 AI 不是瞎打
+  // 「上传到衣橱」状态
+  const [addingToWardrobe, setAddingToWardrobe] = useState(false);
+  const [wardrobeMessage, setWardrobeMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  // 仅诊断模式加载偏好（用于在 greeting 里内联偏好呼应）
   const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
-  useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
+    setMounted(true);
+  }, []);
+  useEffect(() => {
+    if (mode !== "diagnose") return;
     getUserMemory()
       .then((m) => setUserMemory(m))
-      .catch(() => { /* 拉取失败不阻塞主流程 */ });
-  }, []);
+      .catch(() => {
+        /* 拉取失败不阻塞主流程 */
+      });
+  }, [mode]);
 
   const handleCopySummary = async () => {
     const summary = buildScoringSummaryText(result);
@@ -70,19 +119,16 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
     setShareMessage("");
     try {
       const blob = await renderShareCardImage(result, thumbnail);
-      const file = new File([blob], 'stylemate-outfit-report.png', { type: 'image/png' });
-
-      // 支持文件分享的系统（移动端）直接调起系统分享
+      const file = new File([blob], "stylemate-outfit-report.png", { type: "image/png" });
       const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
-      if (typeof nav.canShare === 'function' && nav.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'StyleMate 今日穿搭诊断' });
+      if (typeof nav.canShare === "function" && nav.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "StyleMate 穿搭诊断" });
         setShareMessage("已调起系统分享");
       } else {
-        // 回退：下载图片
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = 'stylemate-outfit-report.png';
+        a.download = "stylemate-outfit-report.png";
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -90,8 +136,7 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
         setShareMessage("分享图已下载，可保存后分享");
       }
     } catch (err) {
-      // 用户取消分享不算错误
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      if (err instanceof DOMException && err.name === "AbortError") {
         setShareMessage("");
       } else {
         setShareMessage("分享图生成失败，请重试");
@@ -101,14 +146,12 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
     }
   };
 
-  // 发布到 OOTD 社区：打开标签选择弹窗
   const handlePublishOotd = async () => {
     if (!isAuthenticated()) {
       setShareMessage("请先登录后再发布到社区");
-      router.push('/auth');
+      router.push("/auth");
       return;
     }
-    // 拉取标签列表
     setTagLoading(true);
     try {
       const tagList = await adminApi.getTags();
@@ -123,30 +166,58 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
     setPublishModal(true);
   };
 
-  // 确认发布
   const handleConfirmPublish = async () => {
     setPublishing(true);
     try {
       const blob = await renderShareCardImage(result, thumbnail);
       const imageData = await blobToDataUrl(blob);
-      const scoreAvg = result.dimensions.length > 0
-        ? Math.round(result.dimensions.reduce((sum, d) => sum + d.score, 0) / result.dimensions.length)
-        : undefined;
+      const scoreAvg =
+        result.dimensions.length > 0
+          ? Math.round(result.dimensions.reduce((sum, d) => sum + d.score, 0) / result.dimensions.length)
+          : undefined;
       await publishOotd({
         imageData,
         caption: result.overallComment,
         scoreAvg,
-        scoreJson: JSON.stringify(
-          result.dimensions.map((d) => ({ label: d.label, score: d.score })),
-        ),
+        scoreJson: JSON.stringify(result.dimensions.map((d) => ({ label: d.label, score: d.score }))),
         styleTags: selectedTag || undefined,
       });
       setPublishDone(true);
     } catch (err) {
-      setShareMessage(err instanceof Error ? err.message : '发布失败，请重试');
+      setShareMessage(err instanceof Error ? err.message : "发布失败，请重试");
       setPublishModal(false);
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleAddToWardrobe = async () => {
+    setWardrobeMessage(null);
+    if (!imageBase64) {
+      setWardrobeMessage({ type: "error", text: "缺少原始图片，无法上传" });
+      return;
+    }
+    if (!isAuthenticated()) {
+      setWardrobeMessage({ type: "error", text: "上传衣橱需要先登录" });
+      router.push("/auth");
+      return;
+    }
+    setAddingToWardrobe(true);
+    try {
+      const file = base64ToFile(imageBase64, "outfit-look.jpg");
+      const res = await recognizeAndAddItem(file);
+      const sub = res.recognition?.subCategory ?? res.recognition?.category ?? "单品";
+      setWardrobeMessage({
+        type: "success",
+        text: `已识别为「${sub}」并加入衣橱，可在「我的衣橱」查看`,
+      });
+    } catch (err) {
+      setWardrobeMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "上传失败，请重试",
+      });
+    } finally {
+      setAddingToWardrobe(false);
     }
   };
 
@@ -155,197 +226,88 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
     score: d.score,
   }));
 
+  const modeLabel = mode === "analyze" ? "分析穿搭" : "诊断穿搭";
+  const headline = mode === "analyze" ? "Look 风格分析完成" : "今日 Look 诊断完成";
+
   return (
-    <div className="w-full space-y-8">
-      <div className="border-b border-ink-900/10 pb-8">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs tracking-[0.28em] text-ink-400">DIAGNOSIS REPORT</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopySummary}
-              className="inline-flex items-center justify-center gap-2 border border-ink-900/10 px-4 py-2 text-xs text-ink-600 transition hover:border-ink-900 hover:text-ink-900"
-            >
-              <Clipboard size={14} />
-              复制报告摘要
-            </button>
-            <button
-              type="button"
-              onClick={handleShare}
-              disabled={sharing}
-              className="inline-flex items-center justify-center gap-2 bg-ink-900 px-4 py-2 text-xs text-creme-100 transition hover:bg-ink-700 disabled:opacity-60"
-            >
-              {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
-              {sharing ? '生成中…' : '生成分享图'}
-            </button>
-            <button
-              type="button"
-              onClick={handlePublishOotd}
-              disabled={publishing}
-              className="inline-flex items-center justify-center gap-2 border border-ink-900 px-4 py-2 text-xs text-ink-900 transition hover:bg-[#e8ece8] disabled:opacity-60"
-            >
-              {publishing ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
-              {publishing ? '发布中…' : '发布到社区'}
-            </button>
-          </div>
+    <div className="w-full space-y-6">
+      {/* ============ 顶部操作栏（单行：复制 / 分享 / 发布） ============ */}
+      <div className="flex flex-col gap-3 border-b border-ink-900/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs tracking-[0.28em] text-ink-400">
+            {modeLabel.toUpperCase()} · DIAGNOSIS REPORT
+          </p>
+          <h1 className="mt-1 font-display text-2xl leading-tight text-ink-900 sm:text-3xl">
+            {headline}
+          </h1>
         </div>
-        {shareMessage && <p className="mb-3 text-xs text-ink-500">{shareMessage}</p>}
-        <h1 className="font-display text-[clamp(2.5rem,5vw,5rem)] leading-[0.9] text-ink-900">
-          今日 Look
-          <br />
-          诊断完成
-        </h1>
-        {copyMessage && <p className="mt-4 text-sm text-ink-500">{copyMessage}</p>}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCopySummary}
+            className="inline-flex items-center gap-2 border border-ink-900/10 px-3.5 py-2 text-xs text-ink-600 transition hover:border-ink-900 hover:text-ink-900"
+          >
+            <Clipboard size={14} />
+            复制报告
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={sharing}
+            className="inline-flex items-center gap-2 bg-ink-900 px-3.5 py-2 text-xs text-creme-100 transition hover:bg-ink-700 disabled:opacity-60"
+          >
+            {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+            {sharing ? "生成中…" : "分享图"}
+          </button>
+          <button
+            type="button"
+            onClick={handlePublishOotd}
+            disabled={publishing}
+            className="inline-flex items-center gap-2 border border-ink-900 px-3.5 py-2 text-xs text-ink-900 transition hover:bg-[#e8ece8] disabled:opacity-60"
+          >
+            {publishing ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
+            {publishing ? "发布中…" : "发布到社区"}
+          </button>
+        </div>
+      </div>
+      {(shareMessage || copyMessage) && (
+        <p className="-mt-2 text-xs text-ink-500">
+          {copyMessage || shareMessage}
+        </p>
+      )}
+
+      {/* ============ AI 结论（合并偏好呼应到 inline） ============ */}
+      <div className="flex items-start gap-3 border border-ink-900/10 bg-[#e8ece8] p-5">
+        <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center bg-ink-900">
+          <Sparkles className="w-4 h-4 text-creme-100" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-ink-900 mb-1">StyleMate 结论</p>
+          <p className="text-sm text-ink-600 leading-relaxed">{result.greeting}</p>
+          {/* 诊断模式下内联偏好呼应（已合并进结论框，去掉独立 M5 框） */}
+          {mode === "diagnose" && userMemory?.styleProfile && (
+            <MemoryEcho profile={userMemory.styleProfile} />
+          )}
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="border border-ink-900/10 bg-[#e8ece8] p-5"
-      >
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center bg-ink-900">
-            <Sparkles className="w-5 h-5 text-creme-100" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-ink-900 mb-1">
-              StyleMate 穿搭诊断结论
-            </p>
-            <p className="text-ink-600 leading-relaxed">{result.greeting}</p>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* M5：💭 AI 偏好呼应 —— 让用户感知"打分不是瞎打，是基于我" */}
-      {userMemory?.styleProfile && (() => {
-        const p = userMemory.styleProfile;
-        const hasLiked = (p.likedStyles?.length ?? 0) > 0;
-        const hasDislikedColors = (p.dislikedColors?.length ?? 0) > 0;
-        const hasAvoidRules = (p.avoidRules?.length ?? 0) > 0;
-        const hasDressGoals = (p.dressGoals?.length ?? 0) > 0;
-        if (!hasLiked && !hasDislikedColors && !hasAvoidRules && !hasDressGoals) return null;
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="border border-olive-pale bg-gradient-to-br from-olive-pale/30 to-creme-50 p-5"
-          >
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 text-2xl">💭</div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-olive-dark mb-2">
-                  我用你的偏好来打分
-                </p>
-                <p className="text-xs text-olive-dark/80 mb-3 leading-relaxed">
-                  你之前告诉过我的：
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {p.likedStyles?.slice(0, 4).map((s) => (
-                    <span
-                      key={`like-${s}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-olive-pale/60 px-2.5 py-1 text-xs text-olive-dark"
-                    >
-                      ✓ 喜欢 {s}
-                    </span>
-                  ))}
-                  {p.dislikedColors?.slice(0, 3).map((c) => (
-                    <span
-                      key={`discolor-${c}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs text-red-700"
-                    >
-                      ✕ 避开 {c}
-                    </span>
-                  ))}
-                  {p.avoidRules?.slice(0, 2).map((r) => (
-                    <span
-                      key={`avoid-${r.rule}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-700"
-                    >
-                      ⚠️ {r.rule}
-                    </span>
-                  ))}
-                  {p.dressGoals?.slice(0, 2).map((g) => (
-                    <span
-                      key={`goal-${g}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-ink-900/5 px-2.5 py-1 text-xs text-ink-700"
-                    >
-                      🎯 {g}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 text-xs text-ink/60 italic">
-                  我注意到你 → 这次打分会重点参考这些维度
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        );
-      })()}
-
-      {/* M5：穿搭水平解读（基于 styleProficiency + 当前总分） */}
-      {userMemory?.styleProfile?.styleProficiency !== null &&
-        userMemory?.styleProfile?.styleProficiency !== undefined && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="rounded-2xl border border-creme-200 bg-creme-50/60 p-4"
-          >
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 text-xl">🎓</div>
-              <div className="flex-1">
-                <p className="mb-1 text-sm font-semibold text-ink-900">
-                  穿搭水平解读（{userMemory.styleProfile.styleProficiency}/10）
-                </p>
-                <p className="text-xs leading-relaxed text-ink/75">
-                  {(() => {
-                    const prof = userMemory.styleProfile.styleProficiency;
-                    const totalScore = result.dimensions?.reduce(
-                      (sum, d) => sum + (d.score ?? 0),
-                      0,
-                    ) / Math.max(1, result.dimensions?.length ?? 1);
-                    if (prof <= 3) {
-                      return '你目前是穿搭新手阶段，重点是建立基础规则（三色原则、上宽下窄）。这次的评分仅供参考，不必焦虑——每天进步一点就好。';
-                    }
-                    if (prof <= 6) {
-                      return '你已经有基础审美了，知道什么适合自己。这次评分能帮你发现"还能更好"的空间，建议看 3 条 improvements 重点改进。';
-                    }
-                    if (prof <= 8) {
-                      return '你是穿搭达人，对自己的风格很清楚。这次评分主要帮你发现"高级感"和"细节提升"的进阶点。';
-                    }
-                    return '你是穿搭专家！这次评分主要作为参考和客观验证——你已经知道自己穿什么好看。';
-                  })()}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-      {/* 雷达图 — 等待组件挂载后再渲染，避免 Recharts getBoundingClientRect 空值 */}
+      {/* ============ 雷达图 ============ */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.15 }}
+        transition={{ delay: 0.1 }}
         className="border border-ink-900/10 bg-white/55 p-5"
         style={{ width: "100%", minHeight: 320 }}
       >
         <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-3">
-          EIGHT DIMENSIONS
+          8 DIMENSIONS · 雷达图
         </h3>
         {mounted && (
           <ResponsiveContainer width="100%" height={280}>
             <RadarChart data={radarData}>
               <PolarGrid stroke="#d7d0c4" />
-              <PolarAngleAxis
-                dataKey="dimension"
-                tick={{ fontSize: 11, fill: "#555555" }}
-              />
-              <PolarRadiusAxis
-                angle={30}
-                domain={[0, 100]}
-                tick={{ fontSize: 10, fill: "#8C8C8C" }}
-              />
+              <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: "#555555" }} />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10, fill: "#8C8C8C" }} />
               <Radar
                 name="评分"
                 dataKey="score"
@@ -359,97 +321,147 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
         )}
       </motion.div>
 
-      {/* 整体评价 */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="border-y border-ink-900/10 py-8 text-center"
-      >
-        <p className="text-ink-900 font-display text-2xl leading-relaxed">
+      {/* ============ 整体评价 ============ */}
+      <div className="border-y border-ink-900/10 py-6 text-center">
+        <p className="font-display text-xl leading-relaxed text-ink-900">
           &ldquo;{result.overallComment}&rdquo;
         </p>
-      </motion.div>
+      </div>
 
-      {/* 8 维度卡片 */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 flex items-center gap-2">
+      {/* ============ 8 维度评论（仅文字，去掉与雷达图重复的进度条） ============ */}
+      <section>
+        <h3 className="mb-3 text-xs font-semibold tracking-[0.24em] text-ink-400 flex items-center gap-2">
           <Shirt className="w-4 h-4" />
-          DIMENSION BREAKDOWN
+          维度评论
         </h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          {result.dimensions.map((dim, idx) => (
-            <DimensionCard key={dim.key} dimension={dim} index={idx} />
+        <ul className="space-y-2.5">
+          {result.dimensions.map((dim) => (
+            <li
+              key={dim.key}
+              className="flex gap-4 border-l-2 border-ink-900/15 pl-4 py-1.5"
+            >
+              <span className="w-24 shrink-0 text-sm font-semibold text-ink-900">
+                {dim.label}
+              </span>
+              <span className="w-10 shrink-0 font-display text-base text-ink-700">
+                {dim.score}
+              </span>
+              <p className="flex-1 text-sm leading-6 text-ink-600">{dim.comment}</p>
+            </li>
           ))}
+        </ul>
+      </section>
+
+      {/* ============ 单品分析 + 改良建议（合并为一段） ============ */}
+      {((result.itemComments && result.itemComments.length > 0) ||
+        (result.improvements && result.improvements.length > 0)) && (
+        <section className="border border-ink-900/10 bg-[#f4f1ea] p-5">
+          {result.itemComments && result.itemComments.length > 0 && (
+            <div className="mb-4">
+              <h3 className="mb-2 text-xs font-semibold tracking-[0.24em] text-ink-400">
+                单品分析
+              </h3>
+              <div className="space-y-2">
+                {result.itemComments.map((c, idx) => (
+                  <p key={idx} className="text-sm leading-7 text-ink-700">
+                    {c}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+          {result.improvements && result.improvements.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-xs font-semibold tracking-[0.24em] text-ink-400 flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-ink-600" />
+                改良建议
+              </h3>
+              <div className="space-y-2">
+                {result.improvements.map((tip, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <span className="mt-0.5 font-display text-lg leading-none text-ink-900">
+                      0{idx + 1}
+                    </span>
+                    <span className="text-sm leading-7 text-ink-700">{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ============ 衣橱替换建议 ============ */}
+      {result.structured && <WardrobeSwaps structured={result.structured} />}
+
+      {/* ============ 上传到衣橱 + 重新评分（操作区） ============ */}
+      <div className="space-y-3 border-t border-ink-900/10 pt-5">
+        {wardrobeMessage && (
+          <div
+            className={`flex items-center gap-2 border px-4 py-2.5 text-xs ${
+              wardrobeMessage.type === "success"
+                ? "border-green-200 bg-green-50 text-green-700"
+                : "border-red-200 bg-red-50 text-red-700"
+            }`}
+          >
+            {wardrobeMessage.type === "success" ? <Check size={14} /> : <AlertCircle size={14} />}
+            <span>{wardrobeMessage.text}</span>
+            {wardrobeMessage.type === "success" && (
+              <Link
+                href="/wardrobe"
+                className="ml-auto underline-offset-2 hover:underline"
+              >
+                查看衣橱 →
+              </Link>
+            )}
+          </div>
+        )}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleAddToWardrobe}
+            disabled={addingToWardrobe || !imageBase64}
+            className="inline-flex flex-1 items-center justify-center gap-2 bg-ink-900 px-5 py-3 text-sm font-medium text-creme-100 transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {addingToWardrobe ? <Loader2 size={15} className="animate-spin" /> : <Shuffle size={15} />}
+            {addingToWardrobe ? "上传中…" : "📥 上传到衣橱"}
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="inline-flex items-center justify-center gap-2 border border-ink-900 px-5 py-3 text-sm font-medium text-ink-900 transition hover:bg-ink-900 hover:text-creme-100"
+          >
+            <RotateCcw size={15} />
+            重新评分
+          </button>
         </div>
       </div>
 
-      {/* 逐件分析 */}
-      {result.itemComments && result.itemComments.length > 0 && (
-        <div className="border border-ink-900/10 bg-white/45 p-5 space-y-2">
-          <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-3">
-            ITEM ANALYSIS
-          </h3>
-          {result.itemComments.map((comment, idx) => (
-            <p key={idx} className="border-l border-ink-900/20 pl-4 text-sm leading-7 text-ink-600">
-              {comment}
-            </p>
-          ))}
-        </div>
-      )}
-
-      {/* 改良建议 */}
-      {result.improvements && result.improvements.length > 0 && (
-        <div className="border border-ink-900/10 bg-[#f4f1ea] p-5">
-          <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-4 flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-ink-600" />
-            IMMEDIATE FIXES
-          </h3>
-          <div className="space-y-2">
-            {result.improvements.map((tip, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + idx * 0.1 }}
-                className="flex items-start gap-3"
-              >
-                <span className="mt-0.5 font-display text-xl leading-none text-ink-900">0{idx + 1}</span>
-                <span className="text-sm leading-7 text-ink-600">{tip}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 衣橱替换建议 — 诊断→改进闭环 */}
-      {result.structured && <WardrobeSwaps structured={result.structured} />}
-
-      {/* 重新评分 */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        onClick={onReset}
-        className="inline-flex w-full items-center justify-center gap-2 border border-ink-900 px-6 py-3 text-sm font-medium text-ink-900 transition-all duration-200 hover:bg-ink-900 hover:text-creme-100"
-      >
-        <RotateCcw size={16} />
-        重新评分
-      </motion.button>
-
-      {/* 发布弹窗：标签选择 + 发布后反馈 */}
+      {/* ============ 发布到社区 弹窗 ============ */}
       {publishModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { if (!publishing) setPublishModal(false); }}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => {
+            if (!publishing) setPublishModal(false);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             {publishDone ? (
-              /* 发布成功反馈 */
               <div className="text-center py-4">
                 <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
                 <h3 className="font-display text-lg text-ink-900 mb-2">已提交审核</h3>
-                <p className="text-sm text-ink-500 mb-6">审核通过后将在社区展示，请耐心等待</p>
+                <p className="text-sm text-ink-500 mb-6">
+                  审核通过后将在社区展示，请耐心等待
+                </p>
                 <div className="flex gap-3 justify-center">
                   <button
-                    onClick={() => { setPublishModal(false); router.push('/ootd'); }}
+                    onClick={() => {
+                      setPublishModal(false);
+                      router.push("/ootd");
+                    }}
                     className="px-5 py-2.5 text-sm font-medium bg-ink-900 text-creme-100 rounded-full hover:bg-ink-800"
                   >
                     查看社区
@@ -463,15 +475,19 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
                 </div>
               </div>
             ) : (
-              /* 标签选择 */
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-display text-base text-ink-900">发布到社区</h3>
-                  <button onClick={() => setPublishModal(false)} className="text-ink-400 hover:text-ink-600">
+                  <button
+                    onClick={() => setPublishModal(false)}
+                    className="text-ink-400 hover:text-ink-600"
+                  >
                     <X size={18} />
                   </button>
                 </div>
-                <p className="text-sm text-ink-500 mb-4">选择这个穿搭的风格标签，方便其他用户发现</p>
+                <p className="text-sm text-ink-500 mb-4">
+                  选择这个穿搭的风格标签，方便其他用户发现
+                </p>
                 {tagLoading ? (
                   <div className="flex items-center justify-center py-8 text-ink-400">
                     <Loader2 size={20} className="animate-spin" />
@@ -485,8 +501,8 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
                         onClick={() => setSelectedTag(tag.name)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                           selectedTag === tag.name
-                            ? 'bg-ink-900 text-creme-100'
-                            : 'bg-creme-100 text-ink-600 hover:bg-creme-200'
+                            ? "bg-ink-900 text-creme-100"
+                            : "bg-creme-100 text-ink-600 hover:bg-creme-200"
                         }`}
                       >
                         {tag.label}
@@ -501,7 +517,7 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
                     className="flex-1 py-2.5 text-sm font-medium bg-ink-900 text-creme-100 rounded-full hover:bg-ink-800 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {publishing ? <Loader2 size={15} className="animate-spin" /> : null}
-                    {publishing ? '发布中...' : '发布'}
+                    {publishing ? "发布中..." : "发布"}
                   </button>
                   <button
                     onClick={() => setPublishModal(false)}
@@ -519,10 +535,37 @@ export default function ScoreResult({ result, onReset, thumbnail }: ScoreResultP
   );
 }
 
-// ===================================================================
-// 衣橱替换建议：把诊断中的"问题单品"映射到用户衣橱里的同品类单品，
-// 让"哪里不好怎么改"真正落地为"换成衣橱里的哪一件"。
-// ===================================================================
+// ============================================================
+// 偏好呼应 —— 仅诊断模式渲染，内联进结论框
+// ============================================================
+function MemoryEcho({ profile }: { profile: NonNullable<UserMemory["styleProfile"]> }) {
+  const chips: string[] = [];
+  (profile.likedStyles ?? []).slice(0, 3).forEach((s) => chips.push(`✓ 喜欢 ${s}`));
+  (profile.dislikedColors ?? []).slice(0, 2).forEach((c) => chips.push(`✕ 避开 ${c}`));
+  (profile.dressGoals ?? []).slice(0, 2).forEach((g) => chips.push(`🎯 ${g}`));
+  if (chips.length === 0) return null;
+  return (
+    <div className="mt-3 border-t border-ink-900/10 pt-3">
+      <p className="text-[11px] text-ink-500 mb-2">
+        我结合你的偏好来打分：
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {chips.map((c, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center rounded-full bg-white/70 px-2 py-0.5 text-[11px] text-ink-700"
+          >
+            {c}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 衣橱替换建议
+// ============================================================
 function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -531,25 +574,32 @@ function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
   useEffect(() => {
     let cancelled = false;
     fetchWardrobeItems()
-      .then((data) => { if (!cancelled) setItems(data); })
-      .catch(() => { if (!cancelled) setFailed(true); })
-      .finally(() => { if (!cancelled) setLoaded(true); });
-    return () => { cancelled = true; };
+      .then((data) => {
+        if (!cancelled) setItems(data);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!loaded) return null;
   if (failed) return null;
 
-  // 衣橱为空 → 引导补充
   if (items.length === 0) {
     return (
       <div className="border border-ink-900/10 bg-white/45 p-5">
-        <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-3 flex items-center gap-2">
+        <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-2 flex items-center gap-2">
           <Shuffle className="w-4 h-4" />
-          WARDROBE SWAPS
+          衣橱替换
         </h3>
-        <p className="text-sm leading-7 text-ink-600">
-          把衣橱里的衣服拍照录入后，这里会告诉你：这套 Look 里的每一件，可以换成你衣橱里的哪一件。
+        <p className="text-sm leading-6 text-ink-600">
+          把衣橱里的衣服拍照录入后，这里会告诉你：每件可以换成你衣橱里的哪一件。
         </p>
         <Link
           href="/wardrobe"
@@ -562,7 +612,6 @@ function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
     );
   }
 
-  // 按品类分组
   const byCategory = new Map<string, WardrobeItem[]>();
   for (const it of items) {
     const list = byCategory.get(it.category) ?? [];
@@ -570,7 +619,6 @@ function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
     byCategory.set(it.category, list);
   }
 
-  // 为每个结构化单品找同品类候选（按百搭程度降序，取前 3）
   const rows = structured.items
     .map((piece) => {
       const candidates = (byCategory.get(piece.type) ?? [])
@@ -585,19 +633,23 @@ function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
 
   return (
     <div className="border border-ink-900/10 bg-white/45 p-5">
-      <h3 className="text-xs font-semibold tracking-[0.24em] text-ink-400 mb-4 flex items-center gap-2">
+      <h3 className="mb-2 text-xs font-semibold tracking-[0.24em] text-ink-400 flex items-center gap-2">
         <Shuffle className="w-4 h-4" />
-        WARDROBE SWAPS
+        衣橱替换
       </h3>
-      <p className="mb-4 text-xs text-ink-400">诊断单品 → 你衣橱里可以直接替换的选择（按百搭程度排序）</p>
-      <div className="space-y-5">
+      <p className="mb-4 text-xs text-ink-400">
+        诊断单品 → 你衣橱里可以直接替换的选择（按百搭程度排序）
+      </p>
+      <div className="space-y-4">
         {rows.map((row, idx) => (
           <div key={idx}>
             <div className="mb-2 flex items-center gap-2">
               <span className="rounded-full bg-ink-900 px-2.5 py-0.5 text-[11px] text-creme-100">
                 {row.piece.name}
               </span>
-              <span className="text-xs text-ink-400">{CATEGORY_LABELS[row.piece.type as keyof typeof CATEGORY_LABELS] ?? row.piece.type}</span>
+              <span className="text-xs text-ink-400">
+                {CATEGORY_LABELS[row.piece.type as keyof typeof CATEGORY_LABELS] ?? row.piece.type}
+              </span>
             </div>
             <div className="flex flex-wrap gap-2">
               {row.candidates.map((cand) => (
@@ -606,13 +658,24 @@ function WardrobeSwaps({ structured }: { structured: StructuredOutfitResult }) {
                   className="flex items-center gap-2 rounded-lg border border-ink-900/10 bg-white px-2.5 py-2 transition hover:border-ink-900/40"
                 >
                   {cand.imageUrls?.[0] ? (
-                    <img src={cand.imageUrls[0]} alt={cand.subCategory || cand.category} className="size-9 rounded-md object-cover" />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={cand.imageUrls[0]}
+                      alt={cand.subCategory || cand.category}
+                      className="size-9 rounded-md object-cover"
+                    />
                   ) : (
-                    <span className="flex size-9 items-center justify-center rounded-md bg-ink-50 text-base">👕</span>
+                    <span className="flex size-9 items-center justify-center rounded-md bg-ink-50 text-base">
+                      👕
+                    </span>
                   )}
                   <div>
-                    <p className="text-xs font-medium text-ink-800">{cand.color} {cand.subCategory || cand.category}</p>
-                    <p className="text-[10px] text-ink-400">百搭 {cand.matchabilityScore ?? 0}/10</p>
+                    <p className="text-xs font-medium text-ink-800">
+                      {cand.color} {cand.subCategory || cand.category}
+                    </p>
+                    <p className="text-[10px] text-ink-400">
+                      百搭 {cand.matchabilityScore ?? 0}/10
+                    </p>
                   </div>
                 </div>
               ))}

@@ -22,6 +22,9 @@
     <a href="https://tailwindcss.com/">
       <img src="https://img.shields.io/badge/Tailwind-3.4-06B6D4?logo=tailwindcss" alt="Tailwind CSS"/>
     </a>
+    <a href="LICENSE">
+      <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"/>
+    </a>
     <br/>
     <img src="https://img.shields.io/github/stars/guanwei1117-ctrl/cleanfit?style=social" alt="GitHub stars"/>
     <img src="https://img.shields.io/github/forks/guanwei1117-ctrl/cleanfit?style=social" alt="GitHub forks"/>
@@ -32,17 +35,11 @@
 
 ## 💡 这个项目能做什么？
 
-每天出门前站在衣柜前纠结穿什么——这是很多人的日常。
+早上站在衣柜前，还是不知道穿什么？买了不少衣服，真正常穿的却只有那几件？
 
-**StyleMate 就是为解决这个问题而生的。** 它是一个 AI 驱动的穿搭助手，能帮你：
+**StyleMate 是一个 AI 穿搭助手，把「发现风格 → 测出画像 → 评估穿搭 → 管理衣橱 → 每天穿什么」串成一个闭环。**
 
-- **找到你的风格** — 通过 AI 对话式测评，3 步生成专属风格画像，不再盲目跟风买衣服
-- **诊断你的穿搭** — 上传穿搭照片，AI 从色彩、比例、场合适配等 8 个维度评分并给出改良建议
-- **每天告诉你穿什么** — 结合实时天气、你的衣橱和风格偏好，每天自动生成 3 套穿搭方案
-- **管理你的衣橱** — 拍照自动识别衣物品类/颜色/材质，AI 帮你分析衣橱缺口
-- **一键比价购物** — 发现缺什么衣服，直接加入购物清单，支持淘宝/京东/拼多多多平台比价
-
-简单说：**不知道自己适合什么风格 → 帮你测；不知道怎么搭 → 帮你评；每天不知道穿什么 → 帮你配。**
+它不只是"推荐衣服"：先弄清**你适合什么**（骨相 / 量感 / 体型 / 肤色 / 气质五维画像），再叠加**你的现实约束**（预算 / 场景 / 气候）与**行为偏好**，最后落到一件件真实单品上——因为「适合」并不等于「会穿」。
 
 ---
 
@@ -52,20 +49,20 @@
 <tr>
 <td width="33%">
 
-### 🎯 风格测评
-三步完成风格画像：填基础信息 → AI 对话式深度了解 → 生成 80 种风格档案
+### 🎨 80 风格库
+按 4 大维度（地域文化 / 视觉元素 / 场景圈层 / 人物原型）组织的 80 种风格档案：核心单品 / 廓形规则 / 颜色体系 / 季节穿搭 / 身材适配 / 相关风格 / 穿搭灵感
 
 </td>
 <td width="33%">
 
-### 📸 穿搭诊断
+### 🤖 AI 风格测评
+对话式深度测评，3 步生成专属风格画像，从 80 种风格中匹配 Top 3
+
+</td>
+<td width="33%">
+
+### 📸 穿搭打分
 上传穿搭照片，AI 从 8 个维度评分 + 改良建议 + 衣橱替换方案
-
-</td>
-<td width="33%">
-
-### 🌤️ 每日穿搭
-结合实时天气、衣橱和风格记忆，AI 每天为你生成 3 套穿搭方案
 
 </td>
 </tr>
@@ -73,19 +70,19 @@
 <td width="33%">
 
 ### 👔 智能衣橱
-拍照自动识别品类/颜色/材质/风格，AI 帮你搭、帮你分析缺口
+拍照自动识别品类 / 颜色 / 材质 / 风格，AI 帮你搭、帮你分析缺口
 
 </td>
 <td width="33%">
 
-### 🛒 购物清单
-缺口分析 → 一键加入购物清单 → 多平台比价（淘宝/京东/拼多多）
+### 👗 OOTD 社区
+上传你的同款穿搭，互相欣赏参考；每个真实穿搭都让风格库更鲜活
 
 </td>
 <td width="33%">
 
-### 🧠 记忆系统
-长期画像 + 行为反馈 + 当前意图，AI 越来越懂你的风格偏好
+### ☀️ 每日穿搭
+结合实时天气 + 你的衣橱 + 风格记忆，AI 每天为你生成 3 套穿搭方案
 
 </td>
 </tr>
@@ -93,31 +90,48 @@
 
 ---
 
-## 🎬 核心功能展示
+## 🔍 设计亮点
 
-### 🎯 风格测评 — 三步找到你的风格
+- **多模型自动降级** — DeepSeek / Qwen-VL / OpenAI / Claude 按可用性与优先级自动切换，带图请求自动跳过纯文本模型，单个服务商抖动不影响体验。
+- **RAG 可解释** — 体型 / 色彩 / 场合 / 风格百科等知识经 pgvector 检索后注入 prompt，结果附带 `knowledgeUsed` 作为证据；向量库不可用时自动降级为关键词检索。
+- **五维风格 DNA** — 骨相 / 量感 / 体型 / 肤色 / 气质五维给 80 种风格打分，再叠加「现实约束 + 行为偏好」，避免"好看但不常穿"的推荐。
+- **衣橱前置过滤** — 推荐前把大件数衣橱压缩到 20 件候选，兼顾准确率与 token 成本。
+- **无数据库也能跑** — 设置 `ENABLE_DB=false` 即可脱离 PostgreSQL 启动，方便前端独立开发。
+
+---
+
+## 🛠 技术栈
+
+| 层 | 技术选型 |
+|---|---|
+| 前端 | Next.js 14（App Router）· React 18 · TypeScript · Tailwind CSS · Radix UI · Zustand · TanStack Query · Framer Motion · Recharts |
+| 后端 | NestJS 10 · TypeORM · PostgreSQL 16 · Redis 7 · Swagger |
+| AI | Claude · GPT-4o · DeepSeek · 通义千问 Qwen-VL（多模态）· RAG（pgvector） |
+| 工程化 | Turborepo · npm workspaces · Docker Compose · Prettier |
+
+---
+
+## 🏗 项目结构
 
 ```
-Step 1: 基础信息     →    Step 2: AI 对话     →    Step 3: 风格档案
-┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-│ 性别 / 身高   │        │ AI 逐步了解    │        │ 80 种风格     │
-│ 体重 / 职业   │ ────→  │ 风格偏好 / 雷区 │ ────→  │ 匹配 Top 3    │
-│ 城市 / 场景   │        │ 预算 / 舒适度  │        │ 详细报告      │
-└──────────────┘        └──────────────┘        └──────────────┘
+cleanfit/
+├── apps/web/                 # Next.js 前端：营销页 / 测评 / 风格库 / 衣橱 / 评分 / OOTD / 记忆
+├── services/api/             # NestJS 后端 API
+│   └── src/modules/
+│       ├── ai-skills/        # 7 个可复用 AI 能力（识别 / 搭配 / 推荐 / 评估 / 缺口分析）
+│       ├── llm/              # 多 provider 工厂 + 自动 fallback
+│       ├── rag/              # 知识库检索增强（pgvector + 缓存）
+│       ├── scoring/          # 穿搭 8 维评分
+│       ├── memory/           # 长期记忆：风格画像 / 当前意图 / 反馈
+│       ├── wardrobe/         # 衣橱与搭配
+│       ├── recommendation/   # 每日推荐
+│       ├── ootd/             # OOTD 社区
+│       └── shopping/         # 电商导购
+├── packages/shared/          # 前后端共享类型（风格体系 / 用户画像 / 评分）
+├── docs/                     # 设计文档：RAG 集成 / 部署指南 / 产品路线图
+├── start.py                  # 一键启动脚本
+└── docker-compose.yml        # PostgreSQL + Redis + Qdrant
 ```
-
-### 📸 穿搭诊断 — 8 维 AI 评分
-
-| 维度 | 说明 |
-|------|------|
-| 🎨 **色彩搭配** | 整体配色协调性分析 |
-| 📐 **比例廓形** | 上下身比例、服装廓形匹配度 |
-| 🏷️ **风格一致性** | 单品风格是否统一 |
-| 👔 **单品匹配** | 各单品之间的搭配度 |
-| 🌟 **场合适配** | 是否符合目标场景 |
-| 🔄 **衣橱替换** | 问题单品 → 衣橱可替换选择 |
-| 📊 **综合评分** | 整体穿搭评分 |
-| 💡 **改良建议** | 具体可执行的改进方向 |
 
 ---
 
@@ -134,16 +148,11 @@ python start.py
 ```
 
 启动后访问：
+
 | 服务 | 地址 |
 |------|------|
 | Web 前端 | http://localhost:3000 |
 | API 文档 | http://localhost:4000/api/docs |
-
-> 详细启动说明见下方 [📖 使用指南](#-使用指南)
-
----
-
-## 📖 使用指南
 
 <details>
 <summary><strong>🖥️ 手动启动（点击展开）</strong></summary>
@@ -168,6 +177,8 @@ DASHSCOPE_API_KEY=sk-xxx          # 阿里云通义千问
 OPENAI_API_KEY=sk-xxx             # OpenAI
 ```
 
+数据库、Redis、JWT、OSS 等变量见 [`.env.example`](.env.example)。
+
 ### 3. 启动数据库
 
 ```bash
@@ -186,16 +197,6 @@ npm run dev
 
 ---
 
-## 🧪 测试
-
-```bash
-npm test          # 运行所有测试
-npm run lint      # TypeScript 类型检查
-npm run build     # 生产构建
-```
-
----
-
 ## 🤝 贡献指南
 
 欢迎贡献！请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
@@ -205,6 +206,10 @@ npm run build     # 生产构建
 3. 提交变更：`git commit -m 'feat: add amazing feature'`
 4. 推送分支：`git push origin feat/amazing-feature`
 5. 提交 Pull Request
+
+## 📄 开源协议
+
+本项目基于 [MIT License](LICENSE) 开源。
 
 <div align="center">
   <br/>

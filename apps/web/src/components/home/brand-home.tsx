@@ -37,8 +37,8 @@ const featureCards = [
   {
     icon: Camera,
     title: '看今天',
-    copy: '上传 Look，马上知道怎么改。',
-    href: '/score-outfit',
+    copy: '上传 Look，AI 诊断或纯分析两种模式。',
+    href: '/styles/camera',
   },
   {
     icon: Palette,
@@ -118,7 +118,7 @@ export default function BrandHome() {
               <Link href="/onboarding" className="inline-flex h-13 items-center justify-center gap-2 rounded-full bg-[#7c8f73] px-7 py-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(124,143,115,0.24)] transition hover:bg-[#6d8065]">
                 开始风格测评 <ArrowRight size={16} />
               </Link>
-              <Link href="/score-outfit" className="inline-flex h-13 items-center justify-center gap-2 rounded-full border border-[#d8cbbb] bg-[#fffdf8] px-7 py-4 text-sm font-semibold text-[#2d2926] transition hover:border-[#7c8f73] hover:text-[#5e7457]">
+              <Link href="/styles/camera?mode=diagnose" className="inline-flex h-13 items-center justify-center gap-2 rounded-full border border-[#d8cbbb] bg-[#fffdf8] px-7 py-4 text-sm font-semibold text-[#2d2926] transition hover:border-[#7c8f73] hover:text-[#5e7457]">
                 诊断今日穿搭
               </Link>
               <Link href="/styles" className="inline-flex h-13 items-center justify-center rounded-full px-5 py-4 text-sm font-medium text-[#7a7168] transition hover:text-[#2d2926]">
@@ -215,8 +215,8 @@ export default function BrandHome() {
                 <span key={tag} className="rounded-full border border-[#eadfce] bg-[#fffdf8] px-4 py-2 text-sm text-[#6f665d]">{tag}</span>
               ))}
             </div>
-            <Link href="/score-outfit" className="mt-9 inline-flex items-center gap-2 rounded-full bg-[#7a93a8] px-7 py-4 text-sm font-semibold text-white transition hover:bg-[#657f94]">
-              诊断今日穿搭 <Wand2 size={16} />
+            <Link href="/styles/camera?mode=analyze" className="mt-9 inline-flex items-center gap-2 rounded-full bg-[#7a93a8] px-7 py-4 text-sm font-semibold text-white transition hover:bg-[#657f94]">
+              拍立搭 · 分析 <Wand2 size={16} />
             </Link>
           </motion.div>
           <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} transition={{ duration: 0.55 }} className="rounded-[2.4rem] border border-[#eadfce] bg-[#fffdf8] p-6 shadow-[0_24px_70px_rgba(83,65,45,0.1)]">

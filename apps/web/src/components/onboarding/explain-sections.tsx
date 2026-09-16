@@ -169,8 +169,11 @@ export function AvoidanceZone({ advice, tone = 'nice' }: { advice: AvoidanceAdvi
 // ============================================================
 
 export function StyleRanking({ score, tone = 'nice' }: { score: MultiDimensionScore; tone?: ToneMode }) {
-  // 只展示"推荐尝试"前 3 个（去掉"谨慎选择"列 — 负向引导 + 占面积，成本 > 收益）
-  const secondary = score.secondaryStyles.slice(0, 3);
+  // 只展示高分次级风格（≥70 分）：避免推荐一堆低分风格让用户觉得"AI 乱推"
+  // 同时去掉"谨慎选择"列 — 负向引导 + 占面积，成本 > 收益
+  const secondary = score.secondaryStyles
+    .filter((s) => s.score >= 70)
+    .slice(0, 3);
   if (secondary.length === 0) return null;
 
   return (
