@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import {
   getUserMemory,
   updateStyleProfile,
@@ -136,7 +138,14 @@ export default function MemoryPage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
         {/* Header */}
         <header className="mb-8">
-          <p className="text-sm font-medium text-ink/60">首页 · 长期记忆</p>
+          <Link
+            href="/"
+            className="mb-4 inline-flex items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink-900"
+          >
+            <ArrowLeft size={16} />
+            返回首页
+          </Link>
+          <p className="text-sm font-medium text-ink/60">我的档案 · 长期记忆</p>
           <h1 className="mt-2 text-3xl font-bold">AI 记住了什么</h1>
           <p className="mt-2 text-ink/70">
             系统会长期记住你的风格偏好、身材特点、衣柜情况和历史反馈，
