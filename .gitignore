@@ -76,7 +76,6 @@ lark-auth-qr.png
 user-flow-feedback.svg
 video/
 .agents/
-scripts/deploy.sh
 docker-compose.prod.yml
 start-public.ps1
 stop-public.ps1
