@@ -10,19 +10,20 @@
 #   5. 失败回滚到上一个 commit（git reset --hard HEAD@{1}）
 #
 # 用法：
-#   bash scripts/deploy.sh                 # 部署默认分支（main）
-#   bash scripts/deploy.sh origin ai       # 部署 origin/ai 分支
+#   bash scripts/deploy.sh                       # 部署默认分支（ai-stylemate）
+#   bash scripts/deploy.sh origin main           # 部署 origin/main 分支
+#   BRANCH=feature/xxx bash scripts/deploy.sh    # 部署指定分支
 #
 # 前置（服务器上一次性完成，见 docs/DEPLOY.md）：
 #   - node ≥ 18, pm2 已全局安装（npm i -g pm2）
-#   - 仓库已 clone 到 /srv/stylemate（或自定义 ROOT_DIR）
+#   - 仓库已 clone 到 /opt/stylemate（或自定义 ROOT_DIR）
 #   - .env 在 ROOT_DIR 下（与本地结构一致）
 #   - pm2 已 init（pm2 startup + pm2 save）
 #
 # 环境变量（可覆盖）：
-#   ROOT_DIR    部署根目录，默认 /srv/stylemate
+#   ROOT_DIR    部署根目录，默认 /opt/stylemate
 #   REMOTE      git remote 名，默认 origin
-#   BRANCH      部署分支，默认 main
+#   BRANCH      部署分支，默认 ai-stylemate
 #   SKIP_BUILD  非空时跳过 build（仅做 reload，调试用）
 # ============================================================
 
@@ -30,7 +31,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="${ROOT_DIR:-/opt/stylemate}"
 REMOTE="${REMOTE:-origin}"
-BRANCH="${BRANCH:-main}"
+BRANCH="${BRANCH:-ai-stylemate}"
 SKIP_BUILD="${SKIP_BUILD:-}"
 
 # 颜色
@@ -41,7 +42,14 @@ ok()   { printf "${GRN}✓${NC} %s\n" "$*"; }
 warn() { printf "${YLW}⚠${NC} %s\n" "$*"; }
 die()  { printf "${RED}✗${NC} %s\n" "$*" >&2; exit 1; }
 
-trap 'die "部署失败（line $LINENO），已尝试回滚"' ERR
+rollback() {
+  echo
+  warn "部署失败，正在回滚到 $PREV_COMMIT ..."
+  git reset --hard "$PREV_COMMIT"
+  pm2 restart ecosystem.config.js 2>/dev/null || pm2 start ecosystem.config.js
+  warn "已回滚到 $PREV_COMMIT，请查看日志确认: pm2 logs stylemate-api --lines 50"
+}
+trap 'rollback; die "部署失败（line $LINENO），已回滚"' ERR
 
 # --- 前置检查 ---
 [ -d "$ROOT_DIR" ] || die "部署目录不存在: $ROOT_DIR"
@@ -62,6 +70,11 @@ git fetch "$REMOTE" "$BRANCH"
 git reset --hard "$REMOTE/$BRANCH"
 NEW_COMMIT="$(git rev-parse --short HEAD)"
 ok "已更新 $PREV_COMMIT -> $NEW_COMMIT"
+# 防御性检查：避免 main 分支被误拉导致服务器回到 init commit
+if [ "$NEW_COMMIT" = "$(git rev-list --max-parents=0 HEAD | head -1 | cut -c1-7)" ]; then
+  warn "⚠️  拉到的 commit 是仓库首个 commit，可能拉错分支（当前 BRANCH=$BRANCH）"
+  warn "请确认 .env 配的部署分支是 ai-stylemate，或显式 BRANCH=ai-stylemate bash scripts/deploy.sh"
+fi
 
 # --- 安装依赖 ---
 log "3/6 安装依赖 (npm ci)"
@@ -109,7 +122,7 @@ done
 # Web 健康检查
 WEB_URL="http://127.0.0.1:3000"
 for i in {1..10}; do
-  if curl -fsS --max-time 3 -o /dev/null "$WEB_URL" 2>&1; then
+  if curl -fsS --max-time 3 -o /dev/null "$WEB_URL"; then
     ok "Web 健康检查通过: $WEB_URL"
     break
   fi

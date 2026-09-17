@@ -44,8 +44,12 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # 服务器侧的部署入口（幂等脚本，含健康检查与失败回滚）
+          # 注意：先 git fetch + reset 拿到最新代码（含新版 deploy.sh），
+          #      再跑 deploy.sh —— 这样 deploy.sh 自身也能自更新
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
+            git fetch origin
+            git reset --hard origin/ai-stylemate
             bash scripts/deploy.sh
           # 增加超时：build 阶段通常 2-5 分钟
           command_timeout: 10m

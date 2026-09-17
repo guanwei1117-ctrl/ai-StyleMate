@@ -68,4 +68,9 @@ if (dbEnabled) {
     ...dbModules,
     StyleEngineModule,
     ScoringModule,
-    // �
+    // 电商导购：无 DB 依赖（深链模式），联盟模式仅依赖环境变量
+    ShoppingModule,
+  ],
+  controllers: [AppController],
+})
+export class AppModule {}
