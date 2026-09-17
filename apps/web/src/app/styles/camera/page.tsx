@@ -42,6 +42,16 @@ const MODE_OPTIONS: Array<{
 ];
 
 export default function CameraPage() {
+  // useSearchParams 必须在 Suspense 内（Next.js 14 预渲染要求）
+  // 真实逻辑放在 CameraContent，主组件只做 Suspense 包裹
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#f4f1ea]" />}>
+      <CameraContent />
+    </Suspense>
+  );
+}
+
+function CameraContent() {
   const searchParams = useSearchParams();
   // URL query 决定初始模式，便于外链直达：/styles/camera?mode=analyze
   const initialMode: Mode = searchParams.get('mode') === 'analyze' ? 'analyze' : 'diagnose';
