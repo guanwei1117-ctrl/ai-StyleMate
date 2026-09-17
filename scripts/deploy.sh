@@ -28,7 +28,7 @@
 
 set -Eeuo pipefail
 
-ROOT_DIR="${ROOT_DIR:-/srv/stylemate}"
+ROOT_DIR="${ROOT_DIR:-/opt/stylemate}"
 REMOTE="${REMOTE:-origin}"
 BRANCH="${BRANCH:-main}"
 SKIP_BUILD="${SKIP_BUILD:-}"

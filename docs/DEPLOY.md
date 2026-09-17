@@ -40,8 +40,8 @@ npm i -g pm2
 ```bash
 # 创建专用用户（推荐，避免直接用 root）
 useradd -m -s /bin/bash deploy
-mkdir -p /srv/stylemate
-chown -R deploy:deploy /srv/stylemate
+mkdir -p /opt/stylemate
+chown -R deploy:deploy /opt/stylemate
 
 # 配置 SSH 公钥（用于 GitHub Actions 登录）
 mkdir -p /home/deploy/.ssh
@@ -69,7 +69,7 @@ sudo -u deploy bash -c '
 **方式 A：用项目自带的 docker compose（推荐）**
 
 ```bash
-cd /srv/stylemate
+cd /opt/stylemate
 docker compose up -d postgres redis
 # 修改 .env：DB_HOST=127.0.0.1  DB_PASSWORD=<你设置的密码>
 ```
@@ -81,7 +81,7 @@ docker compose up -d postgres redis
 ### 1.5 首次部署（手动）
 
 ```bash
-cd /srv/stylemate
+cd /opt/stylemate
 bash scripts/deploy.sh
 ```
 
@@ -117,7 +117,7 @@ pm2 save             # 保存当前进程状态
 | `SSH_HOST` | `your-server-ip` 或 `style.example.com` | 服务器 IP / 域名 |
 | `SSH_USER` | `deploy` | 服务器登录用户名 |
 | `SSH_PRIVATE_KEY` | SSH 私钥**整段内容** | 从 `~/.ssh/id_ed25519` 复制（含 `-----BEGIN...-----`） |
-| `DEPLOY_PATH` | `/srv/stylemate` | 部署目录 |
+| `DEPLOY_PATH` | `/opt/stylemate` | 部署目录 |
 
 ### 2.2 测试
 
@@ -193,7 +193,7 @@ certbot --nginx -d style.example.com
 
 ### 3.2 修改前端环境变量
 
-编辑 `/srv/stylemate/.env` 与前端构建时的 API URL：
+编辑 `/opt/stylemate/.env` 与前端构建时的 API URL：
 
 ```bash
 # ecosystem.config.js 里 NEXT_PUBLIC_API_URL 改为：

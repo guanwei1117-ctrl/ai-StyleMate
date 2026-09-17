@@ -73,7 +73,7 @@ module.exports = {
       host: 'your-server-ip',
       ref: 'origin/main',
       repo: 'git@github.com:your-org/cleanfit.git',
-      path: '/srv/stylemate',
+      path: '/opt/stylemate',
       'pre-deploy-local': '',
       'post-deploy':
         'npm ci && npm run build && pm2 reload ecosystem.config.js --env production && pm2 save',
