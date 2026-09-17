@@ -34,7 +34,6 @@ export default function WardrobeUploader({ onUploaded, requireAuth }: Props) {
   const [outfitFile, setOutfitFile] = useState<File | null>(null);
   const [outfitAnalysis, setOutfitAnalysis] = useState<AnalyzeOutfitResponse | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const handleSingleClick = () => {
     if (requireAuth && !requireAuth('请先登录后再上传衣物')) return;
@@ -118,29 +117,6 @@ export default function WardrobeUploader({ onUploaded, requireAuth }: Props) {
     }
   };
 
-  const handleOutfitConfirm = async (items: { item: { name: string }; dataUrl: string }[]) => {
-    setSaving(true);
-    setError(null);
-    const { recognizeAndAddItem } = await import('@/lib/wardrobe-api');
-    let succeeded = 0;
-    const errors: string[] = [];
-    for (let i = 0; i < items.length; i++) {
-      try {
-        const name = items[i].item.name || `衣物${i + 1}`;
-        const file = dataUrlToFile(items[i].dataUrl, `${name}.png`);
-        await recognizeAndAddItem(file);
-        succeeded++;
-      } catch (err) {
-        errors.push(err instanceof Error ? err.message : '识别失败');
-      }
-    }
-    setSaving(false);
-    setOutfitFile(null);
-    setOutfitAnalysis(null);
-    if (succeeded > 0) onUploaded();
-    if (errors.length > 0) setError(errors.join('；'));
-  };
-
   const closeOutfitDialog = () => {
     setOutfitFile(null);
     setOutfitAnalysis(null);
@@ -163,7 +139,7 @@ export default function WardrobeUploader({ onUploaded, requireAuth }: Props) {
           )}
         </Button>
 
-        <Button variant="outline" onClick={handleOutfitClick} disabled={analyzing || saving}>
+        <Button variant="outline" onClick={handleOutfitClick} disabled={analyzing}>
           {analyzing ? (
             <>
               <Loader2 size={18} className="animate-spin" />
@@ -219,7 +195,7 @@ export default function WardrobeUploader({ onUploaded, requireAuth }: Props) {
         <OutfitUploadDialog
           file={outfitFile}
           analysis={outfitAnalysis}
-          onConfirm={handleOutfitConfirm}
+          onUploaded={onUploaded}
           onCancel={closeOutfitDialog}
         />
       )}

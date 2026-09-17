@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, X, Plus, Shirt } from 'lucide-react';
 import WardrobeUploader from '@/components/wardrobe/wardrobe-uploader';
 import ManualAddDialog from '@/components/wardrobe/manual-add-dialog';
+import ItemDetailDialog from '@/components/wardrobe/item-detail-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   fetchWardrobeItems,
@@ -40,6 +41,7 @@ export default function WardrobePage() {
   const [subFilter, setSubFilter] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [manualOpen, setManualOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<WardrobeItem | null>(null);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -84,26 +86,7 @@ export default function WardrobePage() {
     return true;
   });
 
-  // M7：AI 智能整理模式 —— 按"百搭程度 + 季节匹配 + 颜色偏好 + 风格匹配"智能排序
-  const [aiSort, setAiSort] = useState(false);
-  const sortedItems = aiSort
-    ? [...filteredItems].sort((a, b) => {
-        // 综合评分：百搭 50% + matchability 30% + 颜色偏好 20%
-        const scoreOf = (it: typeof a) => {
-          let s = (it.matchabilityScore ?? 0) * 0.3;
-          // 风格匹配（likedStyles 优先）
-          const likedStyles = ['极简', '通勤', '休闲']; // 简化：通用偏好
-          if (it.styleTags?.some((t) => likedStyles.includes(t))) s += 15;
-          // 颜色匹配（preferredColors 优先）
-          const preferredColors = ['黑', '白', '灰', '蓝', '米']; // 简化：通用安全色
-          if (it.color && preferredColors.includes(it.color)) s += 10;
-          // 季节匹配（春秋季优先，因为是当前过渡季）
-          if (it.season?.includes('spring') || it.season?.includes('autumn')) s += 8;
-          return s;
-        };
-        return scoreOf(b) - scoreOf(a);
-      })
-    : filteredItems;
+
 
   const countByCategory = (cat: WardrobeCategory) =>
     items.filter((i) => i.category === cat).length;
@@ -286,27 +269,16 @@ export default function WardrobePage() {
         ) : (
           <>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs text-ink/60">
-                {aiSort ? '🧠 AI 智能整理：按"今天最适合穿"排序' : `共 ${sortedItems.length} 件`}
-              </p>
-              <button
-                type="button"
-                onClick={() => setAiSort((s) => !s)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  aiSort
-                    ? 'bg-olive-dark text-creme-50'
-                    : 'border border-ink-900/15 text-ink-600 hover:border-ink-900/40'
-                }`}
-              >
-                {aiSort ? '✓ AI 整理中' : '🧠 AI 整理'}
-              </button>
+              <p className="text-xs text-ink/60">共 {filteredItems.length} 件</p>
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
-              {sortedItems.map((item) => (
-              <div
+              {filteredItems.map((item) => (
+              <button
                 key={item.id}
-                className="group rounded-xl border border-ink-900/10 bg-white overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift relative"
+                type="button"
+                onClick={() => setDetailItem(item)}
+                className="group rounded-xl border border-ink-900/10 bg-white overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift relative text-left p-0 cursor-pointer"
               >
                 {/* 照片区域 */}
                 <div className="aspect-square bg-ink-50 relative overflow-hidden">
@@ -336,7 +308,7 @@ export default function WardrobePage() {
                     <span className="text-[10px] text-ink-400 truncate">{item.color}</span>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
           </>
@@ -344,6 +316,12 @@ export default function WardrobePage() {
       </div>
 
       <ManualAddDialog open={manualOpen} onClose={() => setManualOpen(false)} onAdded={load} />
+      <ItemDetailDialog
+        item={detailItem}
+        onClose={() => setDetailItem(null)}
+        onDeleted={() => { setDetailItem(null); load(); }}
+        onUpdated={() => { setDetailItem(null); load(); }}
+      />
     </main>
   );
 }

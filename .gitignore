@@ -87,3 +87,13 @@ deploy/
 docs/stylemate-prd.md
 docs/mvp-next-steps.md
 docs/plans/
+
+# === 部署 / 服务器专属文件（保留在本地，不上传 GitHub）===
+# 服务器运行只需 ecosystem.config.js + scripts/deploy.sh + docker-compose.yml
+.github/workflows/deploy.yml
+scripts/fix-deploy-branch.sh
+scripts/push-to-github.ps1
+scripts/nginx-stylemate.conf
+docs/DEPLOY.md
+apps/web/Dockerfile
+services/api/Dockerfile
