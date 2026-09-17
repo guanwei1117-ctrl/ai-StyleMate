@@ -1,6 +1,9 @@
 /**
  * 管理端 API 封装。
  * 所有请求带 JWT，后端通过 RolesGuard 校验 admin 角色。
+ *
+ * 401 处理：自动清掉本地 token（避免前端 layout 守卫误判已登录），
+ * 提示用户重新登录。token 失效时不会再循环尝试调同一个接口。
  */
 
 import { getAuthToken } from './auth';
@@ -13,9 +16,34 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/** 401 时清 token + 跳登录；仅执行一次（防止多个并发请求都触发） */
+let _authExpiredHandled = false;
+function handleAuthExpired() {
+  if (_authExpiredHandled) return;
+  _authExpiredHandled = true;
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem('stylemate:auth-token');
+    window.localStorage.removeItem('stylemate:auth-user');
+  } catch {
+    /* ignore */
+  }
+  // 给用户 1.5s 看错误信息，再跳登录页
+  setTimeout(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+      window.location.assign('/auth?expired=1');
+    }
+    _authExpiredHandled = false;
+  }, 1500);
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) {
+    if (res.status === 401) {
+      handleAuthExpired();
+      throw new Error('登录已过期，正在跳转重新登录…');
+    }
     const err = await res.json().catch(() => ({ message: '请求失败' }));
     throw new Error(err.message || `请求失败 (${res.status})`);
   }

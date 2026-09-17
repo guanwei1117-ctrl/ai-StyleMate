@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 
 /**
@@ -17,25 +18,38 @@ import {
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger = new Logger(RolesGuard.name);
+
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const user = request.user as { id: string; role?: string; phone?: string } | undefined;
 
     if (!user) {
+      this.logger.warn('RolesGuard: request.user 为空（JwtAuthGuard 未通过或未注入）');
       throw new ForbiddenException('未认证');
     }
 
     // 方式一：数据库 role 字段校验
     if (user.role === 'admin') {
+      this.logger.debug(`RolesGuard 通过: user.role=admin (${user.phone})`);
       return true;
     }
 
     // 方式二（开发环境）：环境变量 ADMIN_PHONES 中配置的手机号
-    const adminPhones = (process.env.ADMIN_PHONES || '').split(',').map((p) => p.trim()).filter(Boolean);
+    const adminPhones = (process.env.ADMIN_PHONES || '')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
     if (adminPhones.length > 0 && user.phone && adminPhones.includes(user.phone)) {
+      this.logger.debug(
+        `RolesGuard 通过 (环境变量白名单): phone=${user.phone} role=${user.role}`,
+      );
       return true;
     }
 
+    this.logger.warn(
+      `RolesGuard 拒绝: user=${user.id} role=${user.role} phone=${user.phone}`,
+    );
     throw new ForbiddenException('需要管理员权限');
   }
 }
