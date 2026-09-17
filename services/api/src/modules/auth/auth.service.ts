@@ -74,8 +74,15 @@ export class AuthService {
 
   /** 验证 JWT payload */
   async validateUser(payload: { sub: string }): Promise<{ id: string; role: string; phone: string }> {
-    const user = await this.userService.findById(payload.sub);
-    if (!user) throw new UnauthorizedException('用户不存在');
+    // findById 找不到时抛 NotFoundException，会被 NestJS passport 兜底成 401
+    // 这里显式捕获后转成 UnauthorizedException，让错误信息更准确（避免误判为"路由不存在"等）
+    let user;
+    try {
+      user = await this.userService.findById(payload.sub);
+    } catch {
+      throw new UnauthorizedException('用户不存在或已被删除');
+    }
+    if (!user) throw new UnauthorizedException('用户不存在或已被删除');
     return { id: user.id, role: user.role, phone: user.phone };
   }
 

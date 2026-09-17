@@ -28,6 +28,8 @@ if (dbEnabled) {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { OotdModule } = require('./modules/ootd/ootd.module');
   const { AdminModule } = require('./modules/admin/admin.module');
+  // 用户建议（管理端列表 + 公开提交）：admin/suggestions + /suggestions
+  const { SuggestionModule } = require('./modules/suggestion/suggestion.module');
   // RAG 知识库：依赖 TypeOrm（KnowledgeDocument/KnowledgeChunk），仅在 DB 启用时加载
   const { RagModule } = require('./modules/rag/rag.module');
 
@@ -55,6 +57,7 @@ if (dbEnabled) {
     SyncModule,
     OotdModule,
     AdminModule,
+    SuggestionModule,
     RagModule,
   );
 }
@@ -65,9 +68,4 @@ if (dbEnabled) {
     ...dbModules,
     StyleEngineModule,
     ScoringModule,
-    // 电商导购：无 DB 依赖（深链模式），联盟模式仅依赖环境变量
-    ShoppingModule,
-  ],
-  controllers: [AppController],
-})
-export class AppModule {}
+    // �
